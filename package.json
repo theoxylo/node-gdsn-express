@@ -1,0 +1,24 @@
+{
+  "name": "node-gdsn-express",
+  "version": "0.0.1",
+  "description": "An express server for GDSN",
+  "engines": { 
+    "node": "0.8.6" 
+  },
+  "author": "Theoxylo - http://https://githumb.com/theoxylo",
+  "scripts": {
+    "start": "node app"
+  },
+  "dependencies": {
+    "express": "3.0.0rc3",
+    "gdsn": "0.0.2",
+    "ejs": "0.8.3"
+  },
+  "main": "index",
+  "directories": { },
+  "keywords": ["gdsn", "node", "eip", "xpath", "xml", "express"],
+  "licenses": [{
+      "type" : "MIT License",
+      "url" : "http://www.opensource.org/licenses/mit-license.php"
+  }]
+}

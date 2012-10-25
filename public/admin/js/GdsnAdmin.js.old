@@ -1,0 +1,2172 @@
+/*
+	GDSN Admin Javascript Definitions
+*/
+APICommands = {
+    Login: "login",
+    Logout: "logout",
+
+    GetStatus: "getstatus",
+    GetVersions: "getversions",
+    GetTipOfDay: "gettip",
+
+    GetChat: "getchat",
+    SendChat: "sendchat",
+
+    StartServer: "startserver",
+    StopServer: "stopserver",
+    RestartServer: "restartserver",
+    KillServer: "killserver",
+
+    GetFullConfig: "getfullconfig",
+    SetConfig: "setconfig",
+
+    GetSchedule: "getschedule",
+    ResetSchedule: "setscheduledefaults",
+    AddScheduleItem: "addscheduleitem",
+    DeleteScheduleItem: "delscheduleitem",
+    RunScheduleItem: "runscheduleitem",
+
+    GetBackups: "getbackuplist",
+    BackupWorld: "backupworld",
+    GetBackupStatus: "getbackupstatus",
+    DeleteBackup: "deletebackup",
+    RestoreBackup: "restorebackup",
+    GetRestoreStatus: "getrestorestatus",
+    DeleteWorld: "DeleteWorld",
+
+    GetPlugins: "getplugins",
+    SetPluginState: "setpluginstate",
+    
+    GetGroups: "getgrouplist",
+    GetGroupInfo: "getgroupinfo",
+    AddGroupValue: "addgroupvalue",
+    RemoveGroupValue: "removegroupvalue",
+
+    GetUsers: "GetMCMAUsers",
+    SetUserMask: "SetMCMAUserAuthMask",
+    UnsetUserMask: "UnsetMCMAUserAuthMask",
+    SetUserSetting: "SetMCMAUserSettingMask",
+    UnsetUserSetting: "UnsetMCMAUserSettingMask",
+    DeleteUser: "DeleteUser",
+    CreateUser: "CreateUser",
+    ChangeUserPassword: "ChangeUserPassword",
+    ChangePassword: "ChangePassword",
+    
+    AddLicence: "AddLicence",
+    UpdateMCMA: "updatemcma",
+    UpdateMC: "updatemc",
+    GetUpdateStatus: "getupdatestatus",
+    
+    GetServerInfo: "GetServerInfo"
+};
+
+GroupArgs = {
+    GroupsList: "groupslist",
+    GroupMembers: "groupmembers",
+    GroupCommands: "groupcommands",
+    GroupColor: "Color",
+    GroupInherit: "Inherits",
+    GroupBuild: "CanBuild",
+    GroupInteract: "CanInteract",
+    GroupPrefix: "Prefix",
+    GroupSuffix: "Suffix"
+};
+
+PermissionFlags = {
+    None: 0,
+    StopServer: 1, //Also allows kill
+    StartServer: 2,
+    //RestartServer == 1 + 2
+    ConsoleAccess: 4, //Also allows chat, kick, ban, etc
+    ModifyUsersAndGroups: 8,
+    ModifyMinecraftConfig: 16,
+    ModifyFeaturesConfig: 32,
+    ModifySettingsConfig: 64,
+    ManagePlugins: 128,
+    DeleteWorld: 256,
+    TakeBackup: 512,
+    RestoreBackup: 1024, //Requires DeleteWorld
+    DeleteBackup: 2048,
+    ModifySchedule: 4096,
+    UpdateMinecraft: 8192,
+    UpdateMcMyAdmin: 16384, //Requires stop + start
+    PerformDiagnostics: 32768,
+    FileManager: 65536,
+    FileUpload: 131072,
+    FileModify: 262144,
+    FileUploadExecutable: 524288,
+    ModifyMcMyAdminUsers: 1048576
+};
+
+UpdateEvents = {
+    GetStatus: 10,
+    GetChat: 20,
+    GetBackupStatus: 30,
+    GetRestoreStatus: 40,
+    GetVersions: 50
+};
+
+Icons = {
+    Info: "message_info",
+    Warning: "message_warn",
+    Question: "message_question"
+};
+
+ServerStates = {
+    NotRunning: 0,
+    Starting: 10,
+    ServerReady: 20,
+    Restarting: 30,
+    ShuttingDown: 40,
+    Error: 100
+};
+
+ServerStateStrings = {
+    0: Messages.ServerNotRunning,
+    10: Messages.ServerStarting,
+    20: Messages.ServerReady,
+    30: Messages.ServerRestarting,
+    40: Messages.ServerShutdown,
+    100: Messages.ServerError
+};
+
+ServerStateIcons = {
+    0: "status_stop",
+    10: "status_wait",
+    20: "status_go",
+    30: "status_restart",
+    40: "status_wait",
+    100: "status_err"
+};
+
+Tasks = {
+    ServerStarting: 10,
+    ServerStopping: 20,
+    ServerRestarting: 30,
+    Backup: 40,
+    Restore: 50,
+    Delete: 60,
+    Update: 70
+};
+
+Cookies = {
+    DisableAnimation: "DISABLEANIM",
+    iDevice: "IDEVICE",
+    Theme: "THEME",
+    UIColor: "UICOLOR"
+};
+
+var UpdateIntervals = new Array();
+var RunningTasks = new Array();
+var LastTaskID = 0;
+var UpdateShown = false;
+var Messages;
+
+/*Analytics*/
+
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-19277045-11']);
+_gaq.push(['_trackPageview']);
+
+//(function () {
+    //var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    //ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    //var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+//})();
+
+/*End Analytics*/
+
+function nopFalse() { return false; }
+
+function checkBrowser() {
+    var BasicCSS = false;
+    var mobile = false;
+    var disableAnimations = false;
+
+    var matchiDevice = new RegExp("i[p|P](hone|ad|od)");
+    var iDeviceTest = matchiDevice.exec(navigator.userAgent);
+
+    if (iDeviceTest != null) {
+        var iDevice = iDeviceTest[0];
+        BasicCSS = true;
+        mobile = true;
+        disableAnimations = true;
+        
+        if (parseBool(getCookie(Cookies.iDevice)) != true)
+        {
+            createWarning(Messages.Title_iDevice.format(iDevice), Messages.Message_iDevice.format(iDevice), showAppStore);
+        }
+    }
+
+    if (navigator.userAgent.match("[a|A]ndroid")) {
+        BasicCSS = true;
+        mobile = true;
+        disableAnimations = true;
+    }
+
+    if (navigator.appVersion.indexOf("MSIE") != -1) {
+        BasicCSS = true;
+        var version = parseFloat(navigator.appVersion.split("MSIE")[1]);
+        if (version < 9) {
+            createWarning(Messages.Title_UnsupportedBrowser, Messages.Message_UnsupportedBrowser, null);
+            //showFatal(Messages.Title_UnsupportedBrowser, Messages.Message_UnsupportedBrowser);
+        }
+    }
+
+    if (BasicCSS) {
+        $("head").append("<link type=\"text/css\" href=\"css/Basic.css\" rel=\"stylesheet\" />");
+    }
+
+    if (mobile) {
+        $("head").append("<link type=\"text/css\" href=\"css/Mobile.css\" rel=\"stylesheet\" />");
+    }
+
+    if (disableAnimations && parseBool(getCookie(Cookies.DisableAnimation)) != true)
+    {
+        setCookie(Cookies.DisableAnimation, true);
+        getAnim();
+    }
+}
+
+function showAppStore() {
+    setCookie(Cookies.iDevice, true);
+    window.open("http://itunes.com/app/michaelhohl/mcmymadmin");
+}
+
+function parseBool(value) {
+    if (value == null) {return false;}
+
+    if (typeof value == "number") {
+        return (parseInt(value) > 0);
+    }
+
+    switch (value.toString().toLocaleLowerCase()) {
+        case "1":
+        case "true":
+        case "yes":
+        case "on":
+            return true;
+        default:
+            return false;
+    }
+}
+
+String.prototype.format = function () {
+    var args = arguments;
+    return this.replace(/{(\d+)}/g, function (match, number) {
+        return typeof args[number] != 'undefined' ? args[number] : match ;
+    });
+};
+
+$(function () {
+    getLastColor();
+    getTheme();
+
+    $.fn.enterPressed = function (callback) {
+        this.keypress(function (event) {
+            if (event.keyCode == '13') {
+                event.preventDefault();
+                callback();
+            }
+        });
+    };
+
+    $(".pagehost").text(document.location.host);
+
+    $("#loginwait").parent().hide();
+    $("#sidetabs, #loginerror, #modalbg, #tasksarea").hide();
+    $("#selPast, #selTime, #selEveryHour, #eventparam").hide();
+    $("#tabs, #tabs .tabarea, .subtabcontainer, #userinfo, #passwdchange").hide();
+
+    $(".sidetab").mousedown(tabClick);
+    $(".sidetab").click(nopFalse);
+    $(".subtab").mousedown(subTabClick);
+    $(".subtab").click(nopFalse);
+    $(".colorsample").click(changeColor);
+    $("#setting_local_theme").change(pickTheme);
+    $("#setting_local_notransitions").change(setAnim);
+    $("#customcolor").unbind("click").click(pickColor);
+    $(".userFlag").change(toggleUserFlag);
+    $(".userSetting").change(toggleSettingFlag);
+
+    $("#button_startserver").click(function () {
+        performAction(APICommands.StartServer);
+        RunningTasks[Tasks.ServerStarting] = createNotice(Messages.ServerStarting);
+    });
+
+    $("#button_stopserver").click(function () {
+        performAction(APICommands.StopServer);
+        RunningTasks[Tasks.ServerStopping] = createNotice(Messages.ServerShutdown);
+    });
+
+    $("#button_restartserver").click(function () {
+        performAction(APICommands.RestartServer);
+        RunningTasks[Tasks.ServerRestarting] = createTask(Messages.ServerRestartingShort);
+    });
+
+    $("#chatEntryBox").keypress(function (event) {
+        if (event.keyCode == '13') {
+            event.preventDefault();
+
+            var message = $(this).val();
+
+            requestData(APICommands.SendChat, { Message: message }, null);
+
+            $(this).val("");
+
+            if (message[0] == "/") {
+                addChatEntry("Server", message, true);
+            }
+        }
+    });
+
+    $("#newGroupUser").enterPressed(addGroupMemeber);
+    $("#newGroupUserButton").click(addGroupMemeber);
+    $("#newGroupCommand").enterPressed(addGroupCommand);
+    $("#newGroupCommandButton").click(addGroupCommand);
+    $("#newGroupName").enterPressed(addGroup);
+    $("#newGroupButton").click(addGroup);
+    $("#deleteGroupButton").click(delGroup);
+    $("#changeUserPassword").click(changeUserPassword);
+    $("#deleteUserButton").click(deleteUser);
+    $("#changePasswordCancelButton").click(hidePwChange);
+    $("#chancePasswordOKButton").click(pwChangeOk);
+    $("#newpwd2").enterPressed(pwChangeOk);
+    $("#newUserName").enterPressed(addUser);
+    $("#addUserButton").click(addUser);
+    $("#getWidgetCode").click(getWidgetCode);
+
+    $("#button_updatemc, #button_updatemc2").click(UpdateMC);
+    $("#button_updatemcma").click(UpdateMCMA);
+
+    fillTimeSelects();
+    ApplyLanguage();
+    checkBrowser();
+    //getProvider();
+
+    if (document.location.protocol == "file:") {
+        showFatal(Messages.ErrorIncorrectUsage, Messages.ErrorIncorrectUsageText);
+        return;
+    }
+
+    $("#loginusername").focus();
+});
+
+function clearTasks() {
+    $("#tasksarea .task").remove();
+    $("#tasksarea").hide('drop', { direction: 'left' });
+    RunningTasks = new Array();
+    LastTaskID = 0;
+}
+
+function endTask(taskId)
+{
+    var eId = "#task_" + taskId;
+
+    if ($(eId).length == 1)
+    {
+        if ($("#tasksarea .task").length == 1)
+        {
+            $("#tasksarea").hide('drop', { direction: 'left' }, function () {
+                $(eId).remove();
+                updateNoticeTitles();
+            });
+        }
+        else {
+            $(eId).hide('drop', { direction: 'left' }, function() {
+                $(eId).remove();
+                updateNoticeTitles();
+            });
+        }
+    }
+}
+
+function backupUploadFinished() {
+    getBackupList();
+    showModal(Messages.Title_UploadOK, Messages.Message_BackupUploaded, Icons.Info, hideModal, null);
+}
+
+function setTaskStatus(taskId, percentage)
+{
+    var eId = "#task_" + taskId;
+
+    if ($(eId).length == 1)
+    {
+        $(eId + " .progressbarslider").css("width", percentage + "%");
+    }
+}
+
+function updateNoticeTitles() {
+    setTimeout(function () {
+        var notifyCount = $("#tasksarea .task_warn").length;
+        if (notifyCount) {
+            $("#noticestitle").show();
+            $("#noticestitle").text(Messages.Notifications.format(notifyCount));
+        } else {
+            $("#noticestitle").hide();
+        }
+
+        var taskCount = $("#tasksarea .task_activity").length;
+        if (taskCount) {
+            $("#runtasktitle").show();
+            $("#runtasktitle").text(Messages.RunningTasks.format(taskCount));
+        } else {
+            $("#runtasktitle").hide();
+        }
+    }, 500);
+}
+
+function createNotice(title)
+{
+    var taskId = LastTaskID;
+    var eId = "task_" + LastTaskID;
+    var taskElement = "<div class=\"task task_activity\" id=\"" + eId + "\">" + 
+        "<img src=\"Images/loadspin_tiny.gif\" alt=\"Progress\" class=\"loadspin_tiny inline\"/>" + 
+        "<div class=\"noticeline\">" + title + "</div>" +
+        "</div>";
+        $("#runtasktitle").after(taskElement);
+
+    if ($("#tasksarea").is(":hidden"))
+    {
+        $("#tasksarea").show('drop', { direction: 'left' });
+    }
+    else
+    {
+        $("#tasksarea .task:first").show('drop', { direction: 'left' });
+    }
+
+    LastTaskID++;
+
+    updateNoticeTitles();
+
+    return(taskId);
+}
+
+function createWarning(title, message, onDismiss, autoDismiss) {
+    var taskId = LastTaskID;
+    var eId = "task_" + LastTaskID;
+    //var taskElement = "<div class=\"task task_warn\" id=\"{0}\" onclick=\"endTask({1});\"><div class='title'>{2}</div><div>{3}</div></div>".format(eId, taskId, title, message);
+
+    var taskElement = $("<div class=\"task task_warn\" id=\"{0}\"><div class='title'>{1}</div><div>{2}</div></div>".format(eId, title, message));
+
+    taskElement.click(function () {
+        endTask(taskId);
+        if (onDismiss != null) {
+            onDismiss(); }
+    });
+
+    if (autoDismiss > 0) {
+        setTimeout(function () {
+            taskElement.click();
+        }, autoDismiss);
+    }
+
+    $("#noticestitle").after(taskElement);
+
+    if ($("#tasksarea").is(":hidden")) {
+        $("#tasksarea").show('drop', { direction: 'left' });
+    }
+    else {
+        $("#tasksarea .task:first").show('drop', { direction: 'left' });
+    }
+
+    LastTaskID++;
+
+    updateNoticeTitles();
+
+    return (taskId);
+}
+
+function createTask(title)
+{
+    var taskId = LastTaskID;
+    var eId = "task_" + LastTaskID;
+    var taskElement = "<div class=\"task task_activity\" id=\"" + eId + "\">" + 
+        "<h5 class=\"notopmargin\">" + title + "</h5>" +
+        "<img src=\"Images/loadspin_tiny.gif\" alt=\"Progress\" class=\"loadspin_tiny\"/>" + 
+        "<div class=\"progressbar\">" + 
+            "<div class=\"progressbarslider\"></div>" +
+        "</div></div>";
+    
+    $("#runtasktitle").after(taskElement);
+
+    if ($("#tasksarea").is(":hidden"))
+    {
+        $("#tasksarea").show('drop', { direction: 'left' });
+    }
+    else
+    {
+        $("#tasksarea .task:first").show('drop', { direction: 'left' });
+    }
+
+    LastTaskID++;
+
+    updateNoticeTitles();
+
+    return(taskId);
+}
+
+function logDebug(message) {
+    if ($("#debugMsgs").children("div").size() > 12) {
+        $("#debugMsgs").children("div").last().remove();
+    }
+
+    $("#debugMsgs").prepend("<div class=\"debugEntry\">{0}</div>".format(message));
+}
+
+function showFatal(title, text)
+{
+    $.fx.off = true;
+    $("#modalbg").removeClass("modalnormal").addClass("modalfatal");
+    showModal(title, text, "message_error", null, null);
+}
+
+function getWidgetCode() {
+    var widgetCode = "<script type=\"text/javascript\" src=\"{0}//{1}/js/widget.js\"></script>".format(document.location.protocol, document.location.host);
+    prompt(Messages.Title_WidgetCopy, widgetCode);
+}
+
+function showModal(title, text, iconClass, okButton, cancelButton)
+{
+    $("#modaltitle").text(title);
+    $("#modalmessage").html(text);
+    $("#message_icon").attr("class", iconClass);
+
+    if (okButton == null && cancelButton == null)
+    {
+        $("#modalbuttons").hide();
+    }
+    else
+    {
+        $("#modalbuttons").show();
+    }
+
+    $("#modalok").unbind("click");
+    $("#modalcancel").unbind("click");
+
+    if (okButton == null)
+    {
+        $("#modalok").hide();
+        $("#modalok").click(nopFalse);
+    }
+    else
+    {
+        $("#modalok").show();
+        $("#modalok").click(okButton);
+    }
+
+    if (cancelButton == null)
+    {
+        $("#modalcancel").hide();
+        $("#modalcancel").click(nopFalse);
+    }
+    else
+    {
+        $("#modalcancel").show();
+        $("#modalcancel").click(cancelButton);
+    }
+
+    $("#modalbg").fadeIn();
+}
+
+function featureUnavailable() {
+    showModal(Messages.Title_FeatureUnavailable, Messages.Message_FeatureUnavailable, Icons.Info, hideModal, null);
+}
+
+function hideModal()
+{
+    $("#modalbg").fadeOut();
+}
+
+function ApplyLanguage() {
+    $("div, span, p, h1, h2, h3, h4, h5, a, td, option, label").each(function (index) {
+        var message = $(this).text();
+
+        if (LocalizedText[message]) {
+            if ($(this).children().length == 0) {
+                $(this).html(LocalizedText[message]);
+            }
+        }
+    });
+
+    $("input").each(function () {
+        var message = $(this).val();
+
+        if (LocalizedText[message]) {
+            $(this).val(LocalizedText[message]);
+        }
+    });
+}
+
+function EnableTranslateMode() {
+    $("div, span, p, h1, h2, h3, h4, h5, a, td, label").mousedown(function (event) {
+        if (event.which == 3 && $(this).children().length == 0) {
+            var oldText = $(this).text();
+            var newText = prompt("Enter replacement text for '{0}'".format(oldText), oldText);
+            if (newText != null && newText != oldText) {
+                LocalizedText[oldText] = newText;
+                $(this).text(newText);
+                ApplyLanguage();
+            }
+        }
+    });
+
+    $("input").mousedown(function (event) {
+        if (event.which == 3 && $(this).children().length == 0) {
+            var oldText = $(this).val();
+            var newText = prompt("Enter replacement text for '{0}'".format(oldText), oldText);
+            if (newText != null && newText != oldText) {
+                LocalizedText[oldText] = newText;
+                $(this).val(newText);
+                ApplyLanguage();
+            }
+        }
+    });
+
+    alert("Right click on text to replace its value. Text that is dynamically created from values must be edited in the language file directly.");
+}
+
+function getLastColor()
+{
+    var color = getCookie(Cookies.UIColor);
+    if (color != null)
+    {
+        $("body").css('background-color', color);
+    }
+}
+
+function getTheme() {
+    var theme = getCookie(Cookies.Theme);
+
+    $("#setting_local_theme").val(theme);
+
+    switch(theme) {
+        case "ALTERNATE":
+            $("#styleSheet").attr("href", "css/GdsnAdmin_Alternate.css");
+            break;
+        default:
+            $("#styleSheet").attr("href", "css/GdsnAdmin.css");
+    }
+}
+
+function getAnim() {
+    var noanim = getCookie(Cookies.DisableAnimation);
+    if (parseBool(noanim) == true) 
+    {
+        $.fx.off = true;
+    }
+    else {
+        $.fx.off = false;
+    }
+}
+
+function setAnim() {
+    var animValue = parseBool($("$setting_local_notransitions"));
+    setCookie(Cookies.DisableAnimation, animValue);
+}
+
+function changeColor()
+{
+    var newColor = $(this).css('background-color');
+    $("body").animate({ backgroundColor: newColor }, 2000);
+    setCookie(Cookies.UIColor, newColor);
+}
+
+function pickTheme() {
+    var useTheme = $("#setting_local_theme").val();
+
+    setCookie(Cookies.Theme, useTheme);
+
+    if (useTheme == "ALTERNATE") {
+        setCookie(Cookies.UIColor, "#C4C2B8");
+    }
+    else {
+        setCookie(Cookies.UIColor, "#3F647F");
+    }
+
+    getTheme();
+    getLastColor();
+}
+
+function pickColor() {
+    var newColor = prompt(Messages.Text_PickColor);
+    if (newColor != null && newColor != "") {
+        $("body").animate({ backgroundColor: "#" + newColor }, 2000);
+        setCookie(Cookies.UIColor, "#" + newColor);
+    }
+}
+
+function subTabClick() {
+    $(this).parent().children(".picked").removeClass("picked");
+    $(this).addClass("picked");
+
+    var nextTab = $(this).attr('href');
+    $(this).parent().siblings(".subtabcontainer").hide();
+    $(nextTab).show();
+
+    return false;
+}
+
+function tabClick() {
+    $(this).parent().children(".picked").removeClass("picked");
+    $(this).addClass("picked");
+
+    var nexttab = $(this).attr('href');
+    var visibletab = "#" + $("#tabs .tabarea:visible:first").attr('id');
+
+    if (visibletab != nexttab)
+    {
+        $("#tabs .tabarea:visible").hide('drop', { direction: 'right' }, 375, function () {
+            $(nexttab).fadeIn(375);
+        });
+    }
+
+    swapText("#bgtext", $(this).text(), false);
+
+    return (false);
+}
+
+function uiReady() {
+    swapText("#LoginMessage", Messages.LoginDone, true, true);
+
+    hideSvButtons();
+    populateGraph();
+    
+    getConfiguration();
+    getSchedule();
+    getBackupList();
+    getPluginList();
+    getVersions();
+    getGroups();
+
+    if ((userPermissions & PermissionFlags.ModifyMcMyAdminUsers) > 0) {
+        getUsers();
+    }
+
+    //startUpdates(); // interval-based repeating updates
+    getStatus(); // just call once for now
+
+    $("#newuserpass").val("");
+    $("#newuserpass_confirm").val("");
+
+    setTimeout(function () {
+        setupAuthMask();
+        $("#loginwait").parent().hide('drop', { direction: direction }, function () {
+            $("#loggedinas").text(Messages.LoggedinAs.format($("#loginusername").val()));
+            $("#userinfo").fadeIn();
+            $("#tabs .tabarea:first, #tab_config_gamesettings, #tab_about_info").show();
+            $("#sidetabs").show('drop', { direction: 'left' });
+            $("#welcomescreen").fadeOut(function () { $("#tabs").fadeIn(); });
+            swapText("#bgtext", Messages.Status, false);
+            getTip();
+            showFirstTime();
+        });
+    }, 2000);
+
+}
+
+function showFirstTime() {
+    if (parseBool(oldValues["mcmyadmin.firststart"]) == true) {
+        setConfigVal("mcmyadmin.firststart", "0");
+        showModal(Messages.Title_Welcome, Messages.Message_Welcome, Icons.Info, function () {
+            $("#configtab").mousedown();
+            hideModal();
+        }, null);
+    }
+}
+
+function getTip() {
+    requestData(APICommands.GetTipOfDay, {}, function (data) {
+        if (data) {
+            createWarning(Messages.TipOfTheDay, data.tip, null, 5000);
+        }
+    });
+}
+
+function populateGraph() {
+    for (var i = 0; i < 64; i++) {
+        $("#CPUHistoryGraph").append("<div class=\"graphBar\" style=\"height:0px;\"></div>");
+        $("#MemoryHistoryGraph").append("<div class=\"graphBar\" style=\"height:0px;\"></div>");
+    }
+}
+
+function addGraphEntries(cpu, ram)
+{
+    $("#CPUHistoryGraph").children(".graphBar").first().remove();
+    $("#MemoryHistoryGraph").children(".graphBar").first().remove();
+
+    $("#CPUHistoryGraph").append("<div class=\"graphBar\" style=\"height:" + cpu + "px;\"></div>");
+    $("#MemoryHistoryGraph").append("<div class=\"graphBar\" style=\"height:" + ram + "px;\"></div>");
+}
+
+var DataSource = "data.json";
+
+function performAction(requestType) {
+    requestData(requestType, {}, $.noop);
+}
+
+var PendingRequests = 0;
+
+function requestData(requestType, data, callback, url) 
+{
+    data = (data) ? data : new Array();
+    callback = (callback) ? callback : $.noop;
+    
+    //if (url) alert("URL: " + url);
+    url = (url) ? url : DataSource;
+
+    data["req"] = requestType;
+
+    logDebug("Outgoing request: " + requestType);
+    
+    PendingRequests++;
+
+    $("#queueSize").text(PendingRequests);
+
+    Username = $("#loginusername").val();
+    Password = $("#loginpassword").val();
+    
+    $.ajax({
+        url: url,
+        data: data,
+        dataType: 'json',
+        timeout: RequestTimeout,
+        beforeSend: function(xhr) { 
+            xhr.setRequestHeader("Authorization", "Basic " + base64.encode(Username + ":" + Password)); 
+            //xhr.setRequestHeader("Authorization", "Basic " + base64.encode("admin:devadmin")); 
+        },
+        success: function (response) {
+            PendingRequests--;
+            $("#queueSize").text(PendingRequests);
+            logDebug("Completed request: " + requestType);
+            if (response.status == 403) {
+                showModal(Messages.Title_AccessDenied, Messages.Message_AccessDenied, Icons.Warning, hideModal, null);
+            }
+            callback(response);
+        },
+        error: function (jqXHR, textStatus, errorThrown) 
+        {
+            if (parseInt(jqXHR.status) == 401) {
+                stopUpdates();
+                showModal(Messages.UserLoggedOutTitle, Messages.UserLoggedOutMessage, Icons.Warning, function () {
+                    hideModal();
+                    doLogout();
+                }, null);
+            }
+            PendingRequests--;
+            logDebug("Timed out request: " + requestType);
+            $("#queueSize").text(PendingRequests);
+            callback(null);
+        }
+    });
+}
+
+var userPermissions = 0;
+
+function loginCallback(data) 
+{
+    if (data) 
+    {
+        if (data.success == "true")
+        {
+            userPermissions = data.authmask;
+            hideLoginWaiting(true);
+        }
+        else if (parseInt(data.status) == 429) 
+        {
+            hideLoginWaiting(false, Messages.TooManyBadLogins);
+            userPermissions = 0;
+        }
+	    else
+	    {
+	        hideLoginWaiting(false, Messages.IncorrectLogin);
+	        userPermissions = 0;
+	    }
+    }
+    else
+    {
+        hideLoginWaiting(false, Messages.ServerContactErr);
+        userPermissions = 0;
+    }
+}
+
+function setupAuthMask() {
+    for (var i = 1; i < 2097152; i *= 2) {
+        var flag = (userPermissions & i);
+        var objClassShow = ".auth_{0}:not(.tabarea, .subtabcontainer, #tab_status.button)".format(i);
+        var objClassHide = ".auth_{0}".format(i);
+
+        if (flag == 0) {
+            $(objClassHide).hide();
+        } else {
+            $(objClassShow).show();   
+        }
+    }
+}
+
+function showLoginWaiting(callback) {
+    $("#loginscreen").parent().hide('drop', { direction: 'right' }, function () {
+        $("#loginwait").parent().show('drop', { direction: 'left' }, callback);
+    });
+}
+
+function hideLoginWaiting(done, message) {
+    direction = (done) ? 'right' : 'left';
+
+    if (done) 
+    {
+        uiReady(); 
+    }
+    else
+    {
+        $("#loginwait").parent().hide('drop', { direction: direction }, function () {
+            if (message) {
+                $("#loginerror").html(message);
+                $("#loginerror").show();
+            }
+            else {
+                $("#loginerror").hide();
+            }
+
+            $("#loginscreen").parent().show('drop', { direction: 'right' });
+        });
+    }
+}
+
+function loginSlow() {
+    swapText("#LoginMessage", Messages.LoginSlow, true, true);
+}
+
+function swapText(element, text, useParent, swipe) {
+    var moveElement = (useParent == true) ? $(element).parent() : $(element);
+
+    if ($(element).text() == text) { return; }
+
+    if (swipe) {
+        moveElement.hide('drop', { direction: 'down' }, function () {
+            $(element).text(text);
+            moveElement.show('drop', { direction: 'up' });
+        });
+        return;
+    }
+
+    moveElement.fadeOut(function () {
+        $(element).text(text);
+        moveElement.fadeIn();
+    });
+}
+
+function doLogout() {
+    stopUpdates();
+    clearTasks();
+    hidePwChange();
+    
+    performAction(APICommands.Logout);
+
+    $("#loginusername").val("");
+    $("#loginpassword").val("");
+    $("#userinfo").fadeOut();
+    $("#tabs .tabarea").hide();
+    $("#sidetabs").hide('drop', { direction: 'left' });
+    $("#tabs").fadeOut(function () {
+        $("#welcomescreen").fadeIn();
+        $("#loginscreen").parent().show('drop', { direction: 'right' });
+        $("#CPUHistoryGraph").empty();
+        $("#MemoryHistoryGraph").empty();
+    });
+    $(".reg_versioninfo, .reg_owner").text("");
+    swapText("#bgtext", Messages.Welcome, false);
+
+    setCookie("JSESSIONID", "-1");
+}
+
+function doLogin() {
+    Username = $("#loginusername").val();
+    Password = $("#loginpassword").val();
+
+    if (!confirm("Log in with username '" + Username + "'?")) return;
+
+    $("#LoginMessage").text(Messages.LoginMessage);
+
+    showLoginWaiting(function () {
+        setTimeout(loginSlow, 5000);
+        requestData(APICommands.Login, { Username: Username, Password: Password }, loginCallback);
+        //requestData(APICommands.Login, { Username: Username, Password: Password }, loginCallback, '/gdsn-server/api/login');
+        //requestData(APICommands.Login, { j_username: Username, j_password: Password, submit: "submit" }, loginCallback, '/gdsn-server/j_spring_security_check');
+    });
+}
+
+function startUpdates() {
+    UpdateIntervals[UpdateEvents.GetStatus] = setInterval(getStatus, StatusUpdateInterval);
+    UpdateIntervals[UpdateEvents.GetChat] = setInterval(getChat, StatusUpdateInterval);
+    UpdateIntervals[UpdateEvents.GetVersions] = setInterval(getVersions, VersionUpdateInterval);
+}
+
+function stopUpdates() {
+    clearInterval(UpdateIntervals[UpdateEvents.GetStatus]);
+    clearInterval(UpdateIntervals[UpdateEvents.GetChat]);
+    clearInterval(UpdateIntervals[UpdateEvents.GetVersions]);
+}
+
+function addChatEntry(name, message, isChat)
+{
+    var newLine = $("<div class=\"chatEntry\"></div>");
+    var chatBody = $("<div class=\"chatBody\"></div>");
+    chatBody.append($("<div class=\"chatTimestamp\"></div>").text(getTimestamp()));
+    chatBody.append($("<div class=\"chatNick\"></div>").text(" " + name + ": "));
+    chatBody.append($("<div class=\"chatMessage\"></div>").text(message));
+
+    newLine.append(chatBody);
+    newLine.children("div.chatTimestamp:first").text(getTimestamp());
+    newLine.children("div.chatNick:first").text();
+    newLine.children("div.chatMessage:first").text(message);
+
+    if ($("#chatHistory").children("div").size() > 200) {
+        $("#chatHistory").children("div").first().remove();
+    }
+
+    $("#chatHistory").append(newLine);
+
+    var hist = document.getElementById("chatHistory");
+    hist.scrollTop = hist.scrollHeight;
+}
+
+var LastChatTimestamp = -1;
+
+function getChat()
+{
+    requestData(APICommands.GetChat, {Since: LastChatTimestamp}, function (data)
+    {
+        if (data) {
+            var chatData = data.chatdata;
+
+            for (var i in chatData) {
+                var line = chatData[i];
+
+                addChatEntry(line.user, line.message);//, line.isChat);
+            }
+
+            LastChatTimestamp = data.timestamp;
+        }
+    });
+}
+
+function getDate() {
+    var theDate = new Date();
+    var day = theDate.getDate();
+    day = (day < 10) ? "0" + day : day;
+    var month = theDate.getMonth() + 1;
+    month = (month < 10) ? "0" + month : month;
+    var date = theDate.getFullYear() + "-" + month + "-" + day + " " + theDate.toLocaleTimeString();
+    return (date);
+}
+
+function getTimestamp()
+{
+    var theDate = new Date();
+    var date = theDate.toLocaleTimeString();
+    return (date);
+}
+
+function hideSvButtons() {
+    $("#button_startserver").hide();
+    $("#button_stopserver").hide();
+    $("#button_killserver").hide();
+    $("#button_restartserver").hide();
+}
+
+function showButtons(status) {
+    hideSvButtons();
+    switch (status) {
+        case ServerStates.Error:
+        case ServerStates.NotRunning: 
+            $("#button_startserver").show();
+
+            endTask(RunningTasks[Tasks.ServerStopping]);
+            endTask(RunningTasks[Tasks.ServerStarting]);
+
+             break;
+        case ServerStates.Starting:
+            $("#button_stopserver").show(); 
+            $("#button_restartserver").show(); 
+
+            setTaskStatus(RunningTasks[Tasks.ServerRestarting], 50);
+
+            break;
+        case ServerStates.ServerReady:
+            $("#button_stopserver").show(); 
+            $("#button_restartserver").show();
+
+            setTaskStatus(RunningTasks[Tasks.ServerRestarting], 100);
+            endTask(RunningTasks[Tasks.ServerStarting]);
+            endTask(RunningTasks[Tasks.ServerRestarting]);
+
+            break;
+        case ServerStates.Restarting:
+            $("#button_stopserver").show(); break;
+        case ServerStates.ShuttingDown: 
+            $("#button_killserver").show(); break;
+    }
+}
+
+var prevstate = -1;
+
+var statusFails = 0;
+
+var OldPlayers = new Array();
+
+var OnlineUsers;
+
+function getStatus() {
+    requestData(APICommands.GetStatus, {}, function (data) {
+        $("#status_lastupdate").text(getDate());
+
+        if (data == null) {
+            $("#status_statetext").html(Messages.ServerWaitBackend.format(statusFails, StatusMaxFails));
+            $("#status_icon").attr("class", ServerStateIcons[100]);
+
+            prevstate = -1;
+            statusFails++;
+
+            if (statusFails > StatusMaxFails) {
+                stopUpdates();
+                showModal(Messages.ErrorCommunicatingTitle, Messages.ErrorCommunicatingText, Icons.Warning, function () {
+                    doLogout();
+                    hideModal();
+                }, null);
+            }
+        }
+        else {
+
+            statusFails = 0;
+            
+            $("#linkList").empty();
+            var links = data.links;
+            for (var i in links) {
+                var link = links[i];
+                $("#linkList").append("<div>" + link + "</div>");
+            }
+
+            var memUsagePercent = Math.floor((data.ram / data.maxram) * 100);
+
+            if (data.state != ServerStates.NotRunning) {
+                addGraphEntries(data.cpuusage, memUsagePercent);
+            }
+
+            $("#status_onlineplayers").text(data.users + " / " + data.maxusers);
+            $("#status_servertime").text(data.time);
+            $("#status_CPUusage").text(data.cpuusage + "%");
+            $("#status_RAMusage").text(memUsagePercent + "%");
+            $("#status_ramMB").text(Messages.RAMUsage.format(data.ram,data.maxram));
+            $("#status_miniCPUgraph").css("width", data.cpuusage);
+            $("#status_miniRAMgraph").css("width", memUsagePercent);
+
+            if (data.state == ServerStates.ServerReady) {
+                //$("#status_uptime").text(Messages.Text_Uptime.format(data.uptime.Days, data.uptime.Hours, data.uptime.Minutes));
+                $("#status_uptime").text("Server is up");
+            }
+            else {
+                $("#status_uptime").text("");
+            }
+
+            var state = (data.failed == true) ? 100 : data.state;
+
+            $("#chatNames").empty();
+
+            OnlineUsers = data.userinfo;
+
+            for (var i in OnlineUsers) {
+                var user = OnlineUsers[i];
+
+                $("#chatNames").append("<div class=\"chatName\">" + user.Name + "</div>");
+            }
+
+            if (state != prevstate) {
+                $("#status_statetext").text(ServerStateStrings[state]);
+                $("#status_icon").attr("class", ServerStateIcons[state]);
+
+                showButtons(state);
+
+                prevstate = state;
+            }
+        }
+    });
+}
+
+function getProvider() {
+    requestData(APICommands.GetServerInfo, {}, function (data) {
+        if (data.edition == "Enterprise") {
+            $("#provby").html(Messages.ProvidedBy.format(data.provider.Provider, data.provider.Website));
+        } 
+    });
+}
+
+function getVersions() {
+    if (typeof (UpdateData) !== 'undefined')
+    {
+        $(".reg_latestversion").text(UpdateData.LatestMCMA);
+        $(".ver_latestoffical").text(UpdateData.LatestMinecraft);
+        $(".ver_latestbukkit").text(UpdateData.LatestMinecraftBukkitCompat);
+    }
+
+    requestData(APICommands.GetVersions, {}, function (data) {
+        if (data) {
+            $(".reg_versioninfo").text(data.backend + " " + data.edition);
+            $(".ver_minecraft").text(data.mc);
+
+            if (data.edition != "Personal") {
+                $("#licencearea").hide();
+            } else {
+                $("#licencearea").show();
+            }
+
+            if (data.edition != "Enterprise") {
+                $(".reg_owner").text(data.owner);
+            } else {
+                $(".reg_owner").html(Messages.EnterpriseOwner.format(data.provider.Provider, data.provider.Website, data.provider.SupportURL));
+            }
+
+            if (typeof (UpdateData) !== 'undefined') {
+                if (data.backend != UpdateData.LatestMCMA) {
+                    if (UpdateShown == false) {
+                        createWarning(Messages.Title_UpdateAvailable, Messages.Title_MCMAUpdate.format(UpdateData.LatestMCMA), showUpdates);
+                        UpdateShown = true;
+                    }
+                }
+
+                if (data.mc != "[Not Running]" && data.mc != UpdateData.LatestMinecraft) {
+                    if (UpdateShown == false) {
+                        createWarning(Messages.Title_UpdateAvailable, Messages.Title_MinecraftUpdate.format(UpdateData.LatestMinecraft), showUpdates);
+                        UpdateShown = true;
+                    }
+                }
+            }
+        }
+    });
+}
+
+function addLicence() {
+    var key = $("#newKey").val();
+    requestData(APICommands.AddLicence, { NewKey: key }, function (data) {
+        if (data.newtype == "Personal") {
+            showModal(Messages.Title_InvalidLicence, Messages.Message_InvalidLicence, Icons.Info, hideModal, null);
+        } else {
+            showModal(Messages.Title_LicenceAdded, Messages.Message_LicenceAdded, Icons.Info, hideModal, null);
+            $("#licencearea").hide();
+        }
+    });
+}
+
+function showUpdates() {
+    $("#tabhead_about").mousedown();
+    $("#tabhead_about_updates").mousedown();
+}
+
+/////////////////////////////////////
+//Server Configuration
+/////////////////////////////////////
+
+var settingsArray = {
+    /*McMyAdmin.conf*/
+    "server.name": "setting_servername",
+    "notices.announceplayers": "setting_showwelcome",
+    "notices.showpermissionserror": "setting_showaccessdenied",
+    "notices.savewarning": "setting_warnsave",
+    "notices.whitelistmessage": "setting_whitelistmessage",
+    "server.statusimage": "setting_statusimage",
+    //"mcmyadmin.bannertemplate": "imageTemplate",
+    "export.gmtype" : "setting_exporting",
+    "mchat.format": "setting_mchatformat",
+    "game.public": "setting_serverpublic",
+    "game.motd":  "setting_motd",
+    "game.whitelist": "setting_whitelistMode",
+    "server.bukkitcompat": "setting_bukkit",
+    "monitoring.severerestart": "setting_severerestart",
+    "server.usebukkitbeta": "setting_bukkitbeta",
+
+    /*server.properties*/
+    "spawn-monsters": "setting_monsters",
+    "spawn-animals": "setting_animals",
+    "allow-nether" : "setting_nether",
+    "pvp": "setting_pvp",
+    "allow-flight": "setting_flight",
+    "max-players": "setting_maxplayers",
+    "gamemode": "setting_gamemode",
+    "difficulty": "setting_difficulty",
+    "view-distance": "setting_distance",
+    "generate-structures": "setting_structures",
+    "level-seed": "setting_seed",
+    "spawn-npcs": "setting_npc",
+    "level-type": "setting_worldtype"
+};
+
+var oldValues = Array();
+
+function setConfig() {
+    var key = $(this).attr('config_key');
+    var value = $(this).val();
+    setConfigVal(key, value);
+}
+
+function setConfigVal(key, value) {
+    requestData(APICommands.SetConfig, { Key: key, Value: value }, function () {
+        oldValues[key] = value;
+    });
+}
+
+function getConfiguration()
+{
+    requestData(APICommands.GetFullConfig, {}, function (data) {
+        if (data == null) { return; }
+
+        var settings = data.settings;
+
+        for (var settingname in settingsArray) {
+            var element = "#" + settingsArray[settingname];
+
+            if ($(element) != null) {
+                $(element).val(settings[settingname]);
+                $(element).attr('config_key', settingname);
+                $(element).unbind("change");
+                $(element).change(setConfig);
+            }
+
+            //oldValues[settingname] = settings[settingname];
+        }
+
+        $("#setting_exporting").unbind("change");
+        $("#setting_exporting").change(ExportSet);
+
+        if (settings['online-mode'] == "false") {
+            createWarning(Messages.WarningOfflineTitle, Messages.WarningOfflineMessage, null);
+        }
+
+        $("#maxplayerslimit").text(settings['limits.maxplayers']);
+        oldValues = settings;
+    });
+}
+
+function ExportSet() {
+    var expSetting = $("#setting_exporting");
+    var oldKey = expSetting.attr('config_key');
+
+    if (expSetting.val() == "None") {
+        setConfigVal(oldKey, expSetting.val());
+        return;
+    }
+
+    showModal(Messages.Title_ExportWarning, Messages.Message_ExportWarning, Icons.Warning, function () {
+        setConfigVal(oldKey, expSetting.val());
+        hideModal();
+    }, function () {
+        expSetting.val(oldValues[oldKey]);
+        hideModal();
+    });
+}
+
+/////////////////////////////////////
+//Users and Groups Management
+/////////////////////////////////////
+
+var CurrentGroup = "";
+
+function addGroupMemeber() {
+    var newMember = $("#newGroupUser").val();
+    $("#newGroupUser").val("");
+    requestData(APICommands.AddGroupValue, { Group: CurrentGroup, Type: GroupArgs.GroupMembers, Value: newMember }, function () {
+        getGroup(CurrentGroup);
+    });
+}
+
+function addGroupCommand() {
+    var newCommand = $("#newGroupCommand").val();
+    $("#newGroupCommand").val("");
+    requestData(APICommands.AddGroupValue, { Group: CurrentGroup, Type: GroupArgs.GroupCommands, Value: newCommand }, function () {
+        getGroup(CurrentGroup);
+    });
+}
+
+function addGroup() {
+    var newGroupName = $("#newGroupName").val();
+    $("#newGroupName").val("");
+    requestData(APICommands.AddGroupValue, { Group: "", Type: GroupArgs.GroupsList, Value: newGroupName }, function () {
+        getGroups();
+    });
+}
+
+function delGroupMember(member) {
+    requestData(APICommands.RemoveGroupValue, { Group: CurrentGroup, Type: GroupArgs.GroupMembers, Value: member }, function () {
+        getGroup(CurrentGroup);
+    });
+}
+
+function delGroupCommand(command) {
+    requestData(APICommands.RemoveGroupValue, { Group: CurrentGroup, Type: GroupArgs.GroupCommands, Value: command }, function () {
+        getGroup(CurrentGroup);
+    });
+}
+
+function delGroup() {
+    showModal(Messages.GroupDeleteTitle, Messages.GroupDeleteMessage.format(CurrentGroup), Icons.Warning, function () {
+        requestData(APICommands.RemoveGroupValue, { Group: "", Type: GroupArgs.GroupsList, Value: CurrentGroup }, function () {
+            getGroups();
+            hideModal();
+        });
+    }, hideModal);
+}
+
+function getGroups() {
+    requestData(APICommands.GetGroups, {}, function (data) {
+        $("#worldgrouplist").empty();
+        $("#inheritlist").empty();
+
+        data.groups.sort();
+
+        $("#inheritlist").append("<option value=\"\">None</option>");
+
+        for (var i in data.groups) {
+            var group = data.groups[i];
+
+            var groupEntry = $("<div class=\"vlistitem\">{0}</div>".format(group));
+            $("#worldgrouplist").append(groupEntry);
+            $("#inheritlist").append("<option value=\"{0}\">{0}</option>".format(group));
+        }
+
+        $("#worldgrouplist .vlistitem").click(function () {
+            $("#worldgrouplist .selected:first").removeClass("selected");
+            $(this).addClass("selected");
+            CurrentGroup = $(this).text();
+            $("#groupInfoArea").fadeOut(function () {
+                getGroup(CurrentGroup);
+            });
+        });
+
+        /*var settingsEntry = $("<div class=\"vlistitem\">{0}</div>".format(Messages.GroupSettings));
+        $("#worldgrouplist").prepend(settingsEntry);*/
+
+        $("#worldgrouplist .vlistitem:first").click();
+    });
+}
+
+var GroupAttribsArray = {
+    "inheritlist" : "Inherits",
+    "colorlist" : "Color",
+    "groupbuild" : "CanBuild",
+    "groupinteract" : "CanInteract",
+    "groupprefix" : "Prefix",
+    "groupsuffix" : "Suffix"
+};
+
+function updateGroupSetting() {
+    var updateType = GroupAttribsArray[$(this).attr('id')];
+    var newValue = $(this).val();
+    requestData(APICommands.AddGroupValue, { Group: CurrentGroup, Type: updateType, Value: newValue }, function () {
+        getGroup(CurrentGroup);
+    });
+    return true;
+}
+
+function getGroup(groupName) {
+    requestData(APICommands.GetGroupInfo, { Group: groupName }, function (data) {
+        $("#groupusers").empty();
+        $("#groupcommands").empty();
+
+        data.info.Members.sort();
+        data.info.CommandList.sort();
+
+        var i, newEntry;
+
+        for (i in data.info.Members) {
+            var member = data.info.Members[i];
+            newEntry = $("<div class=\"vlistitem shortitem\"><div class=\"vlisttext\">{0}</div><div class=\"tinyButton\" onClick=\"delGroupMember('{0}');\"></div></div>".format(member));
+            $("#groupusers").append(newEntry);
+        }
+
+        for (i in data.info.CommandList) {
+            var command = data.info.CommandList[i];
+            newEntry = $("<div class=\"vlistitem shortitem\"><div class=\"vlisttext\">{0}</div><div class=\"tinyButton\" onClick=\"delGroupCommand('{0}');\"></div></div>".format(command));
+            $("#groupcommands").append(newEntry);
+        }
+
+        for (i in GroupAttribsArray) {
+            var e = $("#" + i);
+            e.val(data.info[GroupAttribsArray[i]]);
+            e.unbind("change").change(updateGroupSetting);
+        }
+
+        $("#inheritlist").val(data.info.Inherits);
+        $("#colorlist").val(data.info.Color);
+        $("#groupbuild").val(data.info.CanBuild.toString());
+        $("#groupinteract").val(data.info.CanInteract.toString());
+        $("#groupprefix").val(data.info.Prefix);
+        $("#groupsuffix").val(data.info.Suffix);
+
+        updateColor();
+
+        $("#groupSettingsHeader").text(Messages.GroupSettings.format("Default", groupName));
+
+        $("#groupInfoArea").fadeIn();
+    });
+}
+
+function updateColor() {
+    var opt = $("#colorlist").get(0);
+    var selected = opt.options[opt.selectedIndex];
+    $("#colorpreview").css("background-color", selected.style.backgroundColor);
+}
+
+/////////////////////////////////////
+//User Handling
+/////////////////////////////////////
+
+var UserData = Array();
+
+function showChangePassword() {
+    $("#passwdchange").fadeIn();
+}
+
+function hidePwChange() {
+    $("#passwdchange").fadeOut(function () {
+        $("#oldpwd").val("");
+        $("#newpwd").val("");
+        $("#newpwd2").val("");
+    });
+}
+
+function pwChangeOk() {
+    var pw1 = $("#newpwd").val();
+    var pw2 = $("#newpwd2").val();
+    var oldpwd = $("#oldpwd").val();
+    
+    if (pw1 != pw2) {
+        showModal(Messages.Title_NoPassMatch, Messages.Message_NoPassMatch, Icons.Warning, hideModal, null);
+    }
+    else if (pw1 == "") {
+        showModal(Messages.Title_NoPass, Messages.Message_NoPass, Icons.Warning, hideModal, null);
+    } 
+    else 
+    {
+        requestData(APICommands.ChangePassword, { OldPassword: oldpwd, NewPassword: pw1 }, function (data) {
+            if (data.status == 200) {
+                hidePwChange();
+                showModal(Messages.Title_PassChanged, Messages.Message_PassChanged, Icons.Info, hideModal, null);
+            } else {
+                showModal(Messages.Title_IncorrectPassword, Messages.Message_IncorrectPassword, Icons.Info, hideModal, null);
+            }
+        });
+    }
+}
+
+function getUsers() {
+    requestData(APICommands.GetUsers, {}, function (data) {
+        if (data) {
+            $("#MCMAUserList").empty();
+
+            UserData = data.data;
+
+            for (var i in UserData) {
+                var user = UserData[i];
+
+                var newEntry = $("<div class='vlistitem'>{0}</div>".format(user.Username));
+                newEntry.click(displayUser);
+                $("#MCMAUserList").append(newEntry);
+            }
+
+            $("#MCMAUserList .vlistitem:first").click();
+        }
+    });
+}
+
+var CurrentUser = "";
+
+function displayUser() {
+    $("#MCMAUserList .selected:first").removeClass("selected");
+    $(this).addClass("selected");
+    CurrentUser = $(this).text();
+
+    var thisUser = UserData[CurrentUser];
+
+    for (var i = 1; i < 2097152; i *= 2) {
+        var flag = (thisUser.AuthMask & i);
+        var fid = "#up_{0}".format(i);
+        var flagEl = $(fid);
+        flagEl.prop("checked", parseBool(flag));
+
+        var perm = (thisUser.UserMask & i);
+        var pid = "#uf_{0}".format(i);
+        var pidEl = $(pid);
+        pidEl.prop("checked", parseBool(perm));
+    }
+}
+
+function toggleUserFlag() {
+    var newValue = true;
+    var flagEl = $(this);
+    var flag = parseInt(flagEl.val());
+    var requestType = APICommands.UnsetUserMask;
+
+    if (flagEl.is(":checked")) {
+        requestType = APICommands.SetUserMask;
+        newValue = false;
+    }
+
+    requestData(requestType, { User: CurrentUser, Mask: flag }, function (data) {
+        if (data.status != 200) {
+            flagEl.prop("checked", parseBool(newValue));
+
+            if (data.status == 406) {
+                showModal(Messages.Title_UserNoModify, Messages.Message_UserNoModify, Icons.Info, hideModal, null);
+            }
+        } else {
+            UserData[CurrentUser].AuthMask ^= flag;
+        }
+    });
+}
+
+function toggleSettingFlag() {
+    var newValue = true;
+    var flagEl = $(this);
+    var flag = parseInt(flagEl.val());
+    var op = APICommands.UnsetUserSetting;
+
+    if (flagEl.is(":checked")) {
+        op = APICommands.SetUserSetting;
+        newValue = false;
+    }
+
+    requestData(op, { User: CurrentUser, Mask: flag }, function (data) {
+        if (data.status != 200) {
+            flagEl.prop("checked", parseBool(newValue));
+
+            if (data.status == 406) {
+                showModal(Messages.Title_UserNoModify, Messages.Message_UserNoModify, Icons.Info, hideModal, null);
+            }
+        } else {
+            UserData[CurrentUser].UserMask ^= flag;
+        }
+    });
+}
+
+function changeUserPassword() {
+    var pw1 = $("#newuserpass").val();
+    var pw2 = $("#newuserpass_confirm").val();
+
+    if (pw1 != pw2)
+    {
+        showModal(Messages.Title_NoPassMatch, Messages.Message_NoPassMatch, Icons.Info, hideModal, null);
+    }
+    else if (pw1 == "")
+    {
+        showModal(Messages.Title_NoPass, Messages.Message_NoPass, Icons.Info, hideModal, null);
+    }
+    else
+    {
+        requestData(APICommands.ChangeUserPassword, { Username: CurrentUser, NewPassword: pw1 }, function (data) {
+            if (data.status == 406) {
+                showModal(Messages.Title_UserNoModify, Messages.Message_UserNoModify, Icons.Info, hideModal, null);
+            }
+            else if (data.status == 403) {
+                showModal(Messages.Title_NoCurrentUser, Messages.Message_NoPassMatch, Icons.Info, hideModal, null);
+            }
+            else {
+                showModal(Messages.Title_PassChanged, Messages.Message_PassChanged, Icons.Info, hideModal, null);
+            }
+
+            $("#newuserpass").val("");
+            $("#newuserpass_confirm").val("");
+        });
+    }
+}
+
+function deleteUser() {
+    showModal(Messages.Title_DeleteUser, Messages.Message_DeleteUser.format(CurrentUser), Icons.Warning, function () {
+        requestData(APICommands.DeleteUser, { Username: CurrentUser }, function (data) {
+            if (data.status == 406) {
+                showModal(Messages.Title_UserNoModify, Messages.Message_UserNoModify, Icons.Info, hideModal, null);
+            } else {
+                hideModal();
+                getUsers();   
+            }
+        });
+    }, hideModal);
+}
+
+function addUser() {
+    var newUsername = $("#newUserName").val();
+
+    if (newUsername == "") {
+        showModal(Messages.Title_InvalidUser, Messages.Message_InvalidUser, Icons.Warning, hideModal, null);
+    } else {
+        $("#newUserName").val("");
+        requestData(APICommands.CreateUser, { NewUsername: newUsername }, function (data) {
+            if (data.status == 503) {
+                showModal(Messages.Title_NotSupportedInVersion, Messages.Message_MultiUserPersonal, Icons.Info, hideModal, null);
+            } else {
+                getUsers();
+            }
+        });
+    }
+}
+
+/////////////////////////////////////
+//Schedule Handling
+/////////////////////////////////////
+
+function fillTimeSelects() {
+    var i;
+    
+    for (i = 0; i < 60; i++) {
+        $("#selMinPast").append("<option>" + padNumber(i) + "</option>");
+    }
+
+    for (i = 0; i < 24; i++) {
+        for (var j = 0; j < 60; j++) {
+            $("#selAtTime").append("<option>" + padNumber(i) + ":" + padNumber(j) + "</option>");
+        }
+    }
+}
+
+function selectTimeType(type) {
+    $("#selEvery").hide();
+    $("#selEveryHour").hide();
+    $("#selPast").hide();
+    $("#selTime").hide();
+
+    switch (parseInt(type)) {
+        case 0: $("#selEvery").show(); break;
+        case 1: $("#selEveryHour").show(); break;
+        case 2: $("#selPast").show(); break;
+        case 3: $("#selTime").show(); break;
+    }
+}
+
+function getEventName(eventId,data) {
+    switch (parseInt(eventId)) {
+        case 100: return ("Save the world state");
+        case 200: return ("Restart server");
+        case 250: return ("Restart server if empty");
+        case 270: return ("Stop the server");
+        case 280: return ("Start the server");
+        case 400: return ("Say a message: " + data);
+        case 300: return ("Send a server notice: " + data);
+        case 700: return ("Send a console command: " + data);
+        case 900: return ("Run executable: " + data);
+        case 910: return ("Redirect executable: " + data);
+        case 1000: return ("Take a backup of the world");
+        case 1500: return ("Disable whitelisting");
+        case 1600: return ("Enable groups based whitelisting");
+        case 1700: return ("Restart server and rotate log file");
+    }
+    return ("");
+}
+
+function getEventParamDesc(eventId)
+{
+    switch (parseInt(eventId)) {
+        case 400: return (Messages.ParamMessage);
+        case 300: return (Messages.ParamMessage);
+        case 700: return (Messages.ParamCommand);
+        case 900: return (Messages.ParamExec);
+        case 910: return (Messages.ParamExec);
+    }
+
+    return("");
+}
+
+function selectEventType(type)
+{
+    var desc = getEventParamDesc(type);
+    if (desc == "")
+    {
+        $("#eventparam").hide();
+        $("#ParamDescription").text("");
+    }
+    else
+    {
+        $("#eventparam").show();
+        $("#ParamDescription").text(desc);
+    }
+}
+
+function padNumber(num) {
+    if (num < 10) {
+        num = "0" + num;
+    }
+    return (num);
+}
+
+function getScheduleTimeString(hours, minutes) {
+    if (minutes == 0 && hours < 0) {
+        return ("Every " + Math.abs(hours) + " hours");
+    }
+
+    if (hours == -1 && minutes < 0) {
+        return ("Every " + Math.abs(minutes) + " minutes");
+    }
+
+    if (hours == -1 && minutes > 0) {
+        return (padNumber(minutes) + " minutes past every hour");
+    }
+
+    return ("Once per day at " + padNumber(hours) + ":" + padNumber(minutes));
+}
+
+function addNewEvent() {
+    var hours = 0;
+    var mins = 0;
+
+    var selTimeType = $("#timeType").attr('value');
+
+    switch (selTimeType) {
+        case "0":
+          {
+            hours = -1;
+            mins = $("#selMinute").attr('value');
+            break;
+          }
+        case "1":
+          {
+            hours = $("#selHour").attr('value');
+            break;
+          }
+        case "2":
+          {
+            hours = -1;
+            mins = $("#selMinPast").attr('value');
+            break;
+          }
+        case "3":
+          {
+            var time = $("#selAtTime").attr('value');
+            var timeParts = time.split(":",2);
+            hours = timeParts[0];
+            mins = timeParts[1];
+            break;
+          }
+    }
+
+    var eventType = $("#selEvent").attr('value');
+    var eventData = $("#eventparam").attr('value');
+
+    requestData(APICommands.AddScheduleItem, {Hours: hours, Mins: mins, Type: eventType, Param: eventData}, getSchedule);
+}
+
+function deleteEvent(eventIndex) {
+    requestData(APICommands.DeleteScheduleItem, {Index: eventIndex}, getSchedule);
+}
+
+function runEvent(eventIndex) {
+    requestData(APICommands.RunScheduleItem, {Index: eventIndex}, $.noop);
+}
+
+function parseDate(data) {
+    var milliseconds = data.substring(6, data.length - 2);
+    var d = new Date(parseInt(milliseconds));
+    return (d);
+}
+
+function getSchedule() {
+    requestData(APICommands.GetSchedule, {}, function (data) {
+        if (data == null) {return;}
+
+        $("#offsetmins").text(Messages.Text_OffsetMins.format(data.offset));
+
+        var schedule = data.schedule;
+        $("#scheduleItems").empty();
+        for (var i in schedule) {
+            var scheduleItem = schedule[i];
+           
+            $("#scheduleItems").append("<tr><td class=\"firstCol\">" + getScheduleTimeString(scheduleItem.AtTime.OnHour, scheduleItem.AtTime.OnMinute) + "</td>" +
+                                           "<td>" + getEventName(scheduleItem.EventType, scheduleItem.EventData) + "</td>" +
+                                           "<td><input class=\"auth_4096\" onclick=\"runEvent(" + i + ");\" type=\"button\" value=\"" + Messages.ScheduleRunNow + "\"/></td>" +
+                                           "<td><input class=\"auth_4096\" onclick=\"deleteEvent(" + i + ");\" type=\"button\" value=\"" + Messages.ScheduleDelete + "\"/></td></tr>");
+        }
+    });
+}
+
+function resetSchedule()
+{
+    showModal(Messages.WarningResetSchedule, Messages.WarningResetScheduleText, Icons.Warning, function(){
+        requestData(APICommands.ResetSchedule, {}, getSchedule);
+        hideModal();
+    }, hideModal);
+}
+
+/////////////////////////////////////
+//Updates
+/////////////////////////////////////
+
+function UpdateMCMA() {
+    stopUpdates();
+    performAction(APICommands.UpdateMCMA);
+    showModal(Messages.Title_UpdatingMCMA, Messages.Message_UpdatingMCMA, Icons.Info, null, null);
+    setTimeout(function () {
+        window.location.reload();
+    }, 60000);
+}
+
+function UpdateMC() {
+    if (parseInt($("#setting_bukkit").val()) == 1 && parseInt($("#setting_bukkitbeta").val()) == 0) {
+        if (UpdateData.LatestMinecraft != UpdateData.LatestMinecraftBukkitCompat) {
+            showModal(Messages.Title_BukkitVersionWarn, Messages.Message_BukkitVersionWarn.format(UpdateData.LatestMinecraft, UpdateData.LatestMinecraftBukkitCompat), Icons.Warning, function () { hideModal(); DoUpdateMC(true); }, hideModal);
+        }
+        else {
+            DoUpdateMC(true);
+        }
+    }
+    else {
+        DoUpdateMC();
+    }
+}
+
+function DoUpdateMC(isCB) {
+    var useText = (isCB) ? Messages.Title_UpdatingCB : Messages.Title_UpdatingMC;
+
+    RunningTasks[Tasks.Update] = createTask(useText);
+
+    requestData(APICommands.UpdateMC, {}, function (data) {
+        if (data.status == 200) {
+            UpdateIntervals[UpdateEvents.GetBackupStatus] = setInterval(getUpdateStatus, 500);
+        }
+    });
+}
+
+function getUpdateStatus() {
+    requestData(APICommands.GetUpdateStatus, {}, function (data) {
+        if (data.updaterunning == false) {
+            setTaskStatus(RunningTasks[Tasks.Update], 100);
+            clearInterval(UpdateIntervals[UpdateEvents.GetBackupStatus]);
+            endTask(RunningTasks[Tasks.Update]);
+
+            if (data.percent == -1) {
+                showModal(Messages.Title_ErrorUpdate, Messages.Message_ErrorUpdate, Icons.Warning, hideModal, null, 10000);
+            } else {
+                createWarning(Messages.Title_UpdateComplete, Messages.Message_UpdateComplete, null, 10000);
+            }
+        } else {
+            setTaskStatus(RunningTasks[Tasks.Update], data.percent);
+        }
+    });
+}
+
+/////////////////////////////////////
+//Backups
+/////////////////////////////////////
+
+var LastBackupList;
+
+function getSaneTimestamp(fromDate) {
+    return (fromDate.toDateString() + " " + fromDate.toLocaleTimeString()); 
+}
+
+function getBackupList() {
+    requestData(APICommands.GetBackups,{},function(data) {
+        if (data == null) { return; }
+
+        $("#backupInfo").text("Backups stored: " + data.backupcount + " of " + data.backupmax);
+        $("#backuplistbody").empty();
+
+        var backupData = data["backups"];
+        LastBackupList = backupData;
+
+        for (var i in backupData) {
+            var backupItem = backupData[i];
+
+            var theDate = parseDate(backupItem.Created);
+
+            $("#backuplistbody").append("<tr><td class=\"firstCol\">" + getSaneTimestamp(theDate) + "</td>" +
+                                            "<td>" + backupItem.SizeMB + "MB</td>" +
+                                            "<td>" + backupItem.Name + "</td>" +
+                                            "<td class=\"backupButtonsCol\"><input class=\"auth_1024\" onclick=\"downloadBackup('" + backupItem.Filename + "');\" type=\"button\" value=\"Download\"/>" +
+                                            "<input class=\"auth_1024\" onclick=\"restoreBackup(" + i + ");\" type=\"button\" value=\"Restore\"/>" +
+                                            "<input class=\"auth_256\" onclick=\"deleteBackup(" + i + ",'" + backupItem.Name + "','" + backupItem.Created + "');\" type=\"button\" value=\"Delete\"/></td></tr>");
+        }
+    });
+}
+
+function downloadBackup(file)
+{
+    window.open(location.href + "Backups/" + file);
+}
+
+function restoreBackup(index)
+{
+    showModal(Messages.BackupRestoreTitle, Messages.BackupRestoreText, Icons.Question, function(){
+        requestData(APICommands.RestoreBackup, { Index: index }, function(data) {
+            if (data.status == 200) {
+                    UpdateIntervals[UpdateEvents.GetRestoreStatus] = setInterval(getRestoreStatus, 2000);
+
+                RunningTasks[Tasks.Restore] = createTask(Messages.BackupRestoreRunning);
+            } else {
+                alert(Messages.BackupUnavailable);
+            }
+        });
+
+        hideModal();
+
+    }, hideModal);
+}
+
+function getRestoreStatus() {
+    requestData(APICommands.GetRestoreStatus, { }, function(data) {
+        var percent = data.percent;
+        var finished = data.restorefinished;
+
+        if (finished == true) 
+        {
+            setTaskStatus(RunningTasks[Tasks.Restore], 100);
+            endTask(RunningTasks[Tasks.Restore]);
+            clearInterval(UpdateIntervals[UpdateEvents.GetRestoreStatus]);
+
+            getBackupList();
+        }
+        else {
+            setTaskStatus(RunningTasks[Tasks.Restore], percent);
+        }
+    });
+}
+
+function deleteBackup(index)
+{
+    var theDate = parseDate(LastBackupList[index].Created);
+    
+    showModal(Messages.BackupDeleteTitle, Messages.BackupDeleteWarning + "<br/><br/>" + LastBackupList[index].Name + " - " + getSaneTimestamp(theDate), Icons.Warning, function(){
+        
+        requestData(APICommands.DeleteBackup, {Index: index}, getBackupList);
+        hideModal();
+
+    }, hideModal);
+}
+
+function backupWorld() {
+    var label = $("#backuplabel").val();
+    $("#backuplabel").val("");
+
+    var match = new RegExp("[A-Za-z0-9_]+");
+
+    if (match.test(label) == false) {
+        showModal(Messages.BackupNameTitle, Messages.BackupNameMessage, Icons.Warning, hideModal, null);
+        return;
+    }
+
+    requestData(APICommands.BackupWorld, {Label: label}, function(data){
+        if (data.status == 200) {
+            UpdateIntervals[UpdateEvents.GetBackupStatus] = setInterval(getBackupStatus, 2000);
+
+            RunningTasks[Tasks.Backup] = createTask(Messages.BackupRunning);
+        }
+        else {
+            alert(Messages.BackupUnavailable);
+        }
+    });
+}
+
+function getBackupStatus()
+{
+    requestData(APICommands.GetBackupStatus, {}, function(data)
+    {
+        var percent = data.percent;
+        var finished = data.backupfinished;
+
+        if (finished == true) 
+        {
+            setTaskStatus(RunningTasks[Tasks.Backup], 100);
+            endTask(RunningTasks[Tasks.Backup]);
+            clearInterval(UpdateIntervals[UpdateEvents.GetBackupStatus]);
+
+            getBackupList();
+        }
+        else {
+            setTaskStatus(RunningTasks[Tasks.Backup], percent);
+        }
+    });
+}
+
+function deleteWorld() 
+{
+    showModal(Messages.Title_DeleteWorld, Messages.Message_DeleteWorld, Icons.Warning, function () {
+        performAction(APICommands.DeleteWorld);
+        hideModal();
+    }, hideModal);
+}
+
+/////////////////////////////////////
+//Plugins
+/////////////////////////////////////
+
+function getPluginList() {
+    requestData(APICommands.GetPlugins, { }, function(data) {
+        if (data) {
+            var plugins = data.plugins;
+
+            $("#PluginList").empty();
+
+            for (var i in plugins) {
+                var plugin = plugins[i];
+
+                var enabledStr = (plugin.Enabled) ? Messages.Enabled : Messages.Disabled;
+                var checkedStr = (plugin.Enabled) ? " checked=\"checked\" " : "";
+
+                var newEntry = "<div class=\"PluginEntry\">" +
+                                "<span class=\"PluginStatus\"><label for=\"FF" + i + "\">" + enabledStr + "</label><input onclick=\"setPluginState('" + plugin.Name + "',this);\" type=\"checkbox\"" + checkedStr + "id=\"FF" + i + "\"/></span>" +
+                                            "<h4>" + $.trim(plugin.Name) + " " + $.trim(plugin.Version) + " <span class=\"PluginAuthor\"> - " + plugin.Authors + "</span></h4>" +
+                                            "<p>Description:<br />" + plugin.Description + "</p></div>";
+
+                $("#PluginList").append(newEntry);
+            }
+        }
+    });
+}
+
+function setPluginState(name, source) {
+    var checked = $(source).is(':checked');
+
+    requestData(APICommands.SetPluginState, { Plugin: name, State: checked }, function(data) {
+        if (data.status == 200) {
+            if (data.newstate != checked) {
+                showModal(Messages.PluginChangeStateTitle, Messages.PluginChangeStateMessage, Icons.Warning, hideModal, null);
+            }
+             
+            $(source).attr('checked', data.newstate);
+
+            var enabledStr = data.newstate ? Messages.Enabled : Messages.Disabled;
+
+            $(source).prev().text(enabledStr);
+        }
+        else {
+            $(source).attr('checked', !checked);
+        }
+    });
+}
+
+/////////////////////////////////////
+//Cookies
+/////////////////////////////////////
+
+function setCookie(key, value) {
+    var newDate = new Date();
+    newDate.setFullYear(newDate.getFullYear() + 1);
+    document.cookie = key + "=" + value.toString() + "; path=/; expires=" + newDate.toGMTString();
+}
+
+function getCookie(key) {
+	var findName = key + "=";
+	var parts = document.cookie.split(';');
+
+	for (var i = 0; i < parts.length; i++) 
+    {
+		var cookie = parts[i];
+
+		while (cookie.charAt(0)==' ')
+        {
+            cookie = cookie.substring(1,cookie.length);
+        }
+
+		if (cookie.indexOf(findName) == 0) 
+        {
+            return cookie.substring(findName.length,cookie.length);
+        }
+	}
+
+	return null;
+}

@@ -1,0 +1,306 @@
+﻿body
+{
+    min-height:480px;
+}
+
+#loginusername, #loginpassword
+{
+    width:164px;
+}
+
+.welcomemessage
+{
+    margin:0 auto 0 auto;
+    padding:8px 8px 16px 8px;
+    width:300px;
+    font-size:14pt;
+    font-weight:bold;
+    text-align:center;
+}
+
+input[type="checkbox"]
+{
+    width:0px;
+}
+
+input[type="checkbox"]:not(:checked)::after
+{
+    content:url(../Images/Unticked.png);
+}
+
+input[type="checkbox"]:checked::after
+{
+    content:url(../Images/Ticked.png);
+}
+
+label
+{
+    padding-left:16px; 
+    cursor:pointer; 
+}
+
+.tiny
+{
+    font-size:7pt;
+}
+
+#mainlogotext
+{
+    margin:0px;
+}
+
+#loginscreen, #loginwait
+{
+    margin:0 auto 0 auto;
+    width:300px;
+    padding:1px 0 0 0;
+    margin-top:12px;
+}
+
+.modalcontents
+{
+    display:inline-block;
+    padding:12px;
+    width:468px;
+    min-height:128px;
+}
+
+.ilb {
+    display:inline-block;
+    margin: 8px 0 8px 0;
+}
+
+.modalcontents h1
+{
+    margin-top:8px;
+}
+
+.modalbuttons input[type="button"]
+{
+    margin-right:12px;
+    width:96px;
+}
+
+#diagsummary td
+{
+    vertical-align:top;
+    padding:2px 10px 2px 0;
+}
+
+.wfull
+{
+    width:100%;
+}
+
+.aright
+{
+    text-align:right;
+}
+
+#loginscreen table
+{
+    width:100%;
+}
+
+#scheduleHolder td, #backupTable td
+{
+    padding:4px;
+}
+
+#scheduleHolder input, #backuplistbody input
+{
+    margin:4px;
+}
+
+#newEventTable
+{
+    width:100%;
+    font-size:10pt;
+    border-collapse:collapse;
+}
+
+#newEventTable td
+{
+    width:25%;
+}
+
+.firstCol
+{
+    min-width:156px;
+}
+
+.backupButtonsCol
+{
+    width:260px;
+    text-align:right;
+}
+
+#newEventTable td *
+{
+    width:95%;
+}
+
+#eventparam
+{
+    margin:0px;
+}
+
+.PluginStatus
+{
+    margin-top: -12px;
+    float:right;
+}
+
+.PluginStatus label
+{
+    position:relative;
+    top:-1px;
+    margin-right: 4px;
+}
+
+.gsize {
+    width: 760px;
+    overflow-x: hidden;
+}
+
+.versionTable {
+    width: 100%;   
+}
+
+.versionTable td {
+    width: 50%;   
+}
+
+.wide {
+    width: 264px;
+}
+
+.wide_2
+{
+    width:248px;
+}
+
+.p8
+{
+    padding-left:8px;
+    margin-top:4px;
+}
+
+.p8 input
+{
+    margin-top:0px;
+    margin-bottom:12px;
+}
+
+.vlistitem .vlisttext 
+{
+    overflow: hidden;
+    display: inline-block;
+    width: 116px;
+    text-overflow: ellipsis;
+}
+
+.wide .vlisttext {
+    width: 216px;     
+}
+
+.subvlist {
+    margin-bottom: 64px;
+}
+
+#groupInfoArea, #groupInfoLoading 
+{
+    height: 100%;
+    right: 2px;
+    margin-left: 330px;
+}
+
+.b384 .tinyButton {
+    margin: 6px 6px 0 0;
+    float: right;
+}
+
+.b384 .vlistheadertext {
+    margin-top: -4px;
+}
+
+.plus {
+    background-image: url(../Images/TinyPlus.png);
+}
+
+#userSettingArea, #userTasksArea
+{
+    overflow-y:auto;
+    overflow-x:hidden; 
+    height:384px;  
+}
+
+#userSettingArea input[type="checkbox"], #userTasksArea input[type="checkbox"]
+{
+    margin:2px;
+}
+
+#userSettingArea label, #userTasksArea label
+{
+    position:relative;
+    top:-2px; 
+}
+
+#userSettingArea ul, #userTasksArea ul
+{
+    list-style-type: none;
+    list-style-position:inside;
+    margin:0;
+    padding:0;
+}
+
+.notimplemented, .hidden
+{
+    display:none !important; 
+}
+
+#passwdchange .modalpanel {
+    width: 512px !important;   
+}
+
+#modalbg {
+    z-index: 100;   
+}
+
+#passwdchange {
+    z-index: 50;   
+}
+
+#provby {
+    font-size: 12pt;
+    font-weight: normal;
+}
+
+.graphInfo {
+    width: 100px;
+}
+
+#status_ramMB {
+    font-size: 8pt;
+}
+
+@media screen and (max-height: 670px)
+{
+    .welcomemessage
+    {
+        width:440px;
+        height:128px;
+    }
+    
+    #mainlogo
+    {
+        width:128px;
+        float:left;
+    }
+    
+    #mainlogotext
+    {
+        float:right;
+        padding:46px 16px 0 0;
+    }
+}

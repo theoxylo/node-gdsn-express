@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title><%= title %></title>
+  <% include css.ejs %>
+</head>
+<body>
+<% var prop; %>
+
+<h1><%= title %></h1>
+
+<h2>Session Info</h2>
+<ul>
+    <li>sessionID: <%= req.sessionID %>
+    <% for(prop in req.session) { 
+        if (typeof req.session[prop] === 'function') continue;
+        %><li><%= prop %>: <%= req.session[prop] %>
+    <% } %>
+</ul>
+
+<h2>Request Headers</h2>
+<ul>
+<% for(prop in req.headers) { %>
+     <li><%= prop %>: <%= req.headers[prop] %>
+<% } %>
+<p>
+</ul>
+
+<h2>Request Cookies</h2>
+<ul>
+<% for(prop in req.cookies) { %>
+     <li><%= prop %>: <%= req.cookies[prop] %>
+<% } %>
+<% for(prop in req.signedCookies) { %>
+     <li><%= prop %>: <%= req.signedCookies[prop] %>
+<% } %>
+</ul>
+
+<h2>Response Headers</h2>
+<ul>
+<% for(prop in res._headers) { %>
+     <li><%= prop %>: <%= res._headers[prop] %>
+<% } %>
+<p>
+</ul>
+
+<h2>Full Request Info</h2>
+<ul>
+<% for(prop in req) { %>
+     <% if (typeof req[prop] === 'function') continue; %>
+     <li><%= prop %>: <%= req[prop] %>
+<% } %>
+</ul>
+
+<h2>Full Response Info</h2>
+<ul>
+<% for(prop in res) { %>
+     <% if (typeof res[prop] === 'function') continue; %>
+     <li><%= prop %>: <%= res[prop] %>
+<% } %>
+</ul>
+
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>GDSN Admin - Web Administration</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <link type="text/css" href="css/GdsnAdmin.css" id="styleSheet" rel="stylesheet" />
+        <link type="text/css" href="css/Common.css" rel="stylesheet" />
+        <link type="text/css" href="css/Branding.css" rel="stylesheet" />
+        <script type="text/javascript" src="js/Updates.js"></script>
+        <script type="text/javascript" src="js/base64.js"></script>
+        <script type="text/javascript" src="js/jquery-1.6.2.js"></script>
+        <script type="text/javascript" src="js/jquery-fx.min.js"></script>
+        <script type="text/javascript" src="js/Language.js"></script>
+        <script type="text/javascript" src="js/Config.js"></script>
+        <script type="text/javascript" src="js/GdsnAdmin.js"></script>
+        <!--<script type="text/javascript" src="js/UnitTesting.js"></script>-->
+    </head>
+    <body>
+        <h1 id="bgtext">Welcome</h1>
+
+        <div id="passwdchange" class="modalbg modalnormal">
+            <div class="modalpanel">
+                <div class="modalcontents">
+                    <h2 class="notopmargin">Change Password</h2>
+                    
+                    <div class="ilb">
+                        <span>Current Password:</span><br/>
+                        <input type="password" id="oldpwd"/>
+                    </div>
+                    <br/>
+                    <div class="ilb">
+                        <span>New Password:</span><br/>
+                        <input type="password" id="newpwd" />
+                    </div>
+                    
+                    <div class="ilb">
+                        <span>Confirm Password:</span><br/>
+                        <input type="password" id="newpwd2"/>
+                    </div>
+                </div>
+                
+                <div class="modalbuttons">
+                    <input type="button" value="OK" id="chancePasswordOKButton"/>
+                    <input type="button" value="Cancel" id="changePasswordCancelButton"/>
+                </div>
+            </div>
+        </div>
+        
+        <div id="modalbg" class="modalbg modalnormal">
+            <div class="modalpanel">
+                <div id="modaliconholder">
+                    <div id="message_icon" class="message_warn"></div>
+                </div>
+                <div class="modalcontents">
+                    <h2 id="modaltitle">Unknown Script Error</h2>
+                    <p id="modalmessage">Is javascript enabled?</p>
+                </div>
+                <div class="modalbuttons">
+                    <input type="button" value="OK" id="modalok" style="display:none;"/>
+                    <input type="button" value="Cancel" id="modalcancel" style="display:none;"/>
+                </div>
+            </div>
+        </div>
+
+        <div class="centerbody">
+            <div id="tasksarea">
+                <h5 id="runtasktitle">Running Tasks:</h5>
+                <h5 id="noticestitle">Notifications:</h5>
+            </div>
+
+            <div id="sidetabs">
+                <a class="sidetab picked" href="#tab_status"><img src="img/Status.png" alt="Status" /><span>Status</span></a>
+                <a class="sidetab" href="#tab_subscription"><img src="img/Backups.png" alt="Subscription" /><span>Subscription</span></a>
+                <a class="sidetab" href="#tab_about" id="tabhead_about"><img src="img/Help.png" alt="About" /><span>About</span></a>
+            </div>
+
+            <div id="tabs">
+                <div class="tabarea" id="tab_status">
+                    <h3>Server Status</h3>
+                    <img src="img/Status.png" alt="Status" class="tabimg"/>
+                    <div class="tabcontents">
+                        
+                        <div id="statusArea">
+                            <table id="statusTable">
+                                <tr>
+                                    <td>Last Update</td>
+                                    <td id="status_lastupdate">0000-00-00 00:00:00</td>
+                                </tr>
+                                <tr>
+                                    <td>Server Time</td>
+                                    <td id="status_servertime">0000-00-00 00:00:00</td>
+                                </tr>
+                                <tr>
+                                    <td>Online Users</td>
+                                    <td id="status_onlineplayers">0 / 0</td>
+                                </tr>
+                            </table>
+
+                            <div class="statusHolder">
+                                <div id="status_icon" class="status_stop"></div>
+                                <div class="statusText" id="status_statetext">Server is not running.</div>
+                                <p id="status_uptime">Uptime: 0 days, 0 hours, 0 minutes</p>
+                            </div>
+                        </div>
+
+                        <div id="linkList">Useful Links</div>
+                        <input type="button" value="Start Server" class="auth_2" id="button_startserver"/>
+                        <input type="button" value="Stop Server" class="auth_1" id="button_stopserver"/>
+                        <input type="button" value="Kill Server" class="auth_1" id="button_killserver" onclick="performAction(APICommands.KillServer);"/>
+                        <input type="button" value="Restart Server" class="auth_1 auth_2" id="button_restartserver"/>
+                    </div>
+                </div>
+
+                <div class="tabarea" id="tab_subscription">
+                    <h3>Subscription Utils</h3>
+                    <img src="img/Backups.png" alt="Backups" class="tabimg"/>
+                    <div class="tabcontents">
+                        <p>Use this form...</p>
+                        <div class="subarea">
+                            <h4>List Subscriptions</h4>
+                            <div class="nomargin">
+                                <span>Subscriber GLN:</span>
+                                <input type="text" id="subscriber"/>
+                                <input type="button" onclick="getSubscriptions();" value="Get Subscriptions"/><br/>
+                                <div id="sub_list">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="subarea">
+                            <h4>Check Status</h4>
+                            <div class="nomargin">
+                                <span>Subscriber GLN:</span><input type="text" id="subGln"/><br/>
+                                <span>Publisher GLN:</span><input type="text" id="pubGln"/><br/>
+                                <input type="button" onclick="getSubscriptionStatus();" value="Check Status"/><br/>
+                                <span class="note">Subscriber and Publisher GLNs are required.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tabarea" id="tab_about">
+                    <h3>About</h3>
+                    <img src="img/Help.png" alt="About" class="tabimg"/>
+                    <div class="tabcontents">
+                        <div class="subtabhead">
+                            <a href="#tab_about_info" class="subtab picked">Information</a>
+                            <a href="#tab_about_test" class="subtab picked">Test</a>
+                        </div>
+                        <div class="subtabcontainer" id="tab_about_info">
+                            <p class="notopmargin">GDSN Admin <span class="reg_versioninfo"></span> Edition</p>
+                            <p>Registered To: <span class="reg_owner">PROVIDER/OWNER</span></p>
+                            <p>GDSN Admin by ITN makes it easy to manage your GDSN server using its friendly web-based user interface powered by its own internal web server.</p>
+                            <p>It helps to keep your server running smoothly and effectively by constantly monitoring the state of the server and taking appropriate action if something should go wrong.</p>
+                            <p>GDSN Admin is ©2012 ITN - All Rights Reserved. See LICENCE.txt for more information.</p>
+                        </div>
+                        <div class="subtabcontainer" id="tab_about_test">
+                            <p class="notopmargin">This is a test tab panel</p>
+                            <div class="subarea">
+                                    <p>This is a tabarea -> tabcontents -> subtabcontainer -> subarea</p>
+                            </div>
+                            <div class="subarea">
+                                    <p>Soon, many GDSN Server functions will be available!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+             
+            <div id="welcomescreen">
+                <div class="welcomemessage semibg">
+                    <img src="img/Logo256.png" alt="GDSN Admin Logo" id="mainlogo"/>
+                    <p id="mainlogotext">Welcome to GDSN Admin<br/><span id="provby">&nbsp;</span></p>
+                </div>
+
+                <div>
+                    <div id="loginwait">
+                        <br />
+                        <div>
+                            <span class="translatable" id="LoginMessage">LoginMessage</span><br /><br /><br />
+                        </div>
+                        <img src="img/loadspin.gif" alt="Loading..." class="loadspin"/>
+                    </div>
+                </div>
+
+                <div>
+                    <div id="loginscreen">
+                        <p class="bold">Login to GDSN Admin at <span class="pagehost">localhost</span><br /></p>
+                        <div class="wfull aright">
+                            <form action="" method="get" onsubmit="doLogin(); return(false);">
+                                <table>
+                                    <tr>
+                                        <td>Username:</td>
+                                        <td><input type="text" id="loginusername"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Password:</td>
+                                        <td><input type="password" id="loginpassword"/></td>
+                                    </tr>
+                                </table>
+                                <div>
+                                    <span class="rememberContainer"><label for="rememberLogin">Remember my login details </label><input type="checkbox" id="rememberLogin"/></span>
+                                    <input type="submit" value="Login" id="dologin"/>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <p class="bold" id="loginerror">LOGINERROR</p>
+                </div>
+            </div>
+
+            <div class="dockbar db_top">
+                <span class="db_left">
+                    <span id="userinfo">
+                        GDSN Admin | <span id="loggedinas"></span> | <a href="javascript:void();" onclick="doLogout();">Logout</a> | <a href="javascript:void();" onclick="showChangePassword();">Change Password</a>
+                    </span>
+                </span>
+                <span class="db_right reg_owner">
+                    
+                </span>
+            </div>
+            <div class="dockbar db_bottom">
+                <span class="db_left">
+                    
+                </span>
+                <span class="db_right reg_versioninfo">
+                    
+                </span>
+            </div>
+        </div>
+        
+        <div id="debugHolder">
+            <h4>Debug Information (Mouse over to view)</h4>
+            <div id="debugMsgs">
+                
+            </div>
+            <div id="debugInfo">
+                <p>Queue Length: <span id="queueSize"></span></p>
+            </div>
+        </div>
+    </body>
+</html>
