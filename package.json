@@ -5,13 +5,13 @@
   "engines": { 
     "node": "0.8.6" 
   },
-  "author": "Theoxylo - http://https://githumb.com/theoxylo",
+  "author": "Theoxylo - https://github.com/theoxylo",
   "scripts": {
     "start": "node app"
   },
   "dependencies": {
     "express": "3.0.0rc3",
-    "gdsn": "0.0.2",
+    "gdsn": "git://github.com/theoxylo/node-gdsn.git",
     "ejs": "0.8.3"
   },
   "main": "index",

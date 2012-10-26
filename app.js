@@ -1,10 +1,7 @@
 var express = require('express')
-  , http = require('http')
-  , path = require('path')
   , log = console.log
   , fs = require('fs')
-  //, gdsn = require('gdsn')
-  , gdsn = require('gdsn-git')         // latest dev version, git project
+  , gdsn = require('gdsn')
   ;
 
 var inboxDir = __dirname + '/msg/inbox/';
@@ -21,7 +18,7 @@ app.configure(function() {
   app.use(express.cookieParser('your secret here'));
   app.use(express.session());
   app.use(app.router);
-  app.use(express.static(path.join(__dirname, 'public')));
+  app.use(express.static(__dirname + '/public'));
 });
 
 app.configure('development', function() {
@@ -44,7 +41,10 @@ app.post('/cin', function(req, res) {
     var cinIn = req.files.cin.path;
     var cinOut = outboxDir + req.files.cin.name;
     gdsn.readXmlFile(cinIn, function (err, xml) {
-        if (err) res.send(500, err);
+        if (err) {
+            res.send(500, err);
+            return;
+        }
         var modXml = gdsn.processCinFromOtherDP(xml);
         gdsn.writeXmlFile(cinOut, modXml);
     });
@@ -85,6 +85,7 @@ app.listen(app.get('port'));
 console.log("Express GDSN server listening on port " + app.get('port'));
 
 // Proof-of-concept: Inbox filesystem watcher
+/*
 log("Inbox dir: " + inboxDir);
 fs.watch(
     inboxDir, 
@@ -99,4 +100,5 @@ fs.watch(
         }
     }
 );
+*/
 
