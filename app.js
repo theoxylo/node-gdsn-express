@@ -11,6 +11,7 @@ app.configure(function() {
     app.set('port', process.env.PORT || 3000);
     //app.set('views', __dirname + '/views');
     app.use(express.favicon());
+    app.use(getCinPostHandler({ test: true }));
     app.use(express.logger('dev'));
     app.use(express.bodyParser());
     app.use(express.methodOverride());
@@ -88,6 +89,30 @@ function getSnoopHandler(count) {
             res: res
         });
     }
+}
+
+// test of direct cin post from java client
+/*
+app.post('/post-cin', function(req, res) {
+    log('Received /post-cin data: ');
+    log(req);
+});
+*/
+function getCinPostHandler(options) {
+    options = options || {};
+    return function(req, res, next) {
+        if ('/post-cin' != req.url) {
+            next();
+            return;
+        }
+        var buf = '';
+        req.setEncoding('utf8');
+        req.on('data', function(chunk) { buf += chunk });
+        req.on('end', function() {
+            log('Received POST content: ' + buf);
+        });
+        res.end();
+    };
 }
 
 app.listen(app.get('port'), process.env.IP);
