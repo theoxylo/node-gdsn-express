@@ -117,8 +117,7 @@ function getCinPostHandler(options) {
   options = options || {};
   return function(req, res, next) {
     if ('/post-cin' != req.url) {
-      next();
-      return;
+      return next();
     }
     var buf = '';
     req.setEncoding('utf8');
