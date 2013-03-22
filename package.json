@@ -1,21 +1,19 @@
 {
   "name": "node-gdsn-express",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "An express server for GDSN",
   "engines": { 
-    "node": "0.8.6" 
+    "node": "0.8.9" 
   },
   "author": "Theoxylo - https://github.com/theoxylo",
   "scripts": {
-    "start": "node app"
+    "start": "node index"
   },
   "dependencies": {
-    "express": "3.0.0rc3",
-    "gdsn": "git://github.com/theoxylo/node-gdsn.git",
+    "gdsn": "0.0.8",
+    "express": "3.1.0",
     "ejs": "0.8.3"
   },
-  "main": "index",
-  "directories": { },
   "keywords": ["gdsn", "node", "eip", "xpath", "xml", "express"],
   "licenses": [{
       "type" : "MIT License",
