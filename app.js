@@ -1,20 +1,20 @@
-var express = require('express');
-var fs = require('fs');
+var express = require('express')
+var fs = require('fs')
 
-var Gdsn = require('gdsn');
+var Gdsn = require('gdsn')
 var gdsn = new Gdsn({ 
   homeDataPoolGln: '1100001011285',
   templatePath: __dirname + '/node_modules/gdsn/templates/'
 });
 
-var log = console.log;
-var inboxDir = __dirname + '/msg/inbox/';
-var outboxDir = __dirname + '/msg/outbox/';
-var app = express();
+var log = require('./Logger.js')('gdsnApp')
+var inboxDir = __dirname + '/msg/inbox/'
+var outboxDir = __dirname + '/msg/outbox/'
+var app = express()
 
 // App Setup
 app.configure(function() {
-  app.set('port', process.env.PORT || 3000);
+  app.set('port', process.env.PORT || 8080);
   //app.set('views', __dirname + '/views');
   app.use(express.favicon());
   app.use(getCinPostHandler({ test: true }));
@@ -41,8 +41,8 @@ app.get('/cin', function(req, res) {
 
 // CIN upload submit processing
 app.post('/cin', function(req, res) {
-  //log('Request object: ');
-  //log(req);
+  //log.debug('Request object: ');
+  //log.debug(req);
 
   var ts = new Date().getTime();
   var cinIn = req.files.cin.path;
@@ -54,25 +54,25 @@ app.post('/cin', function(req, res) {
       res.send(500, err);
       return;
     }
-    var doc = gdsn.getDocForXml(xml);
+    var doc = gdsn.getXmlDom(xml);
     gdsn.createCinResponse(doc, function(err, respXml) {
       gdsn.writeXmlFile(respOut, respXml, function(err, result) {
         if (err) {
-          log('Error: ' + err);
+          log.error(err);
           res.send(500, err);
           return;
         }
-        log('Created CIN response file: ' + respOut);
+        log.info('Created CIN response file: ' + respOut);
       });
       gdsn.forwardCinFromOtherDP(doc, function(err, cinOutXml) {
         gdsn.writeXmlFile(cinOut, cinOutXml, function(err, result) {
           if (err) {
-            log('Error: ' + err);
+            log.error(err);
             res.send(500, err);
             return;
           }
-          log('Created CIN forward file: ' + cinOut);
-          log('Result: ' + result);
+          log.info('Created CIN forward file: ' + cinOut);
+          log.info('Result: ' + result);
           res.render('cin_confirm.ejs', {
             upload: true,
             title: 'CIN Upload Confirmation',
@@ -96,7 +96,7 @@ app.get('/admin/data.json', function(req, res) {
 });
 
 // default snoop home page
-app.get('/', getSnoopHandler());
+app.get('/snoop', getSnoopHandler());
 
 function getSnoopHandler(count) {
   count = count || 0;
@@ -125,26 +125,26 @@ function getCinPostHandler(options) {
       buf += chunk
     });
     req.on('end', function() {
-      log('Received POST content: ' + buf);
+      log.info('Received POST content: ' + buf);
     });
     res.end();
   };
 }
 
 app.listen(app.get('port'), process.env.IP);
-log("Express GDSN server listening on port " + app.get('port'));
+log.info("Express GDSN server listening on port " + app.get('port'));
 
 // Proof-of-concept: Inbox filesystem watcher
-//  log("Inbox dir: " + inboxDir);
+//  log.info("Inbox dir: " + inboxDir);
 //  fs.watch(
 //      inboxDir, 
 //      function (event, filename) {
-//          console.log('event is: ' + event + ' for filename ' + filename);
+//          log.info('event is: ' + event + ' for filename ' + filename);
 //          if (filename && event == 'change')
 //          {
 //              fs.stat(filename, function (err, stats) {
 //                  if (err) return;
-//                  console.log('stats: ' + JSON.stringify(stats));
+//                  log.info('stats: ' + JSON.stringify(stats));
 //              });
 //          }
 //      }
