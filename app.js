@@ -12,6 +12,10 @@ var inboxDir = __dirname + '/msg/inbox/'
 var outboxDir = __dirname + '/msg/outbox/'
 var app = express()
 
+// mongodb test
+var mongojs = require('mongojs');
+var db = mongojs('gdsn', ['msg_in', 'msg_out']);
+
 // App Setup
 app.configure(function() {
   app.set('port', process.env.PORT || 8080);
@@ -54,17 +58,34 @@ app.post('/cin', function(req, res) {
       res.send(500, err);
       return;
     }
-    var doc = gdsn.getXmlDom(xml);
-    gdsn.createCinResponse(doc, function(err, respXml) {
-      gdsn.writeXmlFile(respOut, respXml, function(err, result) {
-        if (err) {
-          log.error(err);
-          res.send(500, err);
-          return;
-        }
-        log.info('Created CIN response file: ' + respOut);
+    //var doc = gdsn.getXmlDom(xml);
+    gdsn.getXmlDom(xml, function(err, doc) {
+
+      // persist to mongodb INBOUND archive
+      var info = gdsn.getMessageInfo(doc);
+      info.xml = xml;
+      info.ts = new Date();
+      db.msg_in.save(info);
+
+      gdsn.createCinResponse(doc, function(err, respXml) {
+        gdsn.writeXmlFile(respOut, respXml, function(err, result) {
+          if (err) {
+            log.error(err);
+            res.send(500, err);
+            return;
+          }
+          log.info('Created CIN response file: ' + respOut);
+        });
       });
+
       gdsn.forwardCinFromOtherDP(doc, function(err, cinOutXml) {
+
+        // persist to mongodb INBOUND archive
+        var info = gdsn.getMessageInfo(cinOutXml);
+        info.xml = cinOutXml;
+        info.ts = new Date();
+        db.msg_out.save(info);
+
         gdsn.writeXmlFile(cinOut, cinOutXml, function(err, result) {
           if (err) {
             log.error(err);
@@ -83,6 +104,7 @@ app.post('/cin', function(req, res) {
           });
         });
       });
+
     });
   });
 });

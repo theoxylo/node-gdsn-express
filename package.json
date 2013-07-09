@@ -10,9 +10,10 @@
     "start": "node index"
   },
   "dependencies": {
-    "gdsn": "0.0.8",
+    "gdsn": "0.0.9",
     "express": "3.1.0",
-    "ejs": "0.8.3"
+    "ejs": "0.8.3",
+    "mongojs": "0.7.3"
   },
   "keywords": ["gdsn", "node", "eip", "xpath", "xml", "express"],
   "licenses": [{
