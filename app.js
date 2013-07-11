@@ -53,58 +53,68 @@ app.post('/cin', function(req, res) {
   var cinOut = outboxDir + req.files.cin.name + '_forward_' + ts;
   var respOut = outboxDir + req.files.cin.name + '_response_' + ts;
 
-  gdsn.readXmlFile(cinIn, function(err, xml) {
+  gdsn.readFile(cinIn, function(err, xml) {
     if (err) {
       res.send(500, err);
       return;
     }
     //var doc = gdsn.getXmlDom(xml);
-    gdsn.getXmlDom(xml, function(err, doc) {
+    gdsn.getXmlDomForString(xml, function(err, doc) {
 
       // persist to mongodb INBOUND archive
       var info = gdsn.getMessageInfo(doc);
       info.xml = xml;
-      info.ts = new Date();
+      info.process_ts = new Date();
       db.msg_in.save(info);
 
       gdsn.createCinResponse(doc, function(err, respXml) {
-        gdsn.writeXmlFile(respOut, respXml, function(err, result) {
+        gdsn.writeFile(respOut, respXml, function(err) {
           if (err) {
             log.error(err);
             res.send(500, err);
             return;
           }
-          log.info('Created CIN response file: ' + respOut);
+        });
+
+        // persist to mongodb OUTBOUND archive
+        gdsn.getXmlDomForString(respXml, function(err, $dom) {
+          var info = gdsn.getMessageInfo($dom);
+          info.xml = respXml;
+          info.process_ts = new Date();
+          db.msg_out.save(info);
         });
       });
 
       gdsn.forwardCinFromOtherDP(doc, function(err, cinOutXml) {
 
-        // persist to mongodb INBOUND archive
-        var info = gdsn.getMessageInfo(cinOutXml);
-        info.xml = cinOutXml;
-        info.ts = new Date();
-        db.msg_out.save(info);
+        // persist to mongodb OUTBOUND archive
+        gdsn.getXmlDomForString(cinOutXml, function(err, $dom) {
+          var info = gdsn.getMessageInfo($dom);
+          info.xml = cinOutXml;
+          info.process_ts = new Date();
+          db.msg_out.save(info);
+        });
 
-        gdsn.writeXmlFile(cinOut, cinOutXml, function(err, result) {
+        gdsn.writeFile(cinOut, cinOutXml, function(err) {
           if (err) {
             log.error(err);
             res.send(500, err);
             return;
           }
-          log.info('Created CIN forward file: ' + cinOut);
-          log.info('Result: ' + result);
-          res.render('cin_confirm.ejs', {
-            upload: true,
-            title: 'CIN Upload Confirmation',
-            cin_filename: req.files.cin.name,
-            cin_filesize: (req.files.cin.size / 1024),
-            cin_filepath: req.files.cin.path,
-            cin_out: cinOut
-          });
         });
-      });
 
+        log.info('Created CIN forward file: ' + cinOut);
+        //log.info('Result: ' + result);
+        res.render('cin_confirm.ejs', {
+          upload: true,
+          title: 'CIN Upload Confirmation',
+          cin_filename: req.files.cin.name,
+          cin_filesize: (req.files.cin.size / 1024),
+          cin_filepath: req.files.cin.path,
+          cin_out: cinOut
+        });
+
+      });
     });
   });
 });
