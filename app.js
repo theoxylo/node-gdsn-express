@@ -20,7 +20,7 @@ var db = mongojs('gdsn', ['msg_in', 'msg_out'])
 app.configure(function() {
   app.set('port', process.env.PORT || 8080)
   //app.set('views', __dirname + '/views')
-  app.use(express.favicon())
+  app.use(express.favicon(__dirname + '/public/favicon.ico'))
   app.use(getCinPostHandler({ test: true }))
   app.use(express.logger('dev'))
   app.use(express.bodyParser())
@@ -64,7 +64,7 @@ app.get('/admin/data.json', function(req, res) {
     }
     else {
       res.json({
-        authmask: "0",
+        status: "403",
         success: "false"
       })
       return

@@ -1171,9 +1171,9 @@ function getVersions()
 {
     if (typeof (UpdateData) !== 'undefined')
     {
-        $(".reg_latestversion").text(UpdateData.LatestMCMA);
-        $(".ver_latestoffical").text(UpdateData.LatestMinecraft);
-        $(".ver_latestbukkit").text(UpdateData.LatestMinecraftBukkitCompat);
+        //$(".reg_latestversion").text(UpdateData.LatestMCMA);
+        //$(".ver_latestoffical").text(UpdateData.LatestMinecraft);
+        //$(".ver_latestbukkit").text(UpdateData.LatestMinecraftBukkitCompat);
         $(".reg_versioninfo").text(UpdateData.versionTag);
     }
 }
