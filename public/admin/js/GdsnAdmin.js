@@ -312,6 +312,11 @@ function checkSavedLogin() {
         $("#loginpassword").val(getCookie(Cookies.SavedPassword));
         $("#rememberLogin").prop("checked", true);
     }
+    else {
+        $("#loginusername").val('');
+        $("#loginpassword").val('');
+        $("#rememberLogin").prop("checked", false);
+    }
 }
 
 function clearTasks() {
@@ -378,7 +383,7 @@ function createNotice(title)
     var taskId = LastTaskID;
     var eId = "task_" + LastTaskID;
     var taskElement = "<div class=\"task task_activity\" id=\"" + eId + "\">" + 
-        "<img src=\"Images/loadspin_tiny.gif\" alt=\"Progress\" class=\"loadspin_tiny inline\"/>" + 
+        "<img src=\"img/loadspin_tiny.gif\" alt=\"Progress\" class=\"loadspin_tiny inline\"/>" + 
         "<div class=\"noticeline\">" + title + "</div>" +
         "</div>";
         $("#runtasktitle").after(taskElement);
@@ -440,7 +445,7 @@ function createTask(title)
     var eId = "task_" + LastTaskID;
     var taskElement = "<div class=\"task task_activity\" id=\"" + eId + "\">" + 
         "<h5 class=\"notopmargin\">" + title + "</h5>" +
-        "<img src=\"Images/loadspin_tiny.gif\" alt=\"Progress\" class=\"loadspin_tiny\"/>" + 
+        "<img src=\"img/loadspin_tiny.gif\" alt=\"Progress\" class=\"loadspin_tiny\"/>" + 
         "<div class=\"progressbar\">" + 
             "<div class=\"progressbarslider\"></div>" +
         "</div></div>";
@@ -910,8 +915,6 @@ function doLogin()
     Username = $("#loginusername").val();
     Password = $("#loginpassword").val();
 
-    //if (!confirm("Log in with username '" + Username + "'?")) return;
-
     if ($("#rememberLogin").is(":checked")) {
         setCookie(Cookies.SavedUsername, Username);
         setCookie(Cookies.SavedPassword, Password);
@@ -922,12 +925,13 @@ function doLogin()
 
     $("#LoginMessage").text(Messages.LoginMessage);
 
+    //if (!confirm("Log in with username '" + Username + "'?")) return;
+
     showLoginWaiting(function () {
         setTimeout(loginSlow, 5000);
         requestData(APICommands.Login, { Username: Username, Password: Password }, loginCallback);
-        //requestData(APICommands.Login, { Username: Username, Password: Password }, loginCallback, '/gdsn-server/api/login');
-        //requestData(APICommands.Login, { j_username: Username, j_password: Password, submit: "submit" }, loginCallback, '/gdsn-server/j_spring_security_check');
     });
+    return false;
 }
 
 function getSubscriptions()

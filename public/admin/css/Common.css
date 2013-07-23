@@ -25,12 +25,12 @@ input[type="checkbox"]
 
 input[type="checkbox"]:not(:checked)::after
 {
-    content:url(../Images/Unticked.png);
+    content:url(../img/Unticked.png);
 }
 
 input[type="checkbox"]:checked::after
 {
-    content:url(../Images/Ticked.png);
+    content:url(../img/Ticked.png);
 }
 
 label
@@ -225,7 +225,7 @@ label
 }
 
 .plus {
-    background-image: url(../Images/TinyPlus.png);
+    background-image: url(../img/TinyPlus.png);
 }
 
 #userSettingArea, #userTasksArea

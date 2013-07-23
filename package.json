@@ -3,7 +3,7 @@
   "version": "0.0.3",
   "description": "An express server for GDSN",
   "engines": { 
-    "node": "0.8.9" 
+    "node": ">=0.8.6" 
   },
   "author": "Theoxylo - https://github.com/theoxylo",
   "scripts": {

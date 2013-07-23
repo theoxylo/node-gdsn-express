@@ -108,7 +108,7 @@ img
     margin:6px 0 0 10px;
     width:128px;
     height:128px;
-    background-image:url(../Images/MessageIcons.png);
+    background-image:url(../img/MessageIcons.png);
     background-repeat:no-repeat;
 }
 
@@ -116,7 +116,7 @@ img
 {
     width:16px;
     height:16px;
-    background-image:url(../Images/MessageIcons.png);
+    background-image:url(../img/MessageIcons.png);
     background-repeat:no-repeat;
     float:left;
     background-color:white;
@@ -163,7 +163,7 @@ img
     height:24px;
     background-color:#cecece;
     border:4px solid #cecece;
-    background-image:url(../Images/StatusSprite.png);
+    background-image:url(../img/StatusSprite.png);
     background-repeat:no-repeat;
 }
 
@@ -304,7 +304,7 @@ img
 
 .sidetab:hover
 {
-    /*background-image:url("../Images/SideTab.png");*/
+    /*background-image:url("../img/SideTab.png");*/
     background-color: #CECECE;
 }
 
@@ -839,7 +839,7 @@ img
     cursor:pointer;
     margin: 2px;
     color: black;
-    background-image: url(../Images/UISample.png);
+    background-image: url(../img/UISample.png);
 }
 
 #customcolor 
@@ -881,7 +881,7 @@ img
 .modalfatal
 {
     background-color:#666;
-    background-image:url(../Images/Logo256.png);
+    background-image:url(../img/Logo256.png);
     background-position:0 32px;
     background-repeat:no-repeat;
 }
@@ -1042,7 +1042,7 @@ img
     height: 12px;
     border:1px solid #aaa;
     background-color: #BDBDBD;
-    background-image: url(../Images/TinyCross.png);
+    background-image: url(../img/TinyCross.png);
     float: right;
     margin-right: 12px;
     margin-top: 1px;

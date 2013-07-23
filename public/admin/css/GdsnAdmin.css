@@ -3,7 +3,7 @@
     font-family:Verdana, Sans-Serif;
     font-size:10pt;
     background-color:#3F647F; /*Default blue*/
-    background-image:url("../Images/AmbientGradient.png");
+    background-image:url("../img/AmbientGradient.png");
     background-position:top;
     background-attachment:fixed;
     background-repeat:no-repeat;
@@ -108,7 +108,7 @@ img
     margin:6px 0 0 10px;
     width:128px;
     height:128px;
-    background-image:url(../Images/MessageIcons.png);
+    background-image:url(../img/MessageIcons.png);
     background-repeat:no-repeat;
 }
 
@@ -116,7 +116,7 @@ img
 {
     width:16px;
     height:16px;
-    background-image:url(../Images/MessageIcons.png);
+    background-image:url(../img/MessageIcons.png);
     background-repeat:no-repeat;
     float:left;
     background-color:white;
@@ -162,7 +162,7 @@ img
     margin:2px;
     width:24px;
     height:24px;
-    background-image:url(../Images/StatusSprite.png);
+    background-image:url(../img/StatusSprite.png);
     background-repeat:no-repeat;
 }
 
@@ -305,7 +305,7 @@ img
 .sidetab:hover
 {
     height:48px;
-    background-image:url("../Images/SideTab.png");
+    background-image:url("../img/SideTab.png");
     border-bottom:0px;
 }
 
@@ -848,7 +848,7 @@ img
     cursor:pointer;
     margin: 2px;
     color: black;
-    background-image: url(../Images/UISample.png);
+    background-image: url(../img/UISample.png);
 }
 
 #customcolor 
@@ -890,7 +890,7 @@ img
 .modalfatal
 {
     background-color:#666;
-    background-image:url(../Images/Logo256.png);
+    background-image:url(../img/Logo256.png);
     background-position:0 32px;
     background-repeat:no-repeat;
 }
@@ -1038,7 +1038,7 @@ img
 
 .vlistitem:hover {
     background-color: rgba(255, 255, 255, 0.2);
-    background-image:url("../Images/SideTab.png");
+    background-image:url("../img/SideTab.png");
     background-position:-32px -8px;
 }
 
@@ -1065,7 +1065,7 @@ img
     height: 12px;
     border: 1px solid white;
     background-color: rgba(255, 255, 255, 0.2);
-    background-image: url(../Images/TinyCross.png);
+    background-image: url(../img/TinyCross.png);
     border-radius: 2px;
     float: right;
     margin-right: 12px;
