@@ -1,150 +1,156 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
-<title>Backbone.js Counter</title>
-<style type="text/css">
-  div {
-    border-style: solid;
-    border-width: 1px;
-    border-color: blue;
-
-    margin-left: 10px;
-    margin-right: 10px;
-    margin-top: 10px;
-    margin-bottom: 10px;
-    
-    padding-left: 10px;
-    padding-right: 10px;
-    padding-top: 10px;
-    padding-bottom: 10px;
-  }  
-  input, textarea, select {
-    margin-bottom: 6px;
-    background-color: #fafafa;
-    border: #999 solid 1px;
-    font-size: 11px;
-    font-family: sans-serif;
-    vertical-align: middle;
-  }
-</style>
+  <meta charset="utf-8">
+  <title>Backbone.js Counter</title>
+  <style type="text/css">
+    #container, form {
+      border: #999 solid 1px;
+    }
+  </style>
+  <link rel="stylesheet" href="css/jquery-ui-1.10.3.css">
 </head>
 <body>
-<h2>Backbone.js Counter</h2>
+  <h2>Backbone.js Counter</h2>
 
-  <label>App Container:</label>
-  <div>
+  <div id="container"/>
 
-    <label>Widget Container:</label>
-    <div id="container"/>
-
-  </div>
-
-<script src="js/json2.js"></script>
-<script src="js/jquery-1.9.1.js"></script>
-<script src="js/underscore-1.5.1.js"></script>
-<script src="js/backbone-1.0.0.js"></script>
-<script type="text/template" id="view_template">
+  <script src="js/json2.js"></script>
+  <script src="js/jquery-1.9.1.js"></script>
+  <script src="js/underscore-1.5.1.js"></script>
+  <script src="js/backbone-1.0.0.js"></script>
+  <script src="js/jquery-ui-1.10.3.js"></script>
+  <script type="text/template" id="view_template">
     <legend>Counter Widget</legend>
-    <input id="viewCount" width="5" type="button" value="<%= count %>"></input>
-    <input id="editCount" size="5" value="<%= count %>"></input>
-    <p/>
-    <input id="increment" type="button" value="Increment"></input>
-    <input id="reset" type="button" value="Reset"></input>
-</script>
+      <form>
+        <input id="viewCount" size="5" value="<%= count %>" class="ui-widget-content ui-corner-all" tabindex="1"/>
+        <input id="editCount" size="5" value="<%= count %>" class="ui-widget-content ui-corner-all"/>
+        <button id="increment" class="ui-widget-content ui-corner-all" tabindex="2">Increment</button>
+        <button id="reset"     class="ui-widget-content ui-corner-all" tabindex="3">Reset    </button>
+      </form>
+  </script>
 
-<script>
-(function ($) {
+  <script>
+  (function ($) {
 
-  console.log('Backbone HelloWorld this: ' + this)
+    console.log('Backbone Counter Widget, this: ' + this)
 
-  var TheModel = Backbone.Model.extend({
-    defaults: {
-      count: 0
-    },
-    incrementCount: function () {
-      console.log('TheModel:incrementCount')
-      var count = this.get('count') + 1
-      this.set( { count: count } )
-    },
-    resetCount: function () {
-      console.log('TheModel:resetCount')
-      this.set( { count: 0 } )
-    }
-  })
-  
-  var TheView = Backbone.View.extend({    
-    el: '#container', // use existing div#container
-
-    template: _.template(this.$('#view_template').html()),
-
-    events: {
-      'click    #reset'        : 'userReset', 
-      'click    #viewCount'    : 'userEditCount', 
-      'focusout #editCount'    : 'userSetCount',
-      'click    #increment'    : 'userIncrement'           // applies to entire el
-    },
-
-    initialize: function () {
-      console.log('TheView:initialize');
-      this.model = new TheModel()
-      this.listenTo(this.model, 'change:count', this.render)
-      //this.listenTo(this.model, 'all', this.render)
-      this.render()
-    },
-
-    render: function () {
-      console.log('TheView:render')
-      this.$el.html(this.template(this.model.toJSON()))
-      this.$viewCount = this.$('#viewCount')
-      this.$editCount = this.$('#editCount')
-
-      this.$viewCount.show()
-      this.$editCount.hide()
-      return this // for chainable calls, like .render().el
-    },
-
-    userReset: function (event) {
-      console.log('TheView:userReset:event: ');
-      console.log(event)
-      this.model.resetCount()
-      return false
-    },
-
-    userEditCount: function (event) {
-      console.log('TheView:userEditCount:event: ');
-      console.log(event)
-      this.$viewCount.hide()
-      this.$editCount.show()
-      this.$editCount.focus()
-      return false
-    },
-
-    userSetCount: function (event) {
-      console.log('TheView:userSetCount:event: ');
-      console.log(event)
-      //if (event.which !== 13) return true
-
-      var newCount = Number(this.$editCount.val().trim())
-
-      if (this.model.count !== newCount && _.isNumber(newCount) && !_.isNaN(newCount)) {
-        this.model.set({count: newCount})
+    var TheModel = Backbone.Model.extend({
+      defaults: {
+        count: 0
+      },
+      setCount: function (newCount) {
+        console.log('TheModel:setCount:newCount: ' + newCount)
+        if (_.isNumber(newCount) && !_.isNaN(newCount)) {
+          this.set({count: newCount - 1}, {silent: true})
+          this.set({count: newCount})
+        }
+      },
+      incrementCount: function () {
+        console.log('TheModel:incrementCount')
+        var count = this.get('count') + 1
+        this.set( { count: count } )
+      },
+      resetCount: function () {
+        console.log('TheModel:resetCount')
+        this.set( { count: 0 } )
       }
-      return false
-    },
+    })
+    
+    var TheView = Backbone.View.extend({    
+      mode: 'view', // edit or view
 
-    userIncrement: function (event) {
-      console.log('TheView:userIncrement:event: ');
-      console.log(event)
-      this.model.incrementCount()
-      return false
-    }
+      el: '#container', // use existing div#container
 
-  })
+      template: _.template(this.$('#view_template').html()),
 
-  this.view = new TheView()
+      events: {
+        'click    #reset'        : 'userReset', 
+        'click    #viewCount'    : 'userEditCount', 
+        'focus    #viewCount'    : 'userEditCount', 
+        'focusout #editCount'    : 'userSetCount',
+        'keypress #editCount'    : 'userSetCount',
+        'click    #increment'    : 'userIncrement'           
+        , 'click' : 'logEvent' // applies to entire el
+      },
 
-})(jQuery)
-</script>
+      initialize: function () {
+        console.log('TheView:initialize');
+        this.model = new TheModel()
+        this.listenTo(this.model, 'change:count', this.render)
+        //this.listenTo(this.model, 'all', this.render)
+
+        // only use template once, then just hide/show/val during render
+        this.$el.html(this.template(this.model.toJSON()))
+        this.$viewCount = this.$('#viewCount')
+        this.$editCount = this.$('#editCount')
+
+        this.render()
+      },
+
+      render: function () {
+        console.log('TheView:render')
+        if (this.mode === 'view') {
+          this.$editCount.hide()
+          this.$viewCount.val(this.model.get('count'))
+          this.$viewCount.show()
+        }
+        else {
+          this.$viewCount.hide()
+          this.$editCount.val(this.model.get('count'))
+          this.$editCount.show()
+          this.$editCount.focus()
+        }
+        return this
+      },
+
+      userReset: function (event) {
+        console.log('TheView:userReset:event: ');
+        console.log(event)
+        this.mode = 'view'
+        this.model.resetCount()
+        return false
+      },
+
+      userEditCount: function (event) {
+        console.log('TheView:userEditCount:event: ');
+        console.log(event)
+        this.mode = 'edit'
+        this.render()
+        return false
+      },
+
+      userSetCount: function (event) {
+        console.log('TheView:userSetCount:event: ');
+        console.log(event)
+        if (event.type === 'focusout' || (event.type === 'keypress' && event.which === 13)) { // 13 is <ENTER>
+          this.mode = 'view'
+          this.model.setCount(Number(this.$editCount.val().trim()))
+        }
+      },
+
+      userIncrement: function (event) {
+        console.log('TheView:userIncrement:event: ');
+        console.log(event)
+        this.model.incrementCount()
+        return false
+      },
+
+      logEvent: function (event) {
+        console.log('TheView:logEvent:event.target: ' + event.target);
+        console.log(this)
+        //console.log(event)
+        return false
+      }
+
+    })
+
+    this.view = new TheView()
+
+    // for debug
+    window.b_view = this.view
+
+  })(jQuery)
+  </script>
 </body>
 </html>

@@ -9,16 +9,28 @@
 
 <h1><%= title %></h1>
 
+<div class="messages">
+<% messages.forEach(function (msg) { %>
+  <div class="message"><%= msg %></div>
+<% }) %>
+</div>
+
 <% if (upload) { %>
-    <p>Received CIN file: <%= cin_filename %>, size: <%= cin_filesize %> kb</p>
-    <p>Created CIN for local trading party: <%= cin_out %></p>
+    <div>
+      <p>Received CIN file: <%= cin_filename %>, size: <%= cin_filesize %> kb</p>
+      <p>Created CIN for local trading party: <%= cin_out %></p>
+    </div>
+    <p>Upload another? Please select the inbound CIN (from other data pool) to process:</p>
 <% } else { %>
     <p>Please select the inbound CIN (from other data pool) to process:</p>
+<% } %>
+
+  <div>
     <form method="post" enctype="multipart/form-data">
         <p>File: <input type="file" name="cin" /></p>
         <p><input type="submit" value="Upload" /></p>
     </form>
-<% } %>
+  </div>
 
 </body>
 </html>

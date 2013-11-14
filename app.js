@@ -8,38 +8,74 @@ var gdsn = new Gdsn({
 })
 
 var log = require('./Logger.js')('gdsnApp')
+log.debug('DEBUG logging enabled')
+log.info('INFO logging enabled')
+
 var inboxDir = __dirname + '/msg/inbox/'
 var outboxDir = __dirname + '/msg/outbox/'
 var app = express()
 
 // mongodb test
-var mongojs = require('mongojs')
-var db = mongojs('gdsn', ['msg_in', 'msg_out'])
+var db = null
+try {
+  db = (function () {
+    var mongojs = require('mongojs')
+    return mongojs('gdsn', ['msg_in', 'msg_out'])
+  })()
+}
+catch (err) {
+  log.error('mongojs not found: ' + err)
+  console.log('Error opening mongodb: ')
+  console.log(err)
+}
+log.info('mongo db: ')
+log.info(db)
+//console.log('mongo db: ' + db)
+//console.log(db)
+
+//var mongojs = require('mongojs')
+//var db = mongojs('gdsn', ['msg_in', 'msg_out'])
+
+app.set('port', process.env.PORT || 8080)
+app.set('views', __dirname + '/views')
 
 // App Setup
 app.configure(function() {
-  app.set('port', process.env.PORT || 8080)
-  //app.set('views', __dirname + '/views')
-  app.use(express.favicon(__dirname + '/public/favicon.ico'))
-  app.use(getCinPostHandler({ test: true }))
   app.use(express.logger('dev'))
+  app.use(express.basicAuth(function (user, pass) {
+    return 'admin' == user & 'devadmin' == pass;
+  }));
+  app.use(getCinPostHandler({ test: true }))
   app.use(express.bodyParser())
   app.use(express.methodOverride())
   app.use(express.cookieParser('your secret here'))
   app.use(express.session())
   app.use(app.router)
   app.use(express.static(__dirname + '/public'))
+  app.use(express.directory(__dirname + '/public'))
+  app.use(express.favicon(__dirname + '/public/favicon.ico'))
 })
 
+console.log('env: ' + app.get('env'))
+
 app.configure('development', function() {
-  app.use(express.errorHandler())
+  log.info('configuring development environment...')
+  app.use(express.errorHandler({showStack: true, dumpExceptions: true}));
 })
 
 // API root
 app.get('/api', function(req, res) {
   res.json({ 
     gdsn_rest_api_version: "0.0.3", 
-    ts: new Date().getTime() 
+    ts: Date.now()
+  })
+})
+
+// API root
+app.get('/api', function(req, res) {
+  res.json({ 
+    gdsn_rest_api_version: "0.0.3", 
+    ts: Date.now()
   })
 })
 
@@ -72,7 +108,7 @@ app.get('/admin/data.json', function(req, res) {
   }
   else if (cmd === 'gettip') {
     res.json({
-      tip: 'The current server time is ' + new Date()
+      tip: 'Current server date/time: ' + Date()
     })
   }
   else if (cmd === 'getstatus') {
@@ -83,29 +119,31 @@ app.get('/admin/data.json', function(req, res) {
   }
 })
 
+app.handleErr = function (err, res) {
+  console.log('handleErr: ' + err)
+  res.send(500, JSON.stringify(err))
+}
+
 // list sent messages
 app.get('/api/msg_out', function(req, res) {
-  db.msg_in.find({}, {xml:0}, function (err, docs) {
+  db && db.msg_in.find({}, {xml:0}, function (err, docs) {
     if (err) {
-      res.send(500, err)
+      app.handleErr(err, res)
       return
     }
-    res.json({
-      ts:       new Date().getTime(),
-      messages: docs
-    })
+    res.json(docs);
   })
 })
 
 // get xml for specific sent message
 app.get('/api/msg_out/id:msg_id', function(req, res) {
-  db.msg_in.find({}, {xml:0}, function (err, docs) {
+  db && db.msg_in.find({}, {xml:0}, function (err, docs) {
     if (err) {
-      res.send(500, err)
+      app.handleErr(err, res)
       return
     }
     res.json({
-      ts:       new Date().getTime(),
+      ts:       Date.now(),
       messages: docs
     })
   })
@@ -114,6 +152,7 @@ app.get('/api/msg_out/id:msg_id', function(req, res) {
 // CIN upload form
 app.get('/cin', function(req, res) {
   res.render('cin_confirm.ejs', {
+    messages: ['Please upload your file'],
     title: 'CIN Upload Form',
     upload: null
   })
@@ -121,77 +160,106 @@ app.get('/cin', function(req, res) {
 
 // CIN upload POST submit processing
 app.post('/cin', function(req, res) {
-  //log.debug('Request object: ')
-  //log.debug(req)
 
-  var ts = new Date().getTime()
+  var sent500 = false
+  var count = 0
+  var messages = []
+  var done = function (err, msg) {
+    log.info("done called with arg: " + (err ? err : msg))
+    if (err && sent500) {
+      return
+    }
+    if (err) {
+      sent500 = true
+      app.handleErr(err, res)
+      return
+    }
+    if (msg) messages.push(msg)
+    if (--count == 0) {
+      res.render('cin_confirm.ejs', {
+        messages: messages,
+        upload: true,
+        title: 'CIN Upload Confirmation',
+        cin_filename: req.files.cin.name,
+        cin_filesize: (req.files.cin.size / 1024),
+        cin_filepath: req.files.cin.path,
+        cin_out: cinOut
+      })
+    }
+  }
+
+  var ts = Date.now()
   var cinIn = req.files.cin.path
   var cinOut = outboxDir + req.files.cin.name + '_forward_' + ts
   var respOut = outboxDir + req.files.cin.name + '_response_' + ts
 
-  gdsn.readFile(cinIn, function(err, xml) {
-    if (err) {
-      res.send(500, err)
-      return
-    }
-    //var doc = gdsn.getXmlDom(xml)
+  count++
+  fs.readFile(cinIn, 'utf-8', function (err, xml) {
+    if (err) return done(err)
+
+    count++
     gdsn.getXmlDomForString(xml, function(err, doc) {
+      if (err) return done(err)
 
       // persist to mongodb INBOUND archive
       var info = gdsn.getMessageInfo(doc)
       info.xml = xml
-      info.process_ts = new Date()
-      db.msg_in.save(info)
+      info.process_ts = Date() // long date and time stamp
+      db && db.msg_in.save(info)
+      log.info('Saved CIN submissiont to db with instance_id: ' + info.id)
 
+      count++
       gdsn.createCinResponse(doc, function(err, respXml) {
+        if (err) return done(err)
+
+        log.info("gdsn.createCinResponse: response xml length: " + respXml.length)
+
         gdsn.writeFile(respOut, respXml, function(err) {
-          if (err) {
-            log.error(err)
-            res.send(500, err)
-            return
-          }
+          if (err) return done(err)
+          log.info('Created CIN response file: ' + respOut)
         })
 
         // persist to mongodb OUTBOUND archive
         gdsn.getXmlDomForString(respXml, function(err, $dom) {
+          if (err) return done(err)
+
           var info = gdsn.getMessageInfo($dom)
           info.xml = respXml
-          info.process_ts = new Date()
-          db.msg_out.save(info)
+          info.process_ts = Date()
+          db && db.msg_out.save(info)
+
+          log.info('Saved CIN response to db with instance_id: ' + info.id)
         })
+        done(null, "Done creating CIN response")
       })
 
+      count++
       gdsn.forwardCinFromOtherDP(doc, function(err, cinOutXml) {
+        if (err) return done(err)
+
+        log.info("gdsn.forwardCinFromOtherDP: result xml length: " + cinOutXml.length)
+
+        gdsn.writeFile(cinOut, cinOutXml, function(err) {
+          if (err) return done(err)
+          log.info('Created CIN forward file: ' + cinOut)
+        })
 
         // persist to mongodb OUTBOUND archive
         gdsn.getXmlDomForString(cinOutXml, function(err, $dom) {
+          if (err) return done(err)
+
           var info = gdsn.getMessageInfo($dom)
           info.xml = cinOutXml
-          info.process_ts = new Date()
-          db.msg_out.save(info)
-        })
+          info.process_ts = Date()
+          db && db.msg_out.save(info)
 
-        gdsn.writeFile(cinOut, cinOutXml, function(err) {
-          if (err) {
-            log.error(err)
-            res.send(500, err)
-            return
-          }
+          log.info('Saved CIN forward to db with instance_id: ' + info.id)
         })
-
-        log.info('Created CIN forward file: ' + cinOut)
-        //log.info('Result: ' + result)
-        res.render('cin_confirm.ejs', {
-          upload: true,
-          title: 'CIN Upload Confirmation',
-          cin_filename: req.files.cin.name,
-          cin_filesize: (req.files.cin.size / 1024),
-          cin_filepath: req.files.cin.path,
-          cin_out: cinOut
-        })
-
+        done(null, "Done creating CIN forward")
       })
+      done(null, "Done parsing uploaded XML to DOM")
     })
+    done(null, "Done reading uploaded file")
   })
 })
 
@@ -203,7 +271,7 @@ function getSnoopHandler(count) {
   return function(req, res) {
     res.cookie('test_response_cookie', 'some cookie data, count ' + count++)
     req.session.count = count
-    req.session.timestamp = new Date().getTime()
+    req.session.timestamp = Date.now()
     res.contentType('text/html')
     res.render('snoop.ejs', {
       title: "Node HTTP Snoop",

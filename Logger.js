@@ -3,6 +3,8 @@ module.exports = Logger
 function Logger(name, opts) {
   if (!(this instanceof Logger)) return new Logger(name, opts)
 
+  console.log("created Logger instance: " + name)
+
   this.opts = opts || {}
   this.name = name
   this.errorCount = 0
@@ -10,27 +12,27 @@ function Logger(name, opts) {
 }
 
 Logger.prototype.append = function (msg) {
-  if (this.logObject) return
+  if (this.logObject(msg)) return
   msg = new Date().toISOString() + ' ' + msg
   this.element ? this.element.append(msg + '<br/>') : console.log(msg)
 }
 
 Logger.prototype.debug = function (msg) {
-  if (this.logObject) return
+  if (this.logObject(msg)) return
   msg = msg || ''
   msg = '[' + this.name + '] DEBUG: ' + msg
   this.append(msg)
 }
 
 Logger.prototype.info = function (msg) {
-  if (this.logObject) return
+  if (this.logObject(msg)) return
   msg = msg || ''
   msg = '[' + this.name + '] INFO : ' + msg // extra space to align output
   this.append(msg)
 }
 
 Logger.prototype.error = function (msg) {
-  if (this.logObject) return
+  if (this.logObject(msg)) return
   msg = msg || ''
   this.errorCount += 1
   msg = '[' + this.name + '] ERROR ' + this.errorCount + ': ' + msg  
