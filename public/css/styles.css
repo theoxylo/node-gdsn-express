@@ -1,0 +1,299 @@
+* {
+  font-size: 11px;
+  font-family: sans-serif;
+}
+
+div, fieldset {
+  border-style: solid;
+  border-width: 1px;
+  border-color: blue;
+  
+  margin-left: 10px;
+  margin-right: 10px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+html, body, form, h1, h2, h2, h3, h4, h5, h6, p, td, a {
+  color: blue; 
+  margin-left: 0px;
+  margin-right: 10px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  padding: 0px;
+}
+
+h1, h2 {
+  margin-left: 10px;
+}
+
+table, td, th {
+  border-collapse: collapse;
+  border: 1px solid black;
+  padding: 4px;
+}
+
+.noBorder {
+  border: none;
+}
+
+th {
+  background-color: #cccccc
+}
+
+form {
+  display: inline;
+}
+
+img {
+  border: none;
+}
+
+a,a:link,v:link {
+  color: #aa3333;
+  text-decoration: none;
+}
+
+a:hover {
+  background-color: #fafafa;
+  text-decoration: underline;
+}
+
+input, textarea, select {
+  margin-bottom: 6px;
+  background-color: #fafafa;
+  border: #999 solid 1px;
+  font-size: 11px;
+  font-family: sans-serif;
+  vertical-align: middle;
+}
+
+.radio {
+  border: 0;
+}
+
+.btn {
+  background-color: #ddd; 
+  border: 1px solid #666; 
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background-color: #ddd; 
+  border: 1px solid #339; 
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.error {
+  color: #f33;
+  border-width: 0px;
+}
+
+.right {
+  text-align: right;
+}
+
+label,.label {
+  font-weight: bold;
+}
+
+.rowOn {
+  background-color: #f1f1f1;
+}
+
+.rowOff {
+  
+}
+
+.layerOn {
+  z-index: 1;
+}
+
+.layerOff {
+  display: none;
+  z-index: -1;
+}
+
+#bodyMain {
+  float: none;
+  margin: 0 auto;
+  text-align: center;
+}
+
+a.header {
+  color: #eee;
+}
+
+a.header:hover {
+  background-color: #111;
+  text-decoration: underline;
+}
+
+#bodyHeader {
+  margin-top: 5px;
+  text-align: left;
+}
+
+#bodyContent {
+  margin: 0;
+  text-align: left;
+  border-top: none;
+  padding: 0px;
+}
+
+#bodyFooter {
+  margin-top: 40px;
+  text-align: left;
+  border-top: 2px solid #ccc;
+  line-height: 1em;
+  padding: 4px 0px 6px 0px;
+  background-color: #fff;
+  font-size: 11px;
+  margin-bottom: 100px;
+}
+
+#footerCopyright {
+  float: left;
+  color: #999;
+}
+
+#footerLogout {
+  text-align: right;
+  font-weight: bold;
+  float: right;
+}
+
+#bodyContent,#bodyMain,#bodyHeader,#bodyFooter,#menuBar {
+  width: 900px;
+}
+
+#msg {
+  position: absolute;
+  left: 100px;
+  top: 100px;
+  padding: 10px;
+  background-color: #fff;
+  border: 1px solid #aaa;
+  text-align: right;
+}
+
+th {
+  color: #666;
+  font-weight: bold;
+}
+
+.ralign {
+  text-align: right;
+  padding-right: 0px;
+}
+
+/* Forms */
+div.formBox {
+  padding: 0px;
+}
+
+div.row {
+  clear: both;
+  padding-top: 4px;
+}
+
+div.row label,div.row .label {
+  float: left;
+  width: 22%;
+  text-align: right;
+  margin-right: 4px;
+}
+
+div.row .val,div.row textarea {
+  float: right;
+  width: 75%;
+  text-align: left;
+}
+
+div.row textarea {
+  height: 250px;
+}
+
+div.spacer {
+  clear: both;
+}
+
+.tabGroup {
+  padding-bottom: 1px;
+  margin: 10px 0px 10px 0px;
+  border-bottom: 1px solid #999;
+}
+
+.tab, .tabSel {
+  background-color: #ddd;
+  padding: 2px;
+  font-weight: bold;
+  border-top: 1px solid #999;
+  border-left: 1px solid #999;
+  border-right: 1px solid #999;
+}
+
+.tab:hover {
+  background-color: #fafafa;
+}
+
+.tabSel, .tabSel a {
+  background-color: #c33;
+  color: #fff;
+  font-weight: bold;
+  border-top: 1px solid #c33;
+  border-left: 1px solid #c33;
+  border-right: 1px solid #c33;
+}
+
+table.list {
+  clear: both;
+  width: 100%;
+  margin-top: 5px;
+}
+
+tr.listRow, .listRow td {
+  border-top: 1px dotted #ccc;
+  border-bottom: 1px dotted #ccc;
+}
+
+tr.listRowAlt, .listRowAlt td {
+  border-top: 1px dotted #ccc;
+  border-bottom: 1px dotted #ccc;
+  background-color: #f6f6f6;
+}
+
+table.results 
+{text-align: center;
+font-family: Verdana, Geneva, Arial, Helvetica, sans-serif ;
+font-weight: normal;
+font-size: 11px;
+color: #fff;
+width: 280px;
+background-color: #666;
+border: 0px;
+border-collapse: collapse;
+border-spacing: 0px;}
+
+table.results td 
+{background-color: #CCC;
+color: #000;
+padding: 4px;
+text-align: left;
+border: 1px #fff solid;}
+
+table.results td.hed
+{background-color: #666;
+color: #fff;
+padding: 4px;
+text-align: left;
+border-bottom: 2px #fff solid;
+font-size: 12px;
+font-weight: bold;} 

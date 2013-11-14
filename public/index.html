@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>GDSN Express 2.8</title>
+  <style type="text/css">
+    span {
+      border: #33f solid 1px;
+    }
+  </style>
+  <link rel="stylesheet" href="css/jquery-ui-1.10.3.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<h2>GDSN Express 2.8</h2>
+
+<div id="ge28_link_menu">
+  <li><a href="/cin">CIN Upload</a></li>
+  <li><a href="/snoop">HTTP Snoop</a></li>
+  <li><a href="/api">API Root</a></li>
+  <li><a href="/api/msg_out">Message Log</a></li>
+  <li><input type="button" id="btn_open_div" value="Open Widget"></input></li>
+</div>
+<div id="widgetContainer">
+</div>
+
+<script src="/js/json2.js"></script>
+<script src="/js/jquery-1.9.1.js"></script>
+<script src="/js/underscore-1.5.1.js"></script>
+<script src="/js/jquery-ui-1.10.3.js"></script>
+
+<script>
+(function ($) {
+
+  $(function () {
+
+    var counter = 1
+    function alertNewDiv() {
+      counter++
+      $('#widgetContainer').append('<div id="div' + counter + '" class="closable">' + counter + '</div>')
+    }
+
+    $('#btn_open_div').on('click', function () {
+      alertNewDiv()
+    })
+
+    $('#widgetContainer').on('click', '.closable', function () {
+        $(this).fadeOut()
+    })
+
+  })
+
+})(jQuery)
+</script>
+
+</body>
+</html>
