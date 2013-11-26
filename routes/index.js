@@ -16,25 +16,23 @@ var db = require('../lib/Database')
 
 var handleErr = function (err, res) {
   log.info('handleErr: ' + err)
-  res.send(500, JSON.stringify({ error: err }))
+  log.error(err) // not working
+  console.log(err)
+  //res.send(500, JSON.stringify({ error: err }))
+  res.send(500, 'an error has occurred: ' + err)
+  res.end()
 }
 
 exports.list_messages = function(req, res) {
   db && db.msg_in.find({}, {xml:0}, function (err, docs) {
-    if (err) {
-      handleErr(err, res)
-      return
-    }
+    if (err) return handleErr(err, res)
     res.json(docs);
   })
 }
 
 exports.find_message = function(req, res) {
   db && db.msg_in.find({}, {xml:0}, function (err, docs) {
-    if (err) {
-      handleErr(err, res)
-      return
-    }
+    if (err) return handleErr(err, res)
     res.json({
       ts:       Date.now(),
       messages: docs
@@ -74,13 +72,12 @@ exports.post_cin_upload_form = function(req, res) {
   var messages = []
   var done = function (err, msg) {
     log.info("done called with arg: " + (err ? err : msg))
-    if (err && sent500) {
+    if (sent500) {
       return
     }
     if (err) {
       sent500 = true
-      handleErr(err, res)
-      return
+      return handleErr(err, res)
     }
     if (msg) messages.push(msg)
     if (--count == 0) {
