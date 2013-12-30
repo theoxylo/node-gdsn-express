@@ -39,13 +39,13 @@
   $(function () {
 
     var counter = 1
-    function alertNewDiv() {
+    function createWidget() {
       counter++
       $('#widgetContainer').append('<div id="div' + counter + '" class="closable">' + counter + '</div>')
     }
 
     $('#btn_open_div').on('click', function () {
-      alertNewDiv()
+      createWidget()
     })
 
     $('#widgetContainer').on('click', '.closable', function () {

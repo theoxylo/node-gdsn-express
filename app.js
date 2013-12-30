@@ -54,6 +54,15 @@
     res.json({ 
       gdsn_rest_api_version: "0.0.3", 
       ts: Date.now()
+      , api_docs: {
+          endpoints: [
+                '/api'
+              , '/err'
+              , '/snoop'
+              , '/api/msg_out'
+              , '/api/msg_out/:msg_id'
+          ]
+      }
     })
   })
 
@@ -101,7 +110,7 @@
   app.get('/api/msg_out', routes.list_messages)
 
   // get xml for specific sent message
-  app.get('/api/msg_out/id:msg_id', routes.find_message)
+  app.get('/api/msg_out/:msg_id', routes.find_message)
 
   // CIN upload form
   app.get('/cin', routes.view_cin_upload_form)
