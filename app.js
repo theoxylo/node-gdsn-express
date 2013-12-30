@@ -17,15 +17,15 @@
 
   app.set('port', process.env.PORT || 8080)
   app.set('views', __dirname + '/views')
-  app.set('view engine', 'ejs');
+  app.set('view engine', 'ejs')
 
   // App Setup
   app.configure(function () {
     app.use(express.favicon(__dirname + '/public/favicon.ico'))
     app.use(express.logger('dev'))
     app.use(express.basicAuth(function (user, pass) {
-      return 'admin' == user & 'devadmin' == pass;
-    }));
+      return 'admin' == user & 'devadmin' == pass
+    }))
     app.use(getCinPostHandler({ test: true }))
     app.use(express.bodyParser())
     app.use(express.methodOverride())
@@ -34,16 +34,12 @@
     app.use(app.router)
     app.use(express.static(__dirname + '/public'))
     app.use(express.directory(__dirname + '/public'))
-    app.use(function (err, req, res, next) {
-      log.info("ERROR detected: " + err)
-      console.error(err.stack);
-      res.send(500, JSON.stringify(err));
-    });
+    app.use(customErrorHandler)
   })
 
   app.configure('development', function () {
     log.info('Configuring development environment...')
-    app.use(express.errorHandler({showStack: true, dumpExceptions: true}));
+    app.use(express.errorHandler({showStack: true, dumpExceptions: true}))
   })
 
   app.get('/err', function (req, res, next) {
@@ -139,12 +135,18 @@
     }
   }
 
+  function customErrorHandler(err, req, res, next) {
+    if (!err) next()
+    log.error(err.stack)
+    res.send(500, '<h2>Application Error</h2><pre>' + err.stack + '</pre>')
+  }
+
   process.on('SIGINT', function () {
     console.log('Application shutting down...')
     setTimeout(function () {
       console.log('shutdown complete!')
       process.exit(0)
-    }, 1500)
+    }, 1500) // simulate shutdown activities for 1.5 seconds
   })
 
   app.listen(app.get('port'), process.env.IP)

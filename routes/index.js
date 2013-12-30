@@ -14,29 +14,20 @@
 
   var db = require('../lib/Database')
 
-  var handleErr = function (err, res) {
-    log.info('handleErr: ' + err)
-    log.error(err) // not working
-    console.log(err)
-    //res.send(500, JSON.stringify({ error: err }))
-    res.send(500, 'an error has occurred: ' + err)
-    res.end()
-  }
-
-  exports.list_messages = function(req, res) {
-      log.debug('list_messages')
-      console.log('list_messages')
+  exports.list_messages = function(req, res, next) {
+    log.debug('list_messages')
     db && db.msg_in.find({}, {xml:0}, function (err, docs) {
-      if (err) return handleErr(err, res)
+      if (err) return next(err)
       res.json(docs);
     })
   }
 
-  exports.find_message = function(req, res) {
+  exports.find_message = function(req, res, next) {
+    log.debug('find_message')
     var msg_id = req.params.msg_id
     log.debug('find_message called with msg_id ' + msg_id)
     db && db.msg_in.find({id: msg_id}, {xml: 0}, function (err, docs) {
-      if (err) return handleErr(err, res)
+      if (err) return next(err)
       res.json({
         ts: Date.now(),
         messages: docs
@@ -47,7 +38,7 @@
   // this snoop export is a factory function that should be called when creating the route
   exports.getSnoopHandler = function getSnoopHandler(count) {
     count = count || 0
-    return function(req, res) {
+    return function(req, res, next) {
       res.cookie('test_response_cookie', 'some cookie data, count ' + count++)
       req.session.count = count
       req.session.timestamp = Date.now()
@@ -61,7 +52,7 @@
   }
 
   // this one is not a factory and should just be referenced
-  exports.view_cin_upload_form = function(req, res) {
+  exports.view_cin_upload_form = function(req, res, next) {
     res.render('cin_confirm', {
       messages: ['Please upload your file'],
       title: 'CIN Upload Form',
@@ -69,19 +60,20 @@
     })
   }
 
-  exports.post_cin_upload_form = function(req, res) {
+  exports.post_cin_upload_form = function(req, res, next) {
 
-    var sent500 = false
+    var errorSent = false
     var count = 0
     var messages = []
+
     var done = function (err, msg) {
       log.info("done called with arg: " + (err ? err : msg))
-      if (sent500) {
+      if (errorSent) {
         return
       }
       if (err) {
-        sent500 = true
-        return handleErr(err, res)
+        errorSent = true
+        return next(err)
       }
       if (msg) messages.push(msg)
       if (--count == 0) {
