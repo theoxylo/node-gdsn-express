@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>GDSN Express 2.8</title>
+  <style type="text/css">
+    span {
+      border: #33f solid 1px;
+    }
+  </style>
+  <link rel="stylesheet" href="jqui/jquery-ui-1.10.4.custom.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<h2>GDSN Express 2.8</h2>
+
+<div id="ge28_link_menu">
+  <li><a href="cin">CIN Upload</a></li>
+  <li><a href="snoop">HTTP Snoop</a></li>
+  <li><a href="api">API Root</a></li>
+  <li><a href="api/msg_out">Raw Message Log</a></li>
+  <li><a href="backbone_counter.html">Backbone Counter</a></li>
+  <li><a href="backbone_collection.html">Backbone DB Collection</a></li>
+  <li><a href="angular_demo.html">AngularJS Collection Edit</a></li>
+  <li><a href="angular_db_demo.html">AngularJS DB Collection</a></li>
+  <li><input type="button" id="btn_open_div" value="Open Widget"></input></li>
+</div>
+<div id="widgetContainer">Widgets:</div>
+
+<script src="js/json2.js"></script>
+<script src="js/jquery-1.10.2.js"></script>
+<script src="js/underscore-1.5.2.js"></script>
+<script src="jqui/jquery-ui-1.10.4.custom.js"></script>
+
+<script>
+(function ($) {
+
+  $(function () {
+
+    var counter = 1
+    function createWidget() {
+      counter++
+      $('#widgetContainer').append('<div id="div' + counter + '" class="closable">' + counter + '</div>')
+    }
+
+    $('#btn_open_div').on('click', function () {
+      createWidget()
+    })
+
+    $('#widgetContainer').on('click', '.closable', function () {
+        $(this).fadeOut()
+    })
+
+  })
+
+})(jQuery)
+</script>
+
+</body>
+</html>

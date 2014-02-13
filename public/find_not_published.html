@@ -1,0 +1,144 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>JSONP Demo</title>
+  <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css">
+  <style type="text/css">
+    .clickable { cursor: pointer; }
+  </style>
+</head>
+<body>
+<div>
+
+  <h2>Find unpublished trade items</h2>
+
+  Publisher GLN:<br/>
+  <input id="inputPublisher" value="1100001011292"/><br/>
+
+  Recipient GLN:<br/>
+  <input id="inputTo" value="7700770077006"/><br/>
+
+  <button id="btnFind">Find</button>
+
+</div>
+<div id="dialog"></div>
+<div id="results"></div>
+
+
+<script src="http://code.jquery.com/jquery-1.10.2.js"></script>
+<script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore.js"></script>
+<script>
+
+  var registeredItems, publishedItems
+
+  var $results = $('#results').on('click', 'span', function (e) {
+    console.log(e.target)
+    var $target = $(e.target)
+    console.log($target)
+    alert($target.attr('url'))
+  })
+
+  var $dialog = $('#dialog').dialog({
+    title: "Messages"
+    , autoOpen: false
+    , width: 500
+    , modal: true
+    //, buttons: { OK: function() { $(this).dialog("close") } }
+  })
+
+  function logDialog(msg) {
+    console.log((new Date()).toLocaleString() + ' ' + msg)
+    $dialog.append('<div>' + msg + '</div>')
+  }
+
+  function logResults(msg) {
+    $results.append(msg)
+  }
+
+  function fetchData(publisherGln, recipientGln) {
+
+    $dialog.dialog('open').empty()
+
+    if (!/[0-9]{13}/.test(publisherGln)) {
+      $dialog.append($('<div>Publisher GLN "' + publisherGln + '" does not appear to be valid</div>'))
+      return
+    }
+    if (!/[0-9]{13}/.test(recipientGln)) {
+      $dialog.append($('<div>Recipient GLN "' + recipientGln  + '" does not appear to be valid</div>'))
+      return
+    }
+    $results.empty()
+    registeredItems = publishedItems = null
+    logDialog('Fetching data...')
+
+
+    $.ajax({
+      dataType: 'jsonp',
+      url: 'http://sc-gdsn01.itradenetwork.com:8080/gdsn-server/api/getTradeItemList',
+      data: { gln: publisherGln }
+    })
+    .done(function (data) { 
+      registeredItems = _.filter(data.items, function (e) {
+        return e.status === 'REGISTERED'
+      })
+      logDialog('Found ' + registeredItems.length + ' registered items for publisher...')
+      logResults('<p>REGISTERED items for publisher: ' + registeredItems.length + '</p>')
+
+      processData()
+    })
+    .fail(function () {
+      logDialog(arguments)
+    })
+
+    $.ajax({
+      dataType: 'jsonp',
+      url: 'http://sc-gdsn01.itradenetwork.com:8080/gdsn-server/api/getPublicationList',
+      data: { publisher: publisherGln, publishToGln: recipientGln }
+    })
+    .done(function (data) { 
+      publishedItems = data.publications
+      logDialog('Found ' + publishedItems.length + ' published items for recipient...')
+      logResults('<p>PUBLISHED items for recipient: ' + publishedItems.length + '</p>')
+      processData()
+    })
+    .fail(function () {autoOpen: false
+      logDialog(arguments)
+    })
+  }
+
+  function processData() {
+    if (!registeredItems || !publishedItems) return
+    logDialog('Calculating difference...')
+
+    var itemsReg = _.map(registeredItems, function (e) {
+      return [e.gln, e.gtin, e.tm, e.tmSub].join('|')
+    })
+
+    var itemsPub = _.map(publishedItems, function (e) {
+      return [e.gln, e.gtin, e.tm, e.tmSub].join('|')
+    })
+
+
+    var notPublished = _.difference(itemsReg, itemsPub);
+    logResults('<p>' + (notPublished ? notPublished.length : 0) + ' items not published:</p>')
+    _.each(notPublished, function (e) {
+      var parts = e.split('|')
+      var url = 'http://sc-gdsn01.itradenetwork.com:8080/gdsn-server/api/getTradeItemList?gln=' + parts[0] + '&gtin=' + parts[1]
+      logResults('<li>' + e + ' <span class="clickable" url="' + url + '">[item query]</span></li>')
+    })
+
+    logDialog('Done!')
+    //$dialog.dialog('close')
+  }
+
+  $('#btnFind').on('click', function () {
+    var gln1 = $('#inputPublisher').val()
+    var gln2 = $('#inputTo').val()
+    fetchData(gln1, gln2)
+  })
+
+</script>
+</body>
+</html>
