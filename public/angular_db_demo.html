@@ -12,7 +12,7 @@
       border: #ccc dotted 1px; 
     }
   </style>
-  <script src="./js/jquery-1.9.1.js"></script>
+  <script src="./js/jquery-1.10.2.js"></script>
   <script src="./js/angular-1.2.2.js"></script>
   <script>
     (function() {
@@ -50,6 +50,7 @@
       <ul>
       <li>Sender GLN: {{msg.sender}}</li>
       <li>Receiver GLN: {{msg.receiver}}</li>
+      <li><a href="api/msg_out/{{msg.id}}">Download</a></li>
       </ul>
     </div>
   </div>

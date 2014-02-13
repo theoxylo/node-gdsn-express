@@ -1,61 +1,356 @@
 <!DOCTYPE html>
-<html>
+<html lang="us">
 <head>
+  <!-- Version $URL: $ -->
   <meta charset="utf-8">
-  <title>GDSN Express 2.8</title>
+  <title>Catalog Services Dashboard</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <link rel="stylesheet" type="text/css" href="jqui/jquery-ui-1.10.4.custom.css" />
+
   <style type="text/css">
-    span {
-      border: #33f solid 1px;
+      .clickable { 
+        cursor: pointer; 
+        border: #ccc dotted 1px; 
+      }
+      .selected {
+        border: #ccf dashed 1px; 
+      }
+  </style>
+
+  <style type="text/css">
+    #progressbar .ui-progressbar-value {
+      background-color:#ccf;
+    }
+    div.blue_box {
+      border-style: solid;
+      border-width: 1px;
+      border-color: blue;
+      font-family: sans-serif;
+      color: blue;
     }
   </style>
-  <link rel="stylesheet" href="css/jquery-ui-1.10.3.css">
-  <link rel="stylesheet" href="css/styles.css">
+
+  <script type="text/javascript" src="js/jquery-1.10.2.js"></script>
+  <script type="text/javascript" src="jqui/jquery-ui-1.10.4.custom.js"></script>
+  <script type="text/javascript" src="js/underscore-1.5.2.js"></script>
+  <script type="text/javascript" src="js/angular-1.2.2.js"></script>
 </head>
-<body>
+<body ng-app="thx_app">
 
-<h2>GDSN Express 2.8</h2>
-
-<div id="ge28_link_menu">
-  <li><a href="cin">CIN Upload</a></li>
-  <li><a href="snoop">HTTP Snoop</a></li>
-  <li><a href="api">API Root</a></li>
-  <li><a href="api/msg_out">Raw Message Log</a></li>
-  <li><a href="backbone_counter.html">Backbone Counter</a></li>
-  <li><a href="backbone_collection.html">Backbone DB Collection</a></li>
-  <li><a href="angular_demo.html">AngularJS Collection Edit</a></li>
-  <li><a href="angular_db_demo.html">AngularJS DB Collection</a></li>
-  <li><input type="button" id="btn_open_div" value="Open Widget"></input></li>
-</div>
-<div id="widgetContainer">Widgets:</div>
-
-<script src="js/json2.js"></script>
-<script src="js/jquery-1.9.1.js"></script>
-<script src="js/underscore-1.5.1.js"></script>
-<script src="js/jquery-ui-1.10.3.js"></script>
-
-<script>
-(function ($) {
-
-  $(function () {
-
-    var counter = 1
-    function createWidget() {
-      counter++
-      $('#widgetContainer').append('<div id="div' + counter + '" class="closable">' + counter + '</div>')
-    }
-
-    $('#btn_open_div').on('click', function () {
-      createWidget()
-    })
-
-    $('#widgetContainer').on('click', '.closable', function () {
-        $(this).fadeOut()
-    })
-
-  })
-
-})(jQuery)
+<script type="text/ng-template" id="gdsn_template.html">
+  <div style="border-style:solid;border-width:1px;border-color:blue">
+    <div>GDSN Widget</div>
+    <div ng-if="data" style="border-style:solid;border-width:1px;border-color:green">
+      <div ng-if="selectedItem"><textarea rows="6" cols="60" disabled ng-bind="selectedItem"></textarea></div>
+      <div>Subscriptions for subscriber {{data.subscriber}} as of <span ng-bind="timestamp"/>:</div>
+      <div class="clickable" ng-repeat="sub in data.subscriptions" ng-click="showDetail(sub)">
+        <span>{{$index + 1}}. Publisher/Data Source: {{sub.dsName}} (GLN {{sub.ds}})</span>
+      </div>
+      <div>Data URL: <a ng-href="{{data.url}}">{{data.url}}</a></div>
+      <div>Timestamp: <span>{{timestamp}}</span></div>
+    </div>
+    <div>thx_controller_test: <span>{{thx_controller_test}}</span></div>
+    <div>dir_controller_test: <span>{{dir_controller_test}}</span></div>
+    <div>dir_link_test: <span>{{dir_link_test}}</span></div>
+  </div>
 </script>
 
+
+
+<div>
+  <h2>Catalog Services Dashboard</h2>
+  <!-- Version $URL: $ -->
+</div>
+
+<div id="tabs" ng-controller="thx_controller">
+  <ul>
+    <li><a href="#main_menu">Main Menu</a></li>
+    <li><a href="#msg_tab">Archive</a></li>
+    <li><a href="#pub_tab">Publication</a></li>
+    <li><a href="#sub_tab">Subscription</a></li>
+  </ul>
+
+  <div id="main_menu">
+    <div class="blue_box">
+      <div id="welcome">[Loading welcome.html]</div>
+    </div>
+  </div>
+
+  <div id="msg_tab">
+    <div id="msg_accordion">
+      <div>Download Message</div>
+      <div>
+        Message ID:
+        <br/><input type="text" ng-model="msg_id"/>
+        <br/><a ng-href="api/archive/{{msg_id}}">Download Message {{msg_id}}</a>
+      </div>
+      <div>Post Message</div>
+      <div>
+        <br/><textarea rows="6" cols="100" ng-model="msg_content"></textarea>
+        <br/><button ng-click="post_to_archive()">Post</button>
+      </div>
+      <div>List All Messages</div>
+      <div>
+        <pre id="message_list"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div id="pub_tab">
+    <div id="pub_accordion">
+      <div>Publication List</div>
+      <div id="pub_list">
+        <div>
+          <input type="text" ng-model="publisher"></input>
+          <input type="button" ng-click="getPublications(publisher)" value="Get Publications"></input>
+          <div ng-if="data.publisher">
+            <div ng-if="selectedItem" class="blue_box">
+              <span>Link: {{selectedItem.xml_link}}</span>
+              <a ng-href="{{selectedItem.xml_link}}">Download Trade Item XML</a>
+            </div>
+            <div>Publications for ITN publisher {{data.publisher}} as of <span ng-bind="timestamp"/>:</div>
+            <div class="clickable" ng-repeat="pub in data.publications" ng-click="showDetail(pub)">
+              <span>{{$index + 1}}. Published to GLN: {{pub.publishToGLN}}
+                <br/>Item GTIN: {{pub.gtin}}
+                <br/>Item TM/TMSub: {{pub.tm}}/{{pub.tmsub}}
+              </span>
+            </div>
+          </div>
+          <div ng-if="data.url">Data URL: <a ng-href="{{data.url}}">{{data.url}}</a></div>
+        </div>
+      </div>
+      <div>Find Unpublished Items</div>
+      <div id="find_not_pub">Loading...</div>
+      <div>Publish Item to Subscriber GLN</div>
+      <div id="pub_util">
+        <form id="form_publish">
+            <p>* Publisher GLN:<br/><input type="text" name="ds" ng-model="publisher"/></p>
+            <p>* Product GTIN:<br/><input type='text' name='gtin'/></p>
+            <p>* Product TM numeric ISO code (e.g. '840'):<br/><input type='text' name='tm'/></p>
+            <p>  Product TM subdivision alpha code (e.g. 'US-CA'):<br/><input type='text' name='tms'/></p>
+            <p>* Publish-To GLN:<br/><input type='text' name='dr'ng-model="subscriber"/></p>
+            <p>Initial load<br/><input type='checkbox' name='il'/></p>
+            <input id="btn_api_publish" type="button" value="API Publish"></input>
+            <div id="api_result">Loading...</div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="sub_tab">
+    <div id="sub_accordion">
+      <div>Subscription List</div>
+      <div>
+        <input type="text" ng-model="subscriber"></input>
+        <input type="button" ng-click="getSubscriptions(subscriber)" value="Get Subscriptions"></input>
+        <div gdsn-subscriptions default-subscriber="1100001011292"/>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end tabs -->
+
+<div id="debug_tab">
+  <div>Model values:</div>
+  <div>Subscriber: {{subscriber}}</div>
+  <div>Publisher: {{publisher}}</div>
+  <div>Message ID: {{msg_id}}</div>
+  <div>Message content: <textarea disabled>{{msg_content}}</textarea></div>
+</div>
+
+<div id="footer_area">
+  <p>Copyright &copy; 2014</p>
+</div>
+
+<div id="progress_dialog">
+    <p class="vert_spacer" ></p>
+    <div id="progressbar"></div>
+</div>
+
+<script>
+  (function() {
+
+    //alert('loading angular thx_app')
+
+    var thx_app = angular.module('thx_app', [])
+
+    thx_app.factory('thx_util', function () {
+      var getItemUrl = function (item) {
+        var url = 'api/tradeItem?download=true'
+        url += '&gln='   + item.gln
+        url += '&gtin='  + item.gtin
+        url += '&tm='    + item.tm
+        if (item.tmsub) url += '&tmsub=' + item.tmsub
+        return url
+      }
+      return {
+          sub_url: 'api/subscriptionList'
+        , pub_url: 'api/publicationList'
+        , archive_url: 'api/archive'
+        , getItemUrl: getItemUrl
+      }
+    })
+
+    thx_app.controller('thx_controller', function($scope, $http, thx_util) {
+      $scope.timestamp = 'n/a'
+      $scope.base_url = thx_util.sub_url
+      $scope.thx_controller_test = 'thx_controller_test_value'
+
+      $scope.showDetail = function (item) {
+        console.log('showDetail')
+        console.log(item)
+
+        item.xml_link = thx_util.getItemUrl(item)
+        $(item).addClass('selected')
+        $scope.selectedItem = JSON.stringify(item)
+        //$scope.selectedItem = item
+      }
+
+      $scope.getSubscriptions = function (subGln) {
+        if (/\d{13}/.test($scope.subscriber)) {
+          $http.get(thx_util.sub_url, { 
+          //$http.jsonp(thx_util.sub_url + '?callback=JSON_CALLBACK' , {
+            params: { subscriber: $scope.subscriber }
+          })
+          .success(function (data) {
+            $scope.data = data
+            $scope.timestamp = data.timestamp
+            $scope.selectedItem = null
+          })
+          .error(function () {
+            console.log(arguments)
+          })
+        }
+        else {
+          alert('Error: invalid gln, should be 13 digits')
+        }
+      }
+
+      $scope.getPublications = function (pubGln) {
+        $http.get(thx_util.pub_url, { 
+          params: { publisher: pubGln }
+        })
+        .success(function (data) {
+          $scope.data = data
+          $scope.timestamp = data.timestamp
+          $scope.selectedItem = null
+        })
+        .error(function () {
+          console.log(arguments)
+        })
+      }
+
+      $scope.post_to_archive = function () {
+        console.log('post_to_archive: ' + $scope.msg_content)
+        $http.post(thx_util.archive_url, $scope.msg_content + '\n\n')
+        .success(function (data) {
+          console.log(data)
+        })
+        .error(function () {
+          console.log(arguments)
+        })
+      }
+
+    })
+
+    thx_app.directive('gdsnSubscriptions', function (thx_util) {
+      console.log('directive gdsnSubscriptions')
+      return {
+        restrict: 'EA'
+        , replace: true
+        , templateUrl: 'gdsn_template.html'
+        //, scope: { test_ts: '=timestamp' }
+        //, scope: false // default; uses enclosing controller scope
+        , scope: true // can read enclosing controller scope, not only set local dir scope (can still set scope.$parent)
+        , link: function (scope, element, attrs) {
+            console.log('link')
+            console.log('link attrs')
+            console.log(attrs)
+
+            //scope.$parent.subscriber = element.attr('default-subscriber')
+
+            scope.$parent.subscriber = attrs.defaultSubscriber
+            console.log('scope.subscriber ' + scope.subscriber)
+            scope.dir_link_test = 'dir_link_test_value'
+
+            console.log('scope')
+            console.log(scope)
+          }
+        , controller: function ($scope) {
+            $scope.dir_controller_test = 'dir_controller_test_value'
+          }
+      }
+    })
+
+  })()
+</script>
+<script>
+  $(function() {
+
+    var app = {
+      version: "1.0.0"
+      , ts: Date.now()
+      , debug: true
+    }
+
+    $('#welcome').load('welcome.html')
+    $('#find_not_pub').load('find_not_published.html')
+    $('#message_list').load('api/archive')
+
+    $('#pub_accordion').accordion({
+        heightStyle: 'content',
+        collapsible: true
+    })
+
+    $('#sub_accordion').accordion({
+        heightStyle: 'content',
+        collapsible: true
+    })
+
+    $('#msg_accordion').accordion({
+        heightStyle: 'content',
+        collapsible: true
+    })
+
+    if (app.debug) {
+      $('#debug_tab').append('<div>Timestamp: ' + app.ts + '</div>')
+      $('#tabs ul').append('<li><a href="#debug_tab">Debug</a></li>')
+    }
+
+    $('#tabs').tabs() //{ collapsible: true, active: false })
+
+    $('#progress_dialog').dialog({
+      autoOpen: false
+      , width: 500
+      , modal: true
+      //, buttons: { Cancel: function() { $( this ).dialog('close') } }
+    })
+    
+    $('#progressbar').progressbar({ value: false })
+
+    var $result = $('#api_result').hide()
+    $('#btn_api_publish').on('click', function () {
+      var data = $('#form_publish').serialize()
+      console.log('publishing item with data: ' + data)
+      $.ajax({
+          dataType: 'json',
+          url: 'api/publish?' + data
+      })
+      .done(function (msg, status) {
+        alert('API Publish operation complete: ' + status)
+        console.log('API Publish operation complete: ' + status)
+        $result.append('<div>Result: ' + status + '</div>')
+        $result.show().on('click', function () {
+          $(this).hide()
+        })
+      })
+      .fail(function () {
+          console.log('ajax fail: ' + arguments)
+      })
+
+    })
+  })
+</script>
 </body>
 </html>

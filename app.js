@@ -11,11 +11,10 @@
     if (routes.hasOwnProperty(key)) log.info("Loaded route handler function: " + key)
   }
 
-  var inboxDir = __dirname + '/msg/inbox/'
   var app = express()
 
 
-  app.set('port', process.env.PORT || 8080)
+  app.set('port', process.env.PORT || 9080)
   app.set('views', __dirname + '/views')
   app.set('view engine', 'ejs')
 
@@ -26,8 +25,8 @@
     app.use(express.basicAuth(function (user, pass) {
       return 'admin' == user & 'devadmin' == pass
     }))
-    app.use(getCinPostHandler({ test: true }))
-    app.use(express.bodyParser())
+    //app.use(getCinPostHandler({ test: true }))
+    //app.use(express.bodyParser())
     app.use(express.methodOverride())
     app.use(express.cookieParser('your secret here'))
     app.use(express.session())
@@ -48,8 +47,8 @@
 
   app.get('/api', function (req, res) {
     res.json({ 
-      gdsn_rest_api_version: "0.0.3", 
-      ts: Date.now()
+      gdsn_rest_api_version: "0.0.3"
+      , ts: Date.now()
       , api_docs: {
           endpoints: [
                 '/api'
@@ -63,9 +62,10 @@
   })
 
   // admin ui api route and default auth response test
-  app.get('/admin/data.json', function (req, res) {
+  app.get('/admin/data.json', function (req, res, next) {
 
-    var cmd = req.query.req
+    var cmd = req.query['req'] || req.query['cmd']
+
     log.debug('/admin/data.json command: ' + cmd)
     log.debug(JSON.stringify(req.query))
 
@@ -100,23 +100,34 @@
         failed: false
       })
     }
+    else {
+      return next(new Error('command not recognized'))
+    }
   })
 
   // list sent messages
   app.get('/api/msg_out', routes.list_messages)
-
   // get xml for specific sent message
   app.get('/api/msg_out/:msg_id', routes.find_message)
 
   // CIN upload form
   app.get('/cin', routes.view_cin_upload_form)
-
   // CIN upload POST submit processing
   app.post('/cin', routes.post_cin_upload_form)
+
+  // view archive item details 
+  app.get('/api/archive/:archive_id', routes.find_archive)
+  // view list of all archived items
+  app.get('/api/archive', routes.list_archive)
+  // archive arbitrary POST auto-detecting type
+  app.post('/api/archive', routes.post_archive)
 
   // default snoop home page
   app.get('/snoop', routes.getSnoopHandler())
 
+  app.post('/post-cin', getCinPostHandler({ test: true }))
+
+  // example of simple handler with embedded routing
   function getCinPostHandler(options) {
     options = options || {}
     return function (req, res, next) {
@@ -131,7 +142,7 @@
       req.on('end', function () {
         log.info('Received POST content: ' + buf)
       })
-      res.end()
+      res.end('Received POST content: ' + buf)
     }
   }
 
@@ -153,6 +164,7 @@
   log.info("Express GDSN server listening on port " + app.get('port'))
 
   // Proof-of-concept: Inbox filesystem watcher
+  //  var inboxDir = __dirname + '/msg/inbox/'
   //  var fs = require('fs')
   //  log.info("Inbox dir: " + inboxDir)
   //  fs.watch(

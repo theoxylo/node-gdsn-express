@@ -12,11 +12,17 @@
 
   var fs = require('fs')
 
-  var db = require('../lib/Database')
+  //var db_config = { url: 'gdsn'}
+  //var db_config = { url: 'plt-elas01.itradenetwork.com,plt-elas02.itradenetwork.com,plt-elas03.itradenetwork.com'}
+  //var db_config = { url: 'mongodb://plt-elas01.itradenetwork.com,plt-elas02.itradenetwork.com,plt-elas03.itradenetwork.com'}
+  // works!:
+  var db_config = { url: 'mongodb://plt-elas01.itradenetwork.com'}
+
+  var db = require('../lib/Database')(db_config)
 
   exports.list_messages = function(req, res, next) {
     log.debug('list_messages')
-    db && db.msg_in.find({}, {xml:0}, function (err, docs) {
+    db.msg_in.find({}, {xml:0}, function (err, docs) {
       if (err) return next(err)
       res.json(docs);
     })
@@ -26,12 +32,12 @@
     log.debug('find_message')
     var msg_id = req.params.msg_id
     log.debug('find_message called with msg_id ' + msg_id)
-    db && db.msg_in.find({id: msg_id}, {xml: 0}, function (err, docs) {
+    db.msg_in.find({id: msg_id}, {xml: 1}, function (err, docs) {
       if (err) return next(err)
-      res.json({
-        ts: Date.now(),
-        messages: docs
-      })
+      var xml = (docs && docs[0] && docs[0].xml) 
+        || '<info>xml content not populated<info>'
+      res.set('Content-Type', 'text/xml')
+      res.send(xml)
     })
   }
 
@@ -102,12 +108,12 @@
       gdsn.getXmlDomForString(xml, function(err, doc) {
         if (err) return done(err)
 
-        // persist to mongodb INBOUND archive
+        // persist to mongodb INBOUND collection
         var info = gdsn.getMessageInfo(doc)
         info.xml = xml
         info.process_ts = Date() // long date and time stamp
-        db && db.msg_in.save(info)
-        log.info('Saved CIN submissiont to db with instance_id: ' + info.id)
+        db.msg_in.save(info)
+        log.info('Saved CIN submission to db with instance_id: ' + info.id)
 
         count++
         gdsn.createCinResponse(doc, function(err, respXml) {
@@ -120,14 +126,14 @@
             log.info('Created CIN response file: ' + respOut)
           })
 
-          // persist to mongodb OUTBOUND archive
+          // persist to mongodb OUTBOUND collection
           gdsn.getXmlDomForString(respXml, function(err, $dom) {
             if (err) return done(err)
 
             var info = gdsn.getMessageInfo($dom)
             info.xml = respXml
             info.process_ts = Date()
-            db && db.msg_out.save(info)
+            db.msg_out.save(info)
 
             log.info('Saved CIN response to db with instance_id: ' + info.id)
           })
@@ -145,14 +151,14 @@
             log.info('Created CIN forward file: ' + cinOut)
           })
 
-          // persist to mongodb OUTBOUND archive
+          // persist to mongodb OUTBOUND collection
           gdsn.getXmlDomForString(cinOutXml, function(err, $dom) {
             if (err) return done(err)
 
             var info = gdsn.getMessageInfo($dom)
             info.xml = cinOutXml
             info.process_ts = Date()
-            db && db.msg_out.save(info)
+            db.msg_out.save(info)
 
             log.info('Saved CIN forward to db with instance_id: ' + info.id)
           })
@@ -161,6 +167,55 @@
         done(null, "Done parsing uploaded XML to DOM")
       })
       done(null, "Done reading uploaded file")
+    })
+  }
+
+  exports.post_archive = function(req, res, next) {
+    var content = ''
+    req.setEncoding('utf8')
+    req.on('data', function (chunk) {
+      log.debug('archive_post_chunk: ' + chunk)
+      content += chunk
+      if (content.length > 10 * 1000 * 1000) return res.end('content too big - larger than 10 MB')
+    })
+    req.on('end', function () {
+      log.info('Received POST content of length ' + (content && content.length || '0'))
+      log.debug('Received POST content: ' + content)
+
+      var ts = Date.now()
+
+      var tagName = 'InstanceIdentifier'
+      var matches = content.match(RegExp(tagName + '>([^<.]*)'))
+      var id = (matches && matches[1]) || 'id_' + ts
+      log.info('posted instance id: ' + id)
+
+      var info = {
+        archive_ts    : ts
+        , instance_id : id
+        , content     : content
+        , preview     : content && content.slice(0, 100)
+        , content_type: req.headers['content-type']
+      }
+      db.archive.save(info)
+      res.end('post content archive with ts ' + info.archive_ts)
+    })
+  }
+
+  exports.list_archive = function(req, res, next) {
+    log.debug('list_archive')
+    db.archive.find({}, {content:0}, function (err, docs) {
+      if (err) return next(err)
+      res.json(docs);
+    })
+  }
+
+  exports.find_archive = function(req, res, next) {
+    log.debug('find_archive params ' + req.params)
+    var archive_id = req.params.archive_id
+    log.debug('find_message called with archive_id ' + archive_id)
+    db.archive.find({instance_id: archive_id}, {content: 1}, function (err, docs) {
+      if (err) return next(err)
+      res.json(docs && docs[0] && docs[0].content);
     })
   }
 

@@ -12,8 +12,8 @@
 </div>
 
 <script src="js/json2.js"></script>
-<script src="js/jquery-1.9.1.js"></script>
-<script src="js/underscore-1.5.1.js"></script>
+<script src="js/jquery-1.10.2.js"></script>
+<script src="js/underscore-1.5.2.js"></script>
 <script src="js/backbone-1.0.0.js"></script>
 
 <script type="text/template" id="message_template">
@@ -23,6 +23,7 @@
   <div>MessageType: <%= type %></div>
   <div>Creation DateTime: <%= ts %></div>
   <button class="details">View XML</button>
+  <a href="api/msg_out/<%= id %>">Download</a>
 </script>
 
 <script>
@@ -63,8 +64,12 @@
       return this // for chainable calls, like .render().el
     },
 
-    renderDetail: function (item) {
-      alert('render details: ' + this.$el.html())
+    renderDetail: function (e) {
+      //alert('render details: ' + this.$el.html())
+      console.log(this)
+      console.log(this.model)
+      console.log(this.model.collection)
+      alert('event: ' + e.target)
     }
   })
   
