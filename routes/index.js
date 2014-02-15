@@ -12,11 +12,14 @@
 
   var fs = require('fs')
 
-  //var db_config = { url: 'gdsn'}
+  // local install:
+  var db_config = { url: 'gdsn'}
+
   //var db_config = { url: 'plt-elas01.itradenetwork.com,plt-elas02.itradenetwork.com,plt-elas03.itradenetwork.com'}
   //var db_config = { url: 'mongodb://plt-elas01.itradenetwork.com,plt-elas02.itradenetwork.com,plt-elas03.itradenetwork.com'}
+
   // works!:
-  var db_config = { url: 'mongodb://plt-elas01.itradenetwork.com'}
+  //var db_config = { url: 'mongodb://plt-elas01.itradenetwork.com'}
 
   var db = require('../lib/Database')(db_config)
 
@@ -43,8 +46,10 @@
 
   // this snoop export is a factory function that should be called when creating the route
   exports.getSnoopHandler = function getSnoopHandler(count) {
+    console.log('getSnoopHandler called')
     count = count || 0
     return function(req, res, next) {
+      console.log('getSnoopHandler  handle req function called')
       res.cookie('test_response_cookie', 'some cookie data, count ' + count++)
       req.session.count = count
       req.session.timestamp = Date.now()
@@ -180,7 +185,7 @@
     })
     req.on('end', function () {
       log.info('Received POST content of length ' + (content && content.length || '0'))
-      log.debug('Received POST content: ' + content)
+      //log.debug('Received POST content: ' + content)
 
       var ts = Date.now()
 
@@ -217,6 +222,34 @@
       if (err) return next(err)
       res.json(docs && docs[0] && docs[0].content);
     })
+  }
+
+  exports.getCinPostHandler = function (options) {
+    console.log('getCinPostHandler called')
+    options = options || {}
+    return function (req, res, next) {
+      console.log('cin post handler called')
+
+      //if ('/post-cin' != req.url) return next()
+      //if ('POST' != req.method) return next()
+
+      /* simple echo:
+      var buf = ''
+      req.setEncoding('utf8')
+      req.on('data', function (chunk) {
+        buf += chunk
+      })
+      req.on('end', function () {
+        log.info('Received POST content: ' + buf)
+      })
+      res.end('Received POST content: ' + buf)
+      */
+
+      gdsn.getTradeItemsFromStream(req, function (err, items) {
+        if (err) throw err
+        res.end(JSON.stringify(items))
+      })
+    }
   }
 
   return exports

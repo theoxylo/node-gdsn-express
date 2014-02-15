@@ -11,10 +11,11 @@
     "start": "node app"
   },
   "dependencies": {
-    "gdsn": "0.1.0",
-    "express": "3.1.0",
-    "ejs": "0.8.3",
-    "mongojs": "0.7.3"
+      "gdsn"      : "0.1.1"
+    , "express"   : "3.1.0"
+    , "ejs"       : "0.8.3"
+    , "mongojs"   : "0.7.3"
+    , "underscore": "1.6.0"
   },
   "keywords": ["gdsn", "node", "eip", "xpath", "xml", "express"],
   "licenses": [{

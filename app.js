@@ -13,7 +13,6 @@
 
   var app = express()
 
-
   app.set('port', process.env.PORT || 9080)
   app.set('views', __dirname + '/views')
   app.set('view engine', 'ejs')
@@ -27,10 +26,15 @@
     }))
     //app.use(getCinPostHandler({ test: true }))
     //app.use(express.bodyParser())
-    app.use(express.methodOverride())
-    app.use(express.cookieParser('your secret here'))
+    app.use(express.cookieParser('secret cookie salt 12345'))
     app.use(express.session())
+    app.use('/', function (req, res, next) {
+      if (req.path != '/') return next()
+      res.redirect('/index.html')
+    })
+    app.use('/api/1.0', app.router)
     app.use(app.router)
+    app.use('/snoop', routes.getSnoopHandler(10))
     app.use(express.static(__dirname + '/public'))
     app.use(express.directory(__dirname + '/public'))
     app.use(customErrorHandler)
@@ -45,17 +49,16 @@
     next(new Error('this is a test error'))
   })
 
-  app.get('/api', function (req, res) {
+  app.get('/', function (req, res) {
     res.json({ 
-      gdsn_rest_api_version: "0.0.3"
+      gdsn_rest_api_version: "1.0"
       , ts: Date.now()
       , api_docs: {
           endpoints: [
-                '/api'
-              , '/err'
-              , '/snoop'
-              , '/api/msg_out'
-              , '/api/msg_out/:msg_id'
+                '/api/1.0'
+              , '/api/1.0/err'
+              , '/api/1.0/msg_out'
+              , '/api/1.0/msg_out/:msg_id'
           ]
       }
     })
@@ -106,45 +109,23 @@
   })
 
   // list sent messages
-  app.get('/api/msg_out', routes.list_messages)
+  app.get('/msg_out', routes.list_messages)
   // get xml for specific sent message
-  app.get('/api/msg_out/:msg_id', routes.find_message)
+  app.get('/msg_out/:msg_id', routes.find_message)
 
   // CIN upload form
-  app.get('/cin', routes.view_cin_upload_form)
+  app.get('/cin_from_other_dp', routes.view_cin_upload_form)
   // CIN upload POST submit processing
-  app.post('/cin', routes.post_cin_upload_form)
+  app.post('/cin_from_other_dp', routes.post_cin_upload_form)
 
   // view archive item details 
-  app.get('/api/archive/:archive_id', routes.find_archive)
+  app.get('/archive/:archive_id', routes.find_archive)
   // view list of all archived items
-  app.get('/api/archive', routes.list_archive)
+  app.get('/archive', routes.list_archive)
   // archive arbitrary POST auto-detecting type
-  app.post('/api/archive', routes.post_archive)
+  app.post('/archive', routes.post_archive)
 
-  // default snoop home page
-  app.get('/snoop', routes.getSnoopHandler())
-
-  app.post('/post-cin', getCinPostHandler({ test: true }))
-
-  // example of simple handler with embedded routing
-  function getCinPostHandler(options) {
-    options = options || {}
-    return function (req, res, next) {
-      if ('/post-cin' != req.url) {
-        return next()
-      }
-      var buf = ''
-      req.setEncoding('utf8')
-      req.on('data', function (chunk) {
-        buf += chunk
-      })
-      req.on('end', function () {
-        log.info('Received POST content: ' + buf)
-      })
-      res.end('Received POST content: ' + buf)
-    }
-  }
+  app.post('/post-cin', routes.getCinPostHandler({ test: true }))
 
   function customErrorHandler(err, req, res, next) {
     if (!err) next()
@@ -157,7 +138,7 @@
     setTimeout(function () {
       console.log('shutdown complete!')
       process.exit(0)
-    }, 1500) // simulate shutdown activities for 1.5 seconds
+    }, 500) // simulate shutdown activities for .5 seconds
   })
 
   app.listen(app.get('port'), process.env.IP)

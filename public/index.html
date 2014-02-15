@@ -79,19 +79,22 @@
 
   <div id="msg_tab">
     <div id="msg_accordion">
-      <div>Download Message</div>
+      <div>View Message</div>
       <div>
         Message ID:
-        <br/><input type="text" ng-model="msg_id"/>
-        <br/><a ng-href="api/archive/{{msg_id}}">Download Message {{msg_id}}</a>
+        <br/><input type="text" ng-model="view_msg_id"/>
+        <br/><button ng-click="view_archive_message()">View</button>
+        <br/><textarea rows="6" cols="100" id="msg_content_view"></textarea>
+        <br/>[<a ng-href="/api/1.0/archive/{{view_msg_id}}">Link to message {{view_msg_id}}</a>]
       </div>
       <div>Post Message</div>
       <div>
-        <br/><textarea rows="6" cols="100" ng-model="msg_content"></textarea>
+        <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
         <br/><button ng-click="post_to_archive()">Post</button>
       </div>
       <div>List All Messages</div>
       <div>
+        <br/><button ng-click="update_msg_list()">Update</button>
         <pre id="message_list"></pre>
       </div>
     </div>
@@ -155,8 +158,8 @@
   <div>Model values:</div>
   <div>Subscriber: {{subscriber}}</div>
   <div>Publisher: {{publisher}}</div>
-  <div>Message ID: {{msg_id}}</div>
-  <div>Message content: <textarea disabled>{{msg_content}}</textarea></div>
+  <div>View Message ID: {{view_msg_id}}</div>
+  <div>Message post content: <textarea disabled>{{msg_content_post}}</textarea></div>
 </div>
 
 <div id="footer_area">
@@ -171,13 +174,18 @@
 <script>
   (function() {
 
-    //alert('loading angular thx_app')
+    var app = {
+      version: "1.0"
+      , ts: Date.now()
+      , debug: true
+      , api: '/api/1.0'
+    }
 
     var thx_app = angular.module('thx_app', [])
 
     thx_app.factory('thx_util', function () {
       var getItemUrl = function (item) {
-        var url = 'api/tradeItem?download=true'
+        var url = app.api + '/tradeItem?download=true'
         url += '&gln='   + item.gln
         url += '&gtin='  + item.gtin
         url += '&tm='    + item.tm
@@ -185,9 +193,9 @@
         return url
       }
       return {
-          sub_url: 'api/subscriptionList'
-        , pub_url: 'api/publicationList'
-        , archive_url: 'api/archive'
+          sub_url: app.api + '/subscriptionList'
+        , pub_url: app.api + '/publicationList'
+        , archive_url: app.api + '/archive'
         , getItemUrl: getItemUrl
       }
     })
@@ -242,14 +250,22 @@
       }
 
       $scope.post_to_archive = function () {
-        console.log('post_to_archive: ' + $scope.msg_content)
-        $http.post(thx_util.archive_url, $scope.msg_content + '\n\n')
+        //$http.post(thx_util.archive_url, $scope.msg_content_post + '\n\n')
+        $http.post(app.api + '/post-cin', $scope.msg_content_post + '\n\n')
         .success(function (data) {
           console.log(data)
         })
         .error(function () {
           console.log(arguments)
         })
+      }
+
+      $scope.update_msg_list = function () {
+        $('#message_list').load(app.api + '/archive')
+      }
+
+      $scope.view_archive_message = function () {
+        $('#msg_content_view').load(app.api + '/archive/' + $scope.view_msg_id)
       }
 
     })
@@ -283,20 +299,8 @@
       }
     })
 
-  })()
-</script>
-<script>
-  $(function() {
-
-    var app = {
-      version: "1.0.0"
-      , ts: Date.now()
-      , debug: true
-    }
-
     $('#welcome').load('welcome.html')
     $('#find_not_pub').load('find_not_published.html')
-    $('#message_list').load('api/archive')
 
     $('#pub_accordion').accordion({
         heightStyle: 'content',
@@ -335,7 +339,7 @@
       console.log('publishing item with data: ' + data)
       $.ajax({
           dataType: 'json',
-          url: 'api/publish?' + data
+          url: app.api + '/publish?' + data
       })
       .done(function (msg, status) {
         alert('API Publish operation complete: ' + status)
@@ -350,7 +354,7 @@
       })
 
     })
-  })
+  })()
 </script>
 </body>
 </html>
