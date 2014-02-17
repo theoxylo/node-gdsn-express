@@ -6,7 +6,7 @@
   <% include css.ejs %>
 </head>
 <body>
-<% var prop; %>
+<% var prop %>
 
 <h1><%= title %></h1>
 
@@ -14,7 +14,7 @@
 <ul>
     <li>sessionID: <%= req.sessionID %>
     <% for(prop in req.session) { 
-        if (typeof req.session[prop] === 'function') continue;
+        if (typeof req.session[prop] === 'function') continue
         %><li><%= prop %>: <%= req.session[prop] %>
     <% } %>
 </ul>
@@ -48,7 +48,7 @@
 <h2>Full Request Info</h2>
 <ul>
 <% for(prop in req) { %>
-     <% if (typeof req[prop] === 'function') continue; %>
+     <% if (typeof req[prop] === 'function') continue %>
      <li><%= prop %>: <%= req[prop] %>
 <% } %>
 </ul>
@@ -56,7 +56,7 @@
 <h2>Full Response Info</h2>
 <ul>
 <% for(prop in res) { %>
-     <% if (typeof res[prop] === 'function') continue; %>
+     <% if (typeof res[prop] === 'function') continue %>
      <li><%= prop %>: <%= res[prop] %>
 <% } %>
 </ul>

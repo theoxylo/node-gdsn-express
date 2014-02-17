@@ -1,8 +1,9 @@
 (function () {
 
-  var log = require('../lib/Logger')('routes', {debug: true})
-
+  var _    = require('underscore')
+  var log  = require('../lib/Logger')('routes', {debug: true})
   var Gdsn = require('gdsn')
+  
   var gdsn = new Gdsn({
     homeDataPoolGln: '1100001011285'
     //, templatePath: __dirname + '/node_modules/gdsn/templates/'
@@ -224,32 +225,35 @@
     })
   }
 
-  exports.getCinPostHandler = function (options) {
-    console.log('getCinPostHandler called')
-    options = options || {}
-    return function (req, res, next) {
-      console.log('cin post handler called')
+  exports.list_trade_items = function(req, res, next) {
+    log.debug('list_items')
+    db.trade_items.find({}, {xml:0}, function (err, docs) {
+      if (err) return next(err)
+      res.json(docs);
+    })
+  }
 
-      //if ('/post-cin' != req.url) return next()
-      //if ('POST' != req.method) return next()
+  exports.find_trade_item = function(req, res, next) {
+    log.debug('find_item params ' + req.params)
+    var item_id = req.params.item_id
+    log.debug('find_item called with item ' + item_id)
+    db.trade_items.find({gtin: item_id}, {xml: 1}, function (err, docs) {
+      res.json(docs && docs[0] && docs[0].xml);
+    })
+  }
 
-      /* simple echo:
-      var buf = ''
-      req.setEncoding('utf8')
-      req.on('data', function (chunk) {
-        buf += chunk
-      })
-      req.on('end', function () {
-        log.info('Received POST content: ' + buf)
-      })
-      res.end('Received POST content: ' + buf)
-      */
+  exports.post_trade_items = function (req, res, next) {
+    console.log('post_trade_items handler called')
 
-      gdsn.getTradeItemsFromStream(req, function (err, items) {
-        if (err) throw err
-        res.end(JSON.stringify(items))
+    gdsn.getTradeItemsFromStream(req, function (err, items) {
+      if (err) return next(err)
+
+      _.each(items, function (item) {
+        db.trade_items.save(item)
       })
-    }
+
+      res.end('Saved ' + items.length + ' items')
+    })
   }
 
   return exports

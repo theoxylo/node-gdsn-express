@@ -24,7 +24,6 @@
     app.use(express.basicAuth(function (user, pass) {
       return 'admin' == user & 'devadmin' == pass
     }))
-    //app.use(getCinPostHandler({ test: true }))
     //app.use(express.bodyParser())
     app.use(express.cookieParser('secret cookie salt 12345'))
     app.use(express.session())
@@ -65,48 +64,7 @@
   })
 
   // admin ui api route and default auth response test
-  app.get('/admin/data.json', function (req, res, next) {
-
-    var cmd = req.query['req'] || req.query['cmd']
-
-    log.debug('/admin/data.json command: ' + cmd)
-    log.debug(JSON.stringify(req.query))
-
-    if (cmd === 'login') {
-      var user = req.query.Username
-      var pass = req.query.Password
-      log.info('login attempt for user: ' + user + ' (' + pass + ')')
-
-      if (user === 'admin' && pass === 'devadmin') {
-        res.json({
-          authmask: "2097151",
-          success: "true"
-        })
-        return
-      }
-      else {
-        res.json({
-          status: "403",
-          success: "false"
-        })
-        return
-      }
-    }
-    else if (cmd === 'gettip') {
-      res.json({
-        tip: 'Current server date/time: ' + Date()
-      })
-    }
-    else if (cmd === 'getstatus') {
-      res.json({
-        state: 20, // server is up
-        failed: false
-      })
-    }
-    else {
-      return next(new Error('command not recognized'))
-    }
-  })
+  app.get('/admin/data.json', require('./routes/admin.js'))
 
   // list sent messages
   app.get('/msg_out', routes.list_messages)
@@ -118,14 +76,13 @@
   // CIN upload POST submit processing
   app.post('/cin_from_other_dp', routes.post_cin_upload_form)
 
-  // view archive item details 
   app.get('/archive/:archive_id', routes.find_archive)
-  // view list of all archived items
   app.get('/archive', routes.list_archive)
-  // archive arbitrary POST auto-detecting type
   app.post('/archive', routes.post_archive)
 
-  app.post('/post-cin', routes.getCinPostHandler({ test: true }))
+  app.get('/items/:item_id', routes.find_trade_item)
+  app.get('/items', routes.list_trade_items)
+  app.post('/items', routes.post_trade_items)
 
   function customErrorHandler(err, req, res, next) {
     if (!err) next()

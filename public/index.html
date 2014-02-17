@@ -6,16 +6,18 @@
   <title>Catalog Services Dashboard</title>
   <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <!--<link rel="stylesheet" type="text/css" href="css/styles.css" />-->
+  <link rel="stylesheet" type="text/css" href="css/styles_new.css" />
   <link rel="stylesheet" type="text/css" href="jqui/jquery-ui-1.10.4.custom.css" />
 
   <style type="text/css">
-      .clickable { 
-        cursor: pointer; 
-        border: #ccc dotted 1px; 
-      }
-      .selected {
-        border: #ccf dashed 1px; 
-      }
+    .clickable { 
+      cursor: pointer; 
+      border: #ccc dotted 1px; 
+    }
+    .selected {
+      border: #ccf dashed 1px; 
+    }
   </style>
 
   <style type="text/css">
@@ -35,6 +37,8 @@
   <script type="text/javascript" src="jqui/jquery-ui-1.10.4.custom.js"></script>
   <script type="text/javascript" src="js/underscore-1.5.2.js"></script>
   <script type="text/javascript" src="js/angular-1.2.2.js"></script>
+  <script type="text/javascript" src="js/file/angular-file-upload.js"></script>
+  
 </head>
 <body ng-app="thx_app">
 
@@ -58,15 +62,17 @@
 
 
 
+<div id="tabs" ng-controller="thx_controller">
+
 <div>
   <h2>Catalog Services Dashboard</h2>
   <!-- Version $URL: $ -->
 </div>
 
-<div id="tabs" ng-controller="thx_controller">
   <ul>
     <li><a href="#main_menu">Main Menu</a></li>
-    <li><a href="#msg_tab">Archive</a></li>
+    <li><a href="#ci_tab">Catalog Items</a></li>
+    <li><a href="#msg_tab">Messages</a></li>
     <li><a href="#pub_tab">Publication</a></li>
     <li><a href="#sub_tab">Subscription</a></li>
   </ul>
@@ -74,6 +80,35 @@
   <div id="main_menu">
     <div class="blue_box">
       <div id="welcome">[Loading welcome.html]</div>
+    </div>
+  </div>
+
+  <div id="ci_tab">
+    <div id="ci_accordion">
+      <div>List Catalog Items</div>
+      <div>
+        <br/><button ng-click="list_catalog_items()">Update</button>
+        <pre id="ci_list"></pre>
+      </div>
+      <div>Catalog Item Details</div>
+      <div>
+        GTIN:
+        <br/><input type="text" ng-model="ci_gtin"/>
+        <br/><button ng-click="view_catalog_item()">View</button>
+        <br/><textarea rows="6" cols="100" id="ci_content_view"></textarea>
+        <br/><span ng-if="ci_gtin">[<a ng-href="/api/1.0/items/{{ci_gtin}}">Link to catalog item {{ci_gtin}}</a>]</span>
+      </div>
+      <div>Post Catalog Items</div>
+      <div>
+        <div ng-controller="thx_file_controller">
+          <input type="file" ng-file-select="onFileSelect($files)"></input>
+          <button ng-click="uploadFile()">Upload File</button>
+        </div>
+        <br/>Or paste CIN XML:
+        <br/><textarea rows="6" cols="100" ng-model="ci_content_post"></textarea>
+        <br/><button ng-click="post_catalog_items()">Post XML</button>
+        
+      </div>
     </div>
   </div>
 
@@ -85,7 +120,7 @@
         <br/><input type="text" ng-model="view_msg_id"/>
         <br/><button ng-click="view_archive_message()">View</button>
         <br/><textarea rows="6" cols="100" id="msg_content_view"></textarea>
-        <br/>[<a ng-href="/api/1.0/archive/{{view_msg_id}}">Link to message {{view_msg_id}}</a>]
+        <br/><span ng-if="view_msg_id">[<a ng-href="/api/1.0/archive/{{view_msg_id}}">Link to message {{view_msg_id}}</a>]</span>
       </div>
       <div>Post Message</div>
       <div>
@@ -160,6 +195,7 @@
   <div>Publisher: {{publisher}}</div>
   <div>View Message ID: {{view_msg_id}}</div>
   <div>Message post content: <textarea disabled>{{msg_content_post}}</textarea></div>
+  <div id="snoop">Loading...</div>
 </div>
 
 <div id="footer_area">
@@ -181,7 +217,7 @@
       , api: '/api/1.0'
     }
 
-    var thx_app = angular.module('thx_app', [])
+    var thx_app = angular.module('thx_app', ['angularFileUpload'])
 
     thx_app.factory('thx_util', function () {
       var getItemUrl = function (item) {
@@ -193,16 +229,41 @@
         return url
       }
       return {
-          sub_url: app.api + '/subscriptionList'
-        , pub_url: app.api + '/publicationList'
-        , archive_url: app.api + '/archive'
-        , getItemUrl: getItemUrl
+          sub_url     : app.api + '/subscriptionList'
+        , pub_url     : app.api + '/publicationList'
+        , archive_url : app.api + '/archive'
+        , item_url    : app.api + '/items'
+        , getItemUrl  : getItemUrl
+      }
+    })
+
+    thx_app.controller('thx_file_controller', function($scope, $upload) {
+      $scope.onFileSelect = function($files) {
+        $scope.selectedFile = $files && $files[0]
+      }
+      $scope.uploadFile = function() {
+          var file = $scope.selectedFile
+          $scope.upload = $upload.upload({
+            url: 'api/1.0/items',
+            // method: POST or PUT,
+            // headers: {'headerKey': 'headerValue'},
+            // withCredentials: true,
+            data: {myObj: $scope.myModelObj},
+            file: file,
+          }).progress(function(evt) {
+            console.log('percent: ' + parseInt(100.0 * evt.loaded / evt.total));
+          }).success(function(data, status, headers, config) {
+            // file is uploaded successfully
+            console.log(data);
+            alert('File uploaded successfully (' + data + ')')
+          });
+          //.error(...)
+          //.then(success, error, progress); 
       }
     })
 
     thx_app.controller('thx_controller', function($scope, $http, thx_util) {
       $scope.timestamp = 'n/a'
-      $scope.base_url = thx_util.sub_url
       $scope.thx_controller_test = 'thx_controller_test_value'
 
       $scope.showDetail = function (item) {
@@ -217,8 +278,8 @@
 
       $scope.getSubscriptions = function (subGln) {
         if (/\d{13}/.test($scope.subscriber)) {
-          $http.get(thx_util.sub_url, { 
           //$http.jsonp(thx_util.sub_url + '?callback=JSON_CALLBACK' , {
+          $http.get(thx_util.sub_url, { 
             params: { subscriber: $scope.subscriber }
           })
           .success(function (data) {
@@ -250,8 +311,7 @@
       }
 
       $scope.post_to_archive = function () {
-        //$http.post(thx_util.archive_url, $scope.msg_content_post + '\n\n')
-        $http.post(app.api + '/post-cin', $scope.msg_content_post + '\n\n')
+        $http.post(thx_util.archive_url, $scope.msg_content_post + '\n\n')
         .success(function (data) {
           console.log(data)
         })
@@ -260,8 +320,26 @@
         })
       }
 
+      $scope.post_catalog_items = function () {
+        $http.post(thx_util.item_url, $scope.ci_content_post + '\n\n')
+        .success(function (data) {
+          console.log(data)
+        })
+        .error(function () {
+          console.log(arguments)
+        })
+      }
+
+      $scope.list_catalog_items = function () {
+        $('#ci_list').load(app.api + '/items')
+      }
+
       $scope.update_msg_list = function () {
         $('#message_list').load(app.api + '/archive')
+      }
+
+      $scope.view_catalog_item = function () {
+        $('#ci_content_view').load(app.api + '/items/' + $scope.ci_gtin)
       }
 
       $scope.view_archive_message = function () {
@@ -312,6 +390,11 @@
         collapsible: true
     })
 
+    $('#ci_accordion').accordion({
+        heightStyle: 'content',
+        collapsible: true
+    })
+
     $('#msg_accordion').accordion({
         heightStyle: 'content',
         collapsible: true
@@ -320,6 +403,7 @@
     if (app.debug) {
       $('#debug_tab').append('<div>Timestamp: ' + app.ts + '</div>')
       $('#tabs ul').append('<li><a href="#debug_tab">Debug</a></li>')
+      $('#snoop').load('snoop')
     }
 
     $('#tabs').tabs() //{ collapsible: true, active: false })

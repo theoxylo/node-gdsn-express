@@ -3,23 +3,32 @@
   "version": "0.0.3",
   "description": "An express server for GDSN",
   "main": "app.js",
-  "engines": { 
-    "node": ">=0.8.6" 
+  "engines": {
+    "node": ">=0.8.6"
   },
   "author": "Theoxylo - https://github.com/theoxylo",
   "scripts": {
     "start": "node app"
   },
   "dependencies": {
-      "gdsn"      : "0.1.1"
-    , "express"   : "3.1.0"
-    , "ejs"       : "0.8.3"
-    , "mongojs"   : "0.7.3"
-    , "underscore": "1.6.0"
+    "gdsn": "0.1.1",
+    "express": "3.1.0",
+    "ejs": "0.8.3",
+    "mongojs": "0.7.3",
+    "underscore": "~1.6.0"
   },
-  "keywords": ["gdsn", "node", "eip", "xpath", "xml", "express"],
-  "licenses": [{
-      "type" : "MIT License",
-      "url" : "http://www.opensource.org/licenses/mit-license.php"
-  }]
+  "keywords": [
+    "gdsn",
+    "node",
+    "eip",
+    "xpath",
+    "xml",
+    "express"
+  ],
+  "licenses": [
+    {
+      "type": "MIT License",
+      "url": "http://www.opensource.org/licenses/mit-license.php"
+    }
+  ]
 }
