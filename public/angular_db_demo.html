@@ -19,7 +19,7 @@
       angular.module('thx_app', [])
         .controller('thx_controller', function($scope, $http) {
 
-          $http.get('api/msg_out')
+          $http.get('api/1.0/archive')
             .success(function (data) {
               $scope.messages = data
             })
@@ -50,7 +50,7 @@
       <ul>
       <li>Sender GLN: {{msg.sender}}</li>
       <li>Receiver GLN: {{msg.receiver}}</li>
-      <li><a href="api/msg_out/{{msg.id}}">Download</a></li>
+      <li><a href="api/1.0/archive/{{msg.id}}">Download</a></li>
       </ul>
     </div>
   </div>
