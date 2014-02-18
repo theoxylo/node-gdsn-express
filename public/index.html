@@ -324,6 +324,7 @@
         $http.post(thx_util.item_url, $scope.ci_content_post + '\n\n')
         .success(function (data) {
           console.log(data)
+          alert('XML uploaded successfully (' + data + ')')
         })
         .error(function () {
           console.log(arguments)

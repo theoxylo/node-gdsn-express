@@ -1,15 +1,24 @@
 (function () {
 
+  var opts = require('./options.json')
   var express = require('express')
 
   var log = require('./lib/Logger.js')('gdsnApp', {debug: true})
   log.debug('DEBUG logging enabled')
   log.info('INFO logging enabled')
 
+  var Gdsn = require('gdsn')
+  var gdsn = new Gdsn(opts)
+
+  var Database = require('./lib/Database')
+  var database = new Database(opts)
+  //config.url = 'gdsn'
+  //config.url = 'data_pool_user:data_pool@plt-elas01.itradenetwork.com'
+  //config.url = 'toneill:toneill@plt-elas01.itradenetwork.com'
+  // works!:
+  //var database = require('./lib/Database')({ db_url: 'mongodb://plt-elas01.itradenetwork.com'})
+
   var routes = require('./routes')
-  for (var key in routes) {
-    if (routes.hasOwnProperty(key)) log.info("Loaded route handler function: " + key)
-  }
 
   var app = express()
 
@@ -24,7 +33,7 @@
     app.use(express.basicAuth(function (user, pass) {
       return 'admin' == user & 'devadmin' == pass
     }))
-    //app.use(express.bodyParser())
+    //app.use(express.bodyParser()) // this breaks direct POSTing by reading the body but is needed for multipart file upload
     app.use(express.cookieParser('secret cookie salt 12345'))
     app.use(express.session())
     app.use('/', function (req, res, next) {
@@ -66,23 +75,19 @@
   // admin ui api route and default auth response test
   app.get('/admin/data.json', require('./routes/admin.js'))
 
-  // list sent messages
-  app.get('/msg_out', routes.list_messages)
-  // get xml for specific sent message
-  app.get('/msg_out/:msg_id', routes.find_message)
+  app.get('/archive/:archive_id', routes.find_archive(gdsn, database))
+  app.get('/archive', routes.list_archive(gdsn, database))
+  app.post('/archive', routes.post_archive(gdsn, database))
 
-  // CIN upload form
-  app.get('/cin_from_other_dp', routes.view_cin_upload_form)
-  // CIN upload POST submit processing
-  app.post('/cin_from_other_dp', routes.post_cin_upload_form)
+  app.get('/items/:item_id', routes.find_trade_item(gdsn, database))
+  app.get('/items', routes.list_trade_items(gdsn, database))
+  app.post('/items', routes.post_trade_items(gdsn, database))
 
-  app.get('/archive/:archive_id', routes.find_archive)
-  app.get('/archive', routes.list_archive)
-  app.post('/archive', routes.post_archive)
-
-  app.get('/items/:item_id', routes.find_trade_item)
-  app.get('/items', routes.list_trade_items)
-  app.post('/items', routes.post_trade_items)
+  // CIN upload form and submit POST submit processing
+  var cin_form_routes = require('./routes/cin_form')
+  app.get('/cin_from_other_dp', cin_form_routes.view_cin_from_other_dp_upload_form)
+  // not working without bodyParser:
+  app.post('/cin_from_other_dp', cin_form_routes.post_cin_from_other_dp_upload_form(gdsn, database))
 
   function customErrorHandler(err, req, res, next) {
     if (!err) next()
