@@ -16,7 +16,7 @@
       border: #ccc dotted 1px; 
     }
     .selected {
-      border: #ccf dashed 1px; 
+      border: #ccf solid 1px; 
     }
   </style>
 
@@ -42,13 +42,13 @@
 </head>
 <body ng-app="thx_app">
 
-<script type="text/ng-template" id="gdsn_template.html">
+<script type="text/ng-template" id="gdsn_sub_list_template.html">
   <div style="border-style:solid;border-width:1px;border-color:blue">
     <div>GDSN Widget</div>
     <div ng-if="data" style="border-style:solid;border-width:1px;border-color:green">
-      <div ng-if="selectedItem"><textarea rows="6" cols="60" disabled ng-bind="selectedItem"></textarea></div>
+      <div ng-if="selectedSub"><textarea rows="6" cols="60" disabled ng-bind="selectedSub"></textarea></div>
       <div>Subscriptions for subscriber {{data.subscriber}} as of <span ng-bind="timestamp"/>:</div>
-      <div class="clickable" ng-repeat="sub in data.subscriptions" ng-click="showDetail(sub)">
+      <div class="clickable" ng-repeat="sub in data.subscriptions" ng-click="selectSubscription(sub)">
         <span>{{$index + 1}}. Publisher/Data Source: {{sub.dsName}} (GLN {{sub.ds}})</span>
       </div>
       <div>Data URL: <a ng-href="{{data.url}}">{{data.url}}</a></div>
@@ -60,18 +60,16 @@
   </div>
 </script>
 
+<div id="tabs">
 
-
-<div id="tabs" ng-controller="thx_controller">
-
-<div>
-  <h2>Catalog Services Dashboard</h2>
-  <!-- Version $URL: $ -->
-</div>
+  <div>
+    <h2>Catalog Services Dashboard</h2>
+    <!-- Version $URL: $ -->
+  </div>
 
   <ul>
     <li><a href="#main_menu">Main Menu</a></li>
-    <li><a href="#ci_tab">Catalog Items</a></li>
+    <li><a href="#item_tab">Catalog Items</a></li>
     <li><a href="#msg_tab">Messages</a></li>
     <li><a href="#pub_tab">Publication</a></li>
     <li><a href="#sub_tab">Subscription</a></li>
@@ -83,20 +81,53 @@
     </div>
   </div>
 
-  <div id="ci_tab">
-    <div id="ci_accordion">
+  <div id="item_tab" ng-controller="thx_item_controller">
+    <div id="accordion_item">
       <div>List Catalog Items</div>
       <div>
-        <br/><button ng-click="list_catalog_items()">Update</button>
-        <pre id="ci_list"></pre>
+        <br/><button ng-click="list_items()">Update</button>
+        <div ng-if="selectedItem" class="blue_box">
+          <p>Selected GTIN: {{selectedItem.gtin}}</p>
+          <p><a ng-href="{{selectedItem.xml_link}}?json=true" target="_new">View JSON for catalog item {{selectedItem.gtin}}</a></p>
+          <p><a ng-href="{{selectedItem.xml_link}}?json=true&download=true">Download JSON for catalog item {{selectedItem.gtin}}</a></p>
+          <p><a ng-href="{{selectedItem.xml_link}}" target="_new">View XML for catalog item {{selectedItem.gtin}}</a></p>
+          <p><a ng-href="{{selectedItem.xml_link}}?download=true">Download XML for catalog item {{selectedItem.gtin}}</a></p>
+          <p>Child GTINs: {{selectedItem.child_gtins.join(' ')}}</p>
+        </div>
+        <div ng-if="items" style="border-style:solid;border-width:1px;border-color:green">
+          <table>
+            <tr>
+              <th>GTIN</th>
+              <th>Provider</th>
+              <th>TM</th>
+              <th>Recipient</th>
+              <th>Unit Type</th>
+              <th>Child Count</th>
+              <th>Created</th>
+              <th>Modified</th>
+            </tr>
+            <tr class="clickable" ng-repeat="item in items" ng-click="showItemDetail(item)">
+              <td>{{item.gtin}}</td>
+              <td>{{item.provider}}</td>
+              <td>{{item.tm}}</td>
+              <td>{{item.recipient}}</td>
+              <td>{{item.unit_type}}</td>
+              <td>{{item.child_count}}</td>
+              <td>{{item.created_ts}}</td>
+              <td>{{item.modified_ts}}</td>
+              <!-- Raw Data: '{{item}}' -->
+            </tr>
+          </table>
+        </div>
+
       </div>
       <div>Catalog Item Details</div>
       <div>
         GTIN:
-        <br/><input type="text" ng-model="ci_gtin"/>
+        <br/><input type="text" ng-model="input_item_gtin"/>
         <br/><button ng-click="view_catalog_item()">View</button>
-        <br/><textarea rows="6" cols="100" id="ci_content_view"></textarea>
-        <br/><span ng-if="ci_gtin">[<a ng-href="/api/1.0/items/{{ci_gtin}}">Link to catalog item {{ci_gtin}}</a>]</span>
+        <br/><textarea rows="6" cols="100" id="item_content_view"></textarea>
+        <br/><span ng-if="input_item_gtin">[<a ng-href="/api/1.0/items/{{input_item_gtin}}">Link to catalog item {{input_item_gtin}}</a>]</span>
       </div>
       <div>Post Catalog Items</div>
       <div>
@@ -105,50 +136,46 @@
           <button ng-click="uploadFile()">Upload File</button>
         </div>
         <br/>Or paste CIN XML:
-        <br/><textarea rows="6" cols="100" ng-model="ci_content_post"></textarea>
+        <br/><textarea rows="6" cols="100" ng-model="item_content_post"></textarea>
         <br/><button ng-click="post_catalog_items()">Post XML</button>
         
       </div>
     </div>
   </div>
 
-  <div id="msg_tab">
-    <div id="msg_accordion">
+  <div id="msg_tab" ng-controller="thx_msg_controller">
+    <div id="accordion_msg">
       <div>View Message</div>
       <div>
         Message ID:
         <br/><input type="text" ng-model="view_msg_id"/>
-        <br/><button ng-click="view_archive_message()">View</button>
+        <br/><button ng-click="view_msg()">View</button>
         <br/><textarea rows="6" cols="100" id="msg_content_view"></textarea>
         <br/><span ng-if="view_msg_id">[<a ng-href="/api/1.0/archive/{{view_msg_id}}">Link to message {{view_msg_id}}</a>]</span>
       </div>
       <div>Post Message</div>
       <div>
         <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
-        <br/><button ng-click="post_to_archive()">Post</button>
+        <br/><button ng-click="post_msg()">Post</button>
       </div>
       <div>List All Messages</div>
       <div>
-        <br/><button ng-click="update_msg_list()">Update</button>
+        <br/><button ng-click="list_msg()">Update</button>
         <pre id="message_list"></pre>
       </div>
     </div>
   </div>
 
-  <div id="pub_tab">
-    <div id="pub_accordion">
+  <div id="pub_tab" ng-controller="thx_pub_controller">
+    <div id="accordion_pub">
       <div>Publication List</div>
       <div id="pub_list">
         <div>
           <input type="text" ng-model="publisher"></input>
           <input type="button" ng-click="getPublications(publisher)" value="Get Publications"></input>
           <div ng-if="data.publisher">
-            <div ng-if="selectedItem" class="blue_box">
-              <span>Link: {{selectedItem.xml_link}}</span>
-              <a ng-href="{{selectedItem.xml_link}}">Download Trade Item XML</a>
-            </div>
             <div>Publications for ITN publisher {{data.publisher}} as of <span ng-bind="timestamp"/>:</div>
-            <div class="clickable" ng-repeat="pub in data.publications" ng-click="showDetail(pub)">
+            <div class="clickable" ng-repeat="pub in data.publications" ng-click="showPubDetail(pub)">
               <span>{{$index + 1}}. Published to GLN: {{pub.publishToGLN}}
                 <br/>Item GTIN: {{pub.gtin}}
                 <br/>Item TM/TMSub: {{pub.tm}}/{{pub.tmsub}}
@@ -169,15 +196,15 @@
             <p>  Product TM subdivision alpha code (e.g. 'US-CA'):<br/><input type='text' name='tms'/></p>
             <p>* Publish-To GLN:<br/><input type='text' name='dr'ng-model="subscriber"/></p>
             <p>Initial load<br/><input type='checkbox' name='il'/></p>
-            <input id="btn_api_publish" type="button" value="API Publish"></input>
+            <button ng-click="publish_item()">Submit</button>
             <div id="api_result">Loading...</div>
         </form>
       </div>
     </div>
   </div>
 
-  <div id="sub_tab">
-    <div id="sub_accordion">
+  <div id="sub_tab" ng-controller="thx_sub_controller">
+    <div id="accordion_sub">
       <div>Subscription List</div>
       <div>
         <input type="text" ng-model="subscriber"></input>
@@ -210,28 +237,76 @@
 <script>
   (function() {
 
-    var app = {
+    app = {
       version: "1.0"
       , ts: Date.now()
       , debug: true
       , api: '/api/1.0'
     }
 
+    var $accordion_item = $("#accordion_item")
+    $accordion_item.accordion({
+        heightStyle: 'content',
+        collapsible: true
+    })
+
+    var $accordion_pub = $('#accordion_pub')
+    $accordion_pub.accordion({
+        heightStyle: 'content',
+        collapsible: true
+    })
+
+    var $accordion_sub = $('#accordion_sub')
+    $accordion_sub.accordion({
+        heightStyle: 'content',
+        collapsible: true
+    })
+
+    var $accordion_msg = $('#accordion_msg')
+    $accordion_msg.accordion({
+        heightStyle: 'content',
+        collapsible: true
+    })
+
+    var $progress_dialog = $('#progress_dialog')
+    $progress_dialog.dialog({
+      autoOpen: false
+      , width: 500
+      , modal: true
+      //, buttons: { Cancel: function() { $( this ).dialog('close') } }
+    })
+    
+    function showBusy(title) {
+      console.log("busy 2: " + title)
+      $progress_dialog.dialog("option", "title", title)
+      $progress_dialog.dialog("open")
+    }
+
+    function hideBusy() {
+      setTimeout(function () {
+        $progress_dialog.dialog("close")
+      }, 2000)
+    }
+
     var thx_app = angular.module('thx_app', ['angularFileUpload'])
 
     thx_app.factory('thx_util', function () {
+
       var getItemUrl = function (item) {
-        var url = app.api + '/tradeItem?download=true'
-        url += '&gln='   + item.gln
-        url += '&gtin='  + item.gtin
-        url += '&tm='    + item.tm
-        if (item.tmsub) url += '&tmsub=' + item.tmsub
+        var url = app.api + '/items/'
+        url += item.gtin + '/'
+        url += item.provider + '/'
+        url += item.tm + '/'
+        url += item.recipient + '/'
+        if (item.tm_sub) url += item.tmsub + '/'
+          console.log('item url: ' + url)
         return url
       }
+
       return {
           sub_url     : app.api + '/subscriptionList'
         , pub_url     : app.api + '/publicationList'
-        , archive_url : app.api + '/archive'
+        , msg_url     : app.api + '/archive'
         , item_url    : app.api + '/items'
         , getItemUrl  : getItemUrl
       }
@@ -262,30 +337,27 @@
       }
     })
 
-    thx_app.controller('thx_controller', function($scope, $http, thx_util) {
+    thx_app.controller('thx_sub_controller', function($scope, $http, thx_util) {
       $scope.timestamp = 'n/a'
       $scope.thx_controller_test = 'thx_controller_test_value'
 
-      $scope.showDetail = function (item) {
-        console.log('showDetail')
-        console.log(item)
-
-        item.xml_link = thx_util.getItemUrl(item)
-        $(item).addClass('selected')
-        $scope.selectedItem = JSON.stringify(item)
-        //$scope.selectedItem = item
+      $scope.selectSubscription = function (sub) {
+        console.log('selectSubscription')
+        console.log(sub)
+        $scope.selectedSub = JSON.stringify(sub)
+        //$scope.selectedSub = sub
       }
 
-      $scope.getSubscriptions = function (subGln) {
+      $scope.getSubscriptions = function () {
         if (/\d{13}/.test($scope.subscriber)) {
-          //$http.jsonp(thx_util.sub_url + '?callback=JSON_CALLBACK' , {
-          $http.get(thx_util.sub_url, { 
+          //$http.get(thx_util.sub_url, { 
+          $http.jsonp('http://plt-gdsn01.itradenetwork.com:8080/gdsn-server/api/getSubscriptionList' + '?callback=JSON_CALLBACK' , {
             params: { subscriber: $scope.subscriber }
           })
           .success(function (data) {
             $scope.data = data
             $scope.timestamp = data.timestamp
-            $scope.selectedItem = null
+            $scope.selectedSub = null
           })
           .error(function () {
             console.log(arguments)
@@ -296,22 +368,61 @@
         }
       }
 
+    })
+
+    thx_app.controller('thx_pub_controller', function($scope, $http, thx_util) {
+      $scope.timestamp = 'n/a'
+      $scope.thx_controller_test = 'thx_controller_test_value'
+
+      $scope.showPubDetail = function (pub) {
+        console.log('showPubDetail')
+        console.log(pub)
+        $scope.selectedPub = JSON.stringify(pub)
+        //$scope.selectedPub = pub
+      }
+
       $scope.getPublications = function (pubGln) {
-        $http.get(thx_util.pub_url, { 
+        //$http.get(thx_util.pub_url, { 
+        $http.jsonp('http://plt-gdsn01.itradenetwork.com:8080/gdsn-server/api/getPublicationList' + '?callback=JSON_CALLBACK' , {
           params: { publisher: pubGln }
         })
         .success(function (data) {
           $scope.data = data
           $scope.timestamp = data.timestamp
-          $scope.selectedItem = null
+          $scope.selectedPub = null
         })
         .error(function () {
           console.log(arguments)
         })
       }
 
-      $scope.post_to_archive = function () {
-        $http.post(thx_util.archive_url, $scope.msg_content_post + '\n\n')
+      $scope.publish_item = function () {
+        $('#api_result').hide()
+        var data = $('#form_publish').serialize()
+        console.log('publishing item with data: ' + data)
+        $.ajax({
+            dataType: 'json',
+            url: app.api + '/publish?' + data
+        })
+        .done(function (msg, status) {
+          alert('API Publish operation complete: ' + status)
+          console.log('API Publish operation complete: ' + status)
+          $result.append('<div>Result: ' + status + '</div>')
+          $result.show().on('click', function () {
+            $(this).hide()
+          })
+        })
+        .fail(function () {
+            console.log('ajax fail: ' + arguments)
+        })
+      }
+
+    })
+
+    thx_app.controller('thx_msg_controller', function($scope, $http, thx_util) {
+
+      $scope.post_msg = function () {
+        $http.post(thx_util.msg_url, $scope.msg_content_post + '\n\n')
         .success(function (data) {
           console.log(data)
         })
@@ -320,8 +431,53 @@
         })
       }
 
+      $scope.list_msg = function () {
+        $('#message_list').load(thx_util.msg_url)
+      }
+
+      $scope.view_msg = function () {
+        $('#msg_content_view').load(thx_util.msg_url + '/' + $scope.view_msg_id)
+      }
+
+    })
+
+    thx_app.controller('thx_item_controller', function($scope, $http, thx_util) {
+
+      $scope.showItemDetail = function (item) {
+        console.log('showItemDetail called')
+        console.log(item.xml)
+
+        item.xml_link = thx_util.getItemUrl(item)
+        $scope.selectedItem = item
+        //$accordion_item.accordion("option", "active", 1) // activate fold#2 (view item)
+        //$scope.input_item_gtin = item.gtin
+        //$scope.view_catalog_item()
+      }
+
+      $scope.list_items = function () {
+        console.log('list_items called')
+        showBusy('Fetching item list...')
+        //$http.jsonp(thx_util.item_url + '?callback=JSON_CALLBACK' , {
+        $http.get(thx_util.item_url, { 
+          params: { test_ts: Date.now() }
+        })
+        .success(function (items) {
+          $scope.items = _.map(items, function (item) {
+            item.created_ts = (new Date(item.created_ts)).toLocaleString()
+            item.modified_ts = (new Date(item.modified_ts)).toLocaleString()
+            return item
+          })
+          $scope.selectedItem = null
+          hideBusy()
+        })
+        .error(function () {
+          console.log(arguments)
+          hideBusy()
+        })
+      }
+
       $scope.post_catalog_items = function () {
-        $http.post(thx_util.item_url, $scope.ci_content_post + '\n\n')
+        $http.post(thx_util.item_url, $scope.item_content_post + '\n\n')
         .success(function (data) {
           console.log(data)
           alert('XML uploaded successfully (' + data + ')')
@@ -331,20 +487,8 @@
         })
       }
 
-      $scope.list_catalog_items = function () {
-        $('#ci_list').load(app.api + '/items')
-      }
-
-      $scope.update_msg_list = function () {
-        $('#message_list').load(app.api + '/archive')
-      }
-
       $scope.view_catalog_item = function () {
-        $('#ci_content_view').load(app.api + '/items/' + $scope.ci_gtin)
-      }
-
-      $scope.view_archive_message = function () {
-        $('#msg_content_view').load(app.api + '/archive/' + $scope.view_msg_id)
+        $('#item_content_view').load(thx_util.item_url + '/' + $scope.input_item_gtin)
       }
 
     })
@@ -354,7 +498,7 @@
       return {
         restrict: 'EA'
         , replace: true
-        , templateUrl: 'gdsn_template.html'
+        , templateUrl: 'gdsn_sub_list_template.html'
         //, scope: { test_ts: '=timestamp' }
         //, scope: false // default; uses enclosing controller scope
         , scope: true // can read enclosing controller scope, not only set local dir scope (can still set scope.$parent)
@@ -377,29 +521,14 @@
           }
       }
     })
+  })()
+</script>
+<script>
+  //$(function () {
+  (function () {
 
     $('#welcome').load('welcome.html')
     $('#find_not_pub').load('find_not_published.html')
-
-    $('#pub_accordion').accordion({
-        heightStyle: 'content',
-        collapsible: true
-    })
-
-    $('#sub_accordion').accordion({
-        heightStyle: 'content',
-        collapsible: true
-    })
-
-    $('#ci_accordion').accordion({
-        heightStyle: 'content',
-        collapsible: true
-    })
-
-    $('#msg_accordion').accordion({
-        heightStyle: 'content',
-        collapsible: true
-    })
 
     if (app.debug) {
       $('#debug_tab').append('<div>Timestamp: ' + app.ts + '</div>')
@@ -409,36 +538,20 @@
 
     $('#tabs').tabs() //{ collapsible: true, active: false })
 
-    $('#progress_dialog').dialog({
-      autoOpen: false
-      , width: 500
-      , modal: true
-      //, buttons: { Cancel: function() { $( this ).dialog('close') } }
-    })
-    
+    var tab_names = {
+      main  : 0, 
+      items : 1, 
+      msg   : 2, 
+      pub   : 3, 
+      sub   : 4, 
+      debug : 5
+    }
+    $("#tabs").tabs("option", "active", tab_names['items']) 
+
     $('#progressbar').progressbar({ value: false })
 
-    var $result = $('#api_result').hide()
-    $('#btn_api_publish').on('click', function () {
-      var data = $('#form_publish').serialize()
-      console.log('publishing item with data: ' + data)
-      $.ajax({
-          dataType: 'json',
-          url: app.api + '/publish?' + data
-      })
-      .done(function (msg, status) {
-        alert('API Publish operation complete: ' + status)
-        console.log('API Publish operation complete: ' + status)
-        $result.append('<div>Result: ' + status + '</div>')
-        $result.show().on('click', function () {
-          $(this).hide()
-        })
-      })
-      .fail(function () {
-          console.log('ajax fail: ' + arguments)
-      })
+    $('#api_result').hide()
 
-    })
   })()
 </script>
 </body>

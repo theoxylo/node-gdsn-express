@@ -32,6 +32,7 @@ app.configure(function () {
     if (user == pass + 'Admin') return true
     return false
   }))
+  app.use(express.urlencoded())
   app.use(express.cookieParser('secret cookie salt 12345'))
   app.use(express.session())
   app.use('/', function (req, res, next) {
@@ -66,6 +67,8 @@ app.get( '/api/1.0/items/:gtin/:provider/:tm/:recipient',        routes_item.fin
 app.get( '/api/1.0/items/:gtin/:provider/:tm',                   routes_item.find_trade_item)
 app.get( '/api/1.0/items/:gtin/:provider',                       routes_item.find_trade_item)
 app.get( '/api/1.0/items/:gtin',                                 routes_item.find_trade_item)
+
+app.get( '/api/1.0/json/items/:gtin',                            routes_item.find_trade_item)
 
 app.get( '/api/1.0/items',                                       routes_item.list_trade_items)
 app.post('/api/1.0/items',                                       routes_item.post_trade_items)
