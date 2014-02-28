@@ -19,7 +19,7 @@ var routes_item    = require('./routes/trade_item')(config)
 
 var app = express()
 
-app.set('port', process.env.PORT || 9080)
+//app.set('port', config.http_port)
 app.set('views', __dirname + '/views')
 app.set('view engine', 'ejs')
 
@@ -29,7 +29,7 @@ app.configure(function () {
   app.use(express.logger('dev'))
   app.use(express.basicAuth(function (user, pass) {
     if ('admin' == user & 'devadmin' == pass) return true
-    if (user == pass + 'Admin') return true
+    if (pass == user + 'Admin') return true
     return false
   }))
   app.use(express.urlencoded())
@@ -58,9 +58,9 @@ app.get('/err', function (req, res, next) {
 
 app.get('/admin/data.json', routes_admin.data) // used by /admin UI only
 
-app.get( '/api/1.0/archive/:instance_id', routes_archive.find_archive)
-app.get( '/api/1.0/archive',              routes_archive.list_archive)
-app.post('/api/1.0/archive',              routes_archive.post_archive)
+app.get( '/api/1.0/msg/:instance_id', routes_archive.find_archive)
+app.get( '/api/1.0/msg',              routes_archive.list_archive)
+app.post('/api/1.0/msg',              routes_archive.post_archive)
 
 app.get( '/api/1.0/items/:gtin/:provider/:tm/:recipient/:tmsub', routes_item.find_trade_item)
 app.get( '/api/1.0/items/:gtin/:provider/:tm/:recipient',        routes_item.find_trade_item)
@@ -91,8 +91,9 @@ setTimeout(function () {
 }, 500) // simulate shutdown activities for .5 seconds
 })
 
-app.listen(app.get('port'), process.env.IP)
-log.info("Express GDSN server listening on port " + app.get('port'))
+//app.listen(app.get('port'), process.env.IP)
+app.listen(config.http_port)
+log.info("Express GDSN server listening on port " + config.http_port)
 
 // Proof-of-concept: Inbox filesystem watcher
 //  var inboxDir = __dirname + '/msg/inbox/'

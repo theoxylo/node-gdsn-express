@@ -4,6 +4,8 @@ module.exports = function (config) {
   var log  = require('../lib/Logger')('routes_archive', {debug: true})
 
   api.post_archive = function(req, res, next) {
+    console.log('post_archive  handler called')
+
     var content = ''
     req.setEncoding('utf8')
     req.on('data', function (chunk) {
@@ -12,26 +14,12 @@ module.exports = function (config) {
       if (content.length > 10 * 1000 * 1000) return res.end('content too big - larger than 10 MB')
     })
     req.on('end', function () {
-      log.info('Received POST content of length ' + (content && content.length || '0'))
-      //log.debug('Received POST content: ' + content)
-
-      var ts = Date.now()
-
-      var tagName = 'InstanceIdentifier'
-      var matches = content.match(RegExp(tagName + '>([^<.]*)'))
-      var id = (matches && matches[1]) || 'id_' + ts
-      log.info('posted instance id: ' + id)
-
-      var info = {
-        archive_ts    : ts
-        , instance_id : id
-        , xml         : content
-      }
-      config.database.saveMessage(info, function (err, id) {
+      log.info('Received POST msg content of length ' + (content && content.length || '0'))
+      config.database.saveMessageString(content, function (err, id) {
         if (err) return done(err)
         log.info('Message saved to archive with instance_id: ' + id)
+        res.end('post content archive with ts ' + id)
       })
-      res.end('post content archive with ts ' + info.archive_ts)
     })
   }
 
@@ -39,7 +27,7 @@ module.exports = function (config) {
     log.debug('list_archive')
     config.database.listMessages(function (err, results) {
       if (err) return next(err)
-      res.json(results);
+      res.json(results)
     })
   }
 
@@ -49,7 +37,15 @@ module.exports = function (config) {
     log.debug('find_message called with instance_id ' + instance_id)
     config.database.findMessage(instance_id, function (err, results) {
       if (err) return next(err)
-      res.json(results && results[0] && results[0].xml);
+      var item = results && results[0]
+
+      if (!item) return next(new Error('item not found'))
+
+      res.set('Content-Type', 'application/xml;charset=utf-8')
+      if (req.query.download) {
+        res.set('Content-Disposition', 'attachment; filename="item_' + item.gtin + '.xml"')
+      }
+      res.send(item.xml)
     })
   }
 

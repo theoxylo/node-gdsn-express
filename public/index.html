@@ -105,6 +105,7 @@
               <th>Child Count</th>
               <th>Created</th>
               <th>Modified</th>
+              <th>CIN Message ID</th>
             </tr>
             <tr class="clickable" ng-repeat="item in items" ng-click="showItemDetail(item)">
               <td>{{item.gtin}}</td>
@@ -112,9 +113,10 @@
               <td>{{item.tm}}</td>
               <td>{{item.recipient}}</td>
               <td>{{item.unit_type}}</td>
-              <td>{{item.child_count}}</td>
+              <td>{{item.child_gtins && item.child_gtins.length}}</td>
               <td>{{item.created_ts}}</td>
               <td>{{item.modified_ts}}</td>
+              <td>{{item.msg_id}}</td>
               <!-- Raw Data: '{{item}}' -->
             </tr>
           </table>
@@ -132,13 +134,14 @@
       <div>Post Catalog Items</div>
       <div>
         <div ng-controller="thx_file_controller">
-          <input type="file" ng-file-select="onFileSelect($files)"></input>
-          <button ng-click="uploadFile()">Upload File</button>
+          <input type="file" ng-file-select="onFileSelect($files, 'item_url')"></input>
+          <button ng-click="uploadFile('item_url')">Upload File</button>
         </div>
-        <br/>Or paste CIN XML:
-        <br/><textarea rows="6" cols="100" ng-model="item_content_post"></textarea>
-        <br/><button ng-click="post_catalog_items()">Post XML</button>
-        
+        <div>
+          <br/>Or paste CIN XML:
+          <br/><textarea rows="6" cols="100" ng-model="item_content_post"></textarea>
+          <br/><button ng-click="post_catalog_items()">Post XML</button>
+        </div>
       </div>
     </div>
   </div>
@@ -151,12 +154,18 @@
         <br/><input type="text" ng-model="view_msg_id"/>
         <br/><button ng-click="view_msg()">View</button>
         <br/><textarea rows="6" cols="100" id="msg_content_view"></textarea>
-        <br/><span ng-if="view_msg_id">[<a ng-href="/api/1.0/archive/{{view_msg_id}}">Link to message {{view_msg_id}}</a>]</span>
+        <br/><span ng-if="view_msg_id">[<a ng-href="/api/1.0/msg/{{view_msg_id}}">Link to message {{view_msg_id}}</a>]</span>
       </div>
       <div>Post Message</div>
       <div>
-        <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
-        <br/><button ng-click="post_msg()">Post</button>
+        <div ng-controller="thx_file_controller">
+          <input type="file" ng-file-select="onFileSelect($files, 'msg_url')"></input>
+          <button ng-click="uploadFile('msg_url')">Upload File</button>
+        </div>
+        <div>
+          <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
+          <br/><button ng-click="post_msg()">Post</button>
+        </div>
       </div>
       <div>List All Messages</div>
       <div>
@@ -306,24 +315,25 @@
       return {
           sub_url     : app.api + '/subscriptionList'
         , pub_url     : app.api + '/publicationList'
-        , msg_url     : app.api + '/archive'
+        , msg_url     : app.api + '/msg'
         , item_url    : app.api + '/items'
         , getItemUrl  : getItemUrl
       }
     })
 
-    thx_app.controller('thx_file_controller', function($scope, $upload) {
-      $scope.onFileSelect = function($files) {
-        $scope.selectedFile = $files && $files[0]
+    thx_app.controller('thx_file_controller', function($scope, $upload, thx_util) {
+      $scope.onFileSelect = function($files, url) {
+        $scope[url + '_file'] = $files && $files[0]
       }
-      $scope.uploadFile = function() {
-          var file = $scope.selectedFile
+      $scope.uploadFile = function(url) {
+          var file = $scope[url + '_file']
+          if (!file) return
           $scope.upload = $upload.upload({
-            url: 'api/1.0/items',
+            url: thx_util[url], // 'api/1.0/items',
             // method: POST or PUT,
             // headers: {'headerKey': 'headerValue'},
             // withCredentials: true,
-            data: {myObj: $scope.myModelObj},
+            //data: {myObj: $scope.myModelObj},
             file: file,
           }).progress(function(evt) {
             console.log('percent: ' + parseInt(100.0 * evt.loaded / evt.total));

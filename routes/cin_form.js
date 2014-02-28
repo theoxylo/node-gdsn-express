@@ -2,6 +2,7 @@ module.exports = function (config) {
 
   var api = {}
 
+  var Gdsn = require('gdsn')
   var fs = require('fs')
   var log  = require('../lib/Logger')('routes_form', {debug: true})
   var outboxDir = __dirname + '/../msg/outbox/'
@@ -55,11 +56,11 @@ module.exports = function (config) {
       if (err) return done(err)
 
       count++
-      gdsn.getXmlDomForString(xml, function(err, doc) {
+      Gdsn.getXmlDomForString(xml, function(err, doc) {
         if (err) return done(err)
 
         // persist to mongodb INBOUND collection
-        var info = gdsn.getMessageInfo(doc)
+        var info = Gdsn.getMessageInfo(doc)
         info.xml = xml
         info.process_ts = Date() // long date and time stamp
 
@@ -73,16 +74,16 @@ module.exports = function (config) {
 
             log.info("gdsn.createCinResponse: response xml length: " + respXml.length)
 
-            gdsn.writeFile(respOut, respXml, function(err) {
+            Gdsn.writeFile(respOut, respXml, function(err) {
               if (err) return done(err)
               log.info('Created CIN response file: ' + respOut)
             })
 
             // persist to mongodb OUTBOUND collection
-            gdsn.getXmlDomForString(respXml, function(err, $dom) {
+            Gdsn.getXmlDomForString(respXml, function(err, $dom) {
               if (err) return done(err)
 
-              var info = gdsn.getMessageInfo($dom)
+              var info = Gdsn.getMessageInfo($dom)
               info.xml = respXml
               info.process_ts = Date()
               database.saveMessage(info, function (err, id) {
@@ -99,16 +100,16 @@ module.exports = function (config) {
 
             log.info("gdsn.forwardCinFromOtherDP: result xml length: " + cinOutXml.length)
 
-            gdsn.writeFile(cinOut, cinOutXml, function(err) {
+            Gdsn.writeFile(cinOut, cinOutXml, function(err) {
               if (err) return done(err)
               log.info('Created CIN forward file: ' + cinOut)
             })
 
             // persist to mongodb OUTBOUND collection
-            gdsn.getXmlDomForString(cinOutXml, function(err, $dom) {
+            Gdsn.getXmlDomForString(cinOutXml, function(err, $dom) {
               if (err) return done(err)
 
-              var info = gdsn.getMessageInfo($dom)
+              var info = Gdsn.getMessageInfo($dom)
               info.xml = cinOutXml
               info.process_ts = Date()
               database.saveMessage(info, function (err, id) {
