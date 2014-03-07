@@ -1,2 +1,155 @@
-<h3 color="red">Welcome</h3>
-<div>Copyright &copy; 2014</div>
+<h3>Welcome</h3>
+
+<h2>Introduction to GDSN</h2>
+
+<p>GDSN allows Trading Parties to exchange Catalog Item information based on a pub/sub distribution model. It is a set of standards and services provided by the GS1 organization () and private Data Pools.</p>
+
+<p>GDSN includes the following components:</p>
+<li>a set of standards, including XML Schema (XSD) definitions that describe items and workflow</li>
+<li>a Global Registry (GR) that registers items and tracks subscription and party information</li>
+<li>a collection of Data Pools (DPs), service providers that interoperate on behalf of parties</li>
+<li>many trading parties such as manufacturers, distributors, and retailers. 
+
+<p>Within the GDSN, each catalog item is identified by the unique combination of GTIN, provider GLN, and TM (target market country and subdivision). These values are available within the item data, making items self-contained. In practice, it is also necessary to track the item recipient GLN (which is not part of the item data). Usually the recipient is the GLN of the subscriber receiving published data. For the original catalog item (as registered by the provider), the recipient will always be the GLN of the provider's home data pool.
+
+<p>The recipient GLN is needed because items may be customized during the publication/notification process (e.g. augmenting or stripping data according to publication and subscription options). This is somewhat uncommon, but it does happen and we need to account for it. The more typical approach is for subscribers to accept the unmodified item data (as registered by the provider) and then transform or process the data as needed.</p>
+
+<p>If the subscriber does not like something about the data, there is a review and approval process included as part of GDSN that can be used to communicate back to the publisher. The publisher can decide to update an item and do so as often as they please. Each item update will trigger outbound messages to all current subscribers.</p>
+
+The compound natural key (gtin-provider-tm-recipient) for items allows for complex use cases, such as:
+
+1.	Multiple TM: providers can create items specific to different countries or states. Each item may have completely different data as needed, so it is more than just “versioning”.
+
+2.	Multiple provider GLNs for the same GTIN: a distributor may “republish” an item using their own GLN, allowing customization of the item as needed. Or the same GTIN could just randomly happen to get used by various providers.
+
+3.	Multiple recipients: each recipient may have slightly different requirements regarding item definition. For example, some recipients don’t want nutritional data or other “extended” data.
+
+<h2>GDSN External Code Lists</h2>
+
+<ul>ISO target market:
+<li>Numeric country codes: http://en.wikipedia.org/wiki/ISO_3166-1_numeric</li>
+<li>Alpha subdivision codes: http://en.wikipedia.org/wiki/ISO_3166-2</li>
+<li>United States subdivision codes for states: http://en.wikipedia.org/wiki/ISO_3166-2:US</li>
+</ul>
+
+<h2>API Documentation</h2>
+<div>
+  Most API calls can return a variety of response formats and content types. Return type is based on URL, request parameters, or the "Accept" header, depending on what is supported by the specific endpoint.
+</div>
+<div id="accordion_docs">
+  <div>Messages</div>
+  <div>
+    <div>A message is an XML document that provides data on catalog items or trading parties.</div>
+    <table>
+      <tr>
+        <th>Endpoint</th>
+        <th>Method</th>
+        <th>Description</th>
+      </tr>
+      <tr>
+        <td>/api/1.0/msg</td>
+        <td>GET</td>
+        <td>Returns an array of message summary records (without full message content)</td>
+      </tr>
+      <tr>
+        <td>/api/1.0/msg/:id</td>
+        <td>GET</td>
+        <td>Returns the full message content for the specified ID</td>
+      </tr>
+      <tr>
+        <td>/api/1.0/msg</td>
+        <td>POST</td>
+        <td>Returns operation result</td>
+      </tr>
+    </table>
+  </div>
+  <div>Catalog Items</div>
+  <div>
+    <div>A catalog item is the main type of data provided by CS</div>
+    <table>
+      <tr>
+        <th>Endpoint</th>
+        <th>Method</th>
+        <th>Description</th>
+      </tr>
+      <tr>
+        <td>/api/1.0/items</td>
+        <td>GET</td>
+        <td>Returns an array of catalog item summary records (without full item content)</td>
+      </tr>
+      <tr>
+        <td>
+          <div>/api/1.0/items/:gtin</div>
+          <div>/api/1.0/items/:gtin/:ds</div>
+          <div>/api/1.0/items/:gtin/:ds/:tm</div>
+          <div>/api/1.0/items/:gtin/:ds/:tm/:dr</div>
+        </td>
+        <td>GET</td>
+        <td>Returns the most recent full catalog item details for the specified GTIN, DS, TM and DR. Either JSON or XML can be returned</td>
+      </tr>
+      <tr>
+        <td>/api/1.0/items</td>
+        <td>POST</td>
+        <td>Returns operation result</td>
+      </tr>
+    </table>
+  </div>
+  <div>Trading Parties</div>
+  <div>
+    <table>
+      <tr>
+        <th></th>
+        <th></th>
+        <th></th>
+      </tr>
+      <tr>
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+    </table>
+  </div>
+  <div>Publications</div>
+  <div>
+    <table>
+      <tr>
+        <th>Content Type</th>
+        <th></th>
+        <th></th>
+      </tr>
+      <tr>
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+    </table>
+  </div>
+  <div>Subscriptions</div>
+  <div>
+    <table>
+      <tr>
+        <th>Content Type</th>
+        <th></th>
+        <th></th>
+      </tr>
+      <tr>
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<script>
+  (function () {
+
+    $('#accordion_docs').accordion({
+      active: false
+      , heightStyle: 'content'
+      , collapsible: true
+    })
+
+   })()
+</script>
+

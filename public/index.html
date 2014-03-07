@@ -69,15 +69,42 @@
 
   <ul>
     <li><a href="#main_menu">Main Menu</a></li>
-    <li><a href="#item_tab">Catalog Items</a></li>
     <li><a href="#msg_tab">Messages</a></li>
+    <li><a href="#item_tab">Catalog Items</a></li>
     <li><a href="#pub_tab">Publication</a></li>
     <li><a href="#sub_tab">Subscription</a></li>
   </ul>
 
   <div id="main_menu">
-    <div class="blue_box">
-      <div id="welcome">[Loading welcome.html]</div>
+    <div id="welcome">[Loading welcome.html]</div>
+  </div>
+
+  <div id="msg_tab" ng-controller="thx_msg_controller">
+    <div id="accordion_msg">
+      <div>View Message</div>
+      <div>
+        Message ID:
+        <br/><input type="text" ng-model="view_msg_id"/>
+        <br/><button ng-click="view_msg()">View</button>
+        <br/><textarea rows="6" cols="100" id="msg_content_view"></textarea>
+        <br/><span ng-if="view_msg_id">[<a ng-href="/api/1.0/msg/{{view_msg_id}}">Link to message {{view_msg_id}}</a>]</span>
+      </div>
+      <div>Post Message</div>
+      <div>
+        <div ng-controller="thx_file_controller">
+          <input type="file" ng-file-select="onFileSelect($files, 'msg_url')"></input>
+          <button ng-click="uploadFile('msg_url')">Upload File</button>
+        </div>
+        <div>
+          <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
+          <br/><button ng-click="post_msg()">Post</button>
+        </div>
+      </div>
+      <div>List All Messages</div>
+      <div>
+        <br/><button ng-click="list_msg()">Update</button>
+        <pre id="message_list"></pre>
+      </div>
     </div>
   </div>
 
@@ -121,7 +148,6 @@
             </tr>
           </table>
         </div>
-
       </div>
       <div>Catalog Item Details</div>
       <div>
@@ -129,7 +155,7 @@
         <br/><input type="text" ng-model="input_item_gtin"/>
         <br/><button ng-click="view_catalog_item()">View</button>
         <br/><textarea rows="6" cols="100" id="item_content_view"></textarea>
-        <br/><span ng-if="input_item_gtin">[<a ng-href="/api/1.0/items/{{input_item_gtin}}">Link to catalog item {{input_item_gtin}}</a>]</span>
+        <br/><span ng-if="input_item_gtin">[<a ng-href="/api/1.0/items/{{input_item_gtin}}?download=true">Download link to catalog item {{input_item_gtin}}</a>]</span>
       </div>
       <div>Post Catalog Items</div>
       <div>
@@ -142,35 +168,6 @@
           <br/><textarea rows="6" cols="100" ng-model="item_content_post"></textarea>
           <br/><button ng-click="post_catalog_items()">Post XML</button>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="msg_tab" ng-controller="thx_msg_controller">
-    <div id="accordion_msg">
-      <div>View Message</div>
-      <div>
-        Message ID:
-        <br/><input type="text" ng-model="view_msg_id"/>
-        <br/><button ng-click="view_msg()">View</button>
-        <br/><textarea rows="6" cols="100" id="msg_content_view"></textarea>
-        <br/><span ng-if="view_msg_id">[<a ng-href="/api/1.0/msg/{{view_msg_id}}">Link to message {{view_msg_id}}</a>]</span>
-      </div>
-      <div>Post Message</div>
-      <div>
-        <div ng-controller="thx_file_controller">
-          <input type="file" ng-file-select="onFileSelect($files, 'msg_url')"></input>
-          <button ng-click="uploadFile('msg_url')">Upload File</button>
-        </div>
-        <div>
-          <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
-          <br/><button ng-click="post_msg()">Post</button>
-        </div>
-      </div>
-      <div>List All Messages</div>
-      <div>
-        <br/><button ng-click="list_msg()">Update</button>
-        <pre id="message_list"></pre>
       </div>
     </div>
   </div>
@@ -550,8 +547,8 @@
 
     var tab_names = {
       main  : 0, 
-      items : 1, 
-      msg   : 2, 
+      msg   : 1, 
+      items : 2, 
       pub   : 3, 
       sub   : 4, 
       debug : 5

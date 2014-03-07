@@ -51,7 +51,7 @@ module.exports = function (config) {
     var content = ''
     req.setEncoding('utf8')
     req.on('data', function (chunk) {
-      log.debug('archive_post_chunk: ' + chunk)
+      log.debug('archive_post_chunk.length: ' + chunk.length)
       if (content.length < 10 * 1000 * 1000) content += chunk // 10 MB limit for persisting raw message
     })
     req.on('end', function () {

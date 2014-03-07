@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ITN Catalog Services API</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<h1>ITN Catalog Services API</h1>
+
+<h2>Catalog Items</h2>
+
+<div>GET /api/1.0/items/:gtin/:provider/:tm/:recipient/:tmsub</div>
+<div>GET /api/1.0/items/:gtin/:provider/:tm/:recipient</div>
+<div>GET /api/1.0/items/:gtin/:provider/:tm</div>
+<div>GET /api/1.0/items/:gtin/:provider</div>
+<div>GET /api/1.0/items/:gtin</div>
+
+<div>GET /api/1.0/json/items/:gtin</div>
+
+<div>GET /api/1.0/items</div>
+<div>POST /api/1.0/items</div>
+
+<h2>Trading Parties</h2>
+
+<div>GET /api/1.0/party/:instance_id</div>
+<div>GET /api/1.0/party</div>
+<div>POST /api/1.0/party</div>
+
+<h2>Message Archive</h2>
+
+<div>GET /api/1.0/msg/:instance_id</div>
+<div>GET /api/1.0/msg</div>
+<div>POST /api/1.0/msg</div>
+
+<div><% include copyright.ejs %></div>
+</body>
+</html>
