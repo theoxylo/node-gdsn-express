@@ -1,5 +1,5 @@
 module.exports = function (config) {
-
+  
   var api = {}
 
   var log  = require('../lib/Logger')('routes_item', {debug: true})
@@ -65,7 +65,7 @@ module.exports = function (config) {
 
     var items = []
 
-    config.gdsn.getEachTradeItemFromStream(req, function (err, item) {
+    config.gdsn.items.getEachTradeItemFromStream(req, function (err, item) {
       if (err) return next(err)
 
       if (item) {
