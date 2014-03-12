@@ -33,6 +33,7 @@
     }
   </style>
 
+  <script type="text/javascript" src="js/jp-pretty-print-101.js"></script>
   <script type="text/javascript" src="js/jquery-1.10.2.js"></script>
   <script type="text/javascript" src="jqui/jquery-ui-1.10.4.custom.js"></script>
   <script type="text/javascript" src="js/underscore-1.5.2.js"></script>
@@ -70,6 +71,7 @@
   <ul>
     <li><a href="#main_menu">Main Menu</a></li>
     <li><a href="#msg_tab">Messages</a></li>
+    <li><a href="#party_tab">Trading Parties</a></li>
     <li><a href="#item_tab">Catalog Items</a></li>
     <li><a href="#pub_tab">Publication</a></li>
     <li><a href="#sub_tab">Subscription</a></li>
@@ -104,6 +106,56 @@
       <div>
         <br/><button ng-click="list_msg()">Update</button>
         <pre id="message_list"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div id="party_tab" ng-controller="thx_party_controller">
+    <div id="accordion_party">
+      <div>List Trading Parties</div>
+      <div>
+        <br/><button ng-click="list_parties()">Update</button>
+        <div ng-if="parties" style="border-style:solid;border-width:1px;border-color:green">
+          <table>
+            <tr>
+              <th>Name</th>
+              <th>GLN</th>
+              <th>Country</th>
+              <th>Data Pool</th>
+              <th>Created</th>
+              <th>Modified</th>
+            </tr>
+            <tr class="clickable" ng-repeat="party in parties" ng-click="showPartyDetail(party)">
+              <td>{{party.name}}</td>
+              <td>{{party.gln}}</td>
+              <td>{{party.country}}</td>
+              <td>{{party.data_pool_gln}}</td>
+              <td>{{party.created_ts}}</td>
+              <td>{{party.modified_ts}}</td>
+              <!-- Raw Data: '{{party}}' -->
+            </tr>
+          </table>
+        </div>
+      </div>
+      <div>Trading Party Details</div>
+      <div>
+        GLN:
+        <br/><input type="text" ng-model="input_party_gln"/>
+        <br/><button ng-click="view_party()">View</button>
+        <br/><textarea rows="6" cols="100" id="party_content_view"></textarea>
+        <br/><span ng-if="input_party_gln">[<a ng-href="/api/1.0/parties/{{input_party_gln}}?download=true">Download link to catalog party {{input_party_gln}}</a>]</span>
+      </div>
+      <div>Post Trading Parties RPDD File</div>
+      <div>
+        <div ng-controller="thx_file_controller">
+          <input type="file" ng-file-select="onFileSelect($files, 'party_url')"></input>
+          <button ng-click="uploadFile('party_url')">Upload File</button>
+        </div>
+        <div>
+          <br/>Or paste CIN XML:
+          <br/><textarea rows="6" cols="100" ng-model="party_content_post"></textarea>
+          <br/><button ng-click="post_parties()">Post XML</button>
+        </div>
       </div>
     </div>
   </div>
@@ -235,6 +287,8 @@
   <p>Copyright &copy; 2014</p>
 </div>
 
+<div id="result_dialog">Loading...</div>
+
 <div id="progress_dialog">
     <p class="vert_spacer" ></p>
     <div id="progressbar"></div>
@@ -249,6 +303,12 @@
       , debug: true
       , api: '/api/1.0'
     }
+
+    var $accordion_party = $("#accordion_party")
+    $accordion_party.accordion({
+        heightStyle: 'content',
+        collapsible: true
+    })
 
     var $accordion_item = $("#accordion_item")
     $accordion_item.accordion({
@@ -274,23 +334,31 @@
         collapsible: true
     })
 
+    var $result_dialog = $('#result_dialog')
+    $result_dialog.dialog({
+      autoOpen: false
+      , title: 'Selected Results'
+      , width: 1000
+      , modal: true
+      , buttons: { OK: function() { $result_dialog.dialog('close') } }
+    })
+    
     var $progress_dialog = $('#progress_dialog')
     $progress_dialog.dialog({
       autoOpen: false
       , width: 500
       , modal: true
-      //, buttons: { Cancel: function() { $( this ).dialog('close') } }
     })
     
     function showBusy(title) {
-      console.log("busy 2: " + title)
-      $progress_dialog.dialog("option", "title", title)
-      $progress_dialog.dialog("open")
+      console.log('busy 2: ' + title)
+      $progress_dialog.dialog('option', 'title', title)
+      $progress_dialog.dialog('open')
     }
 
     function hideBusy() {
       setTimeout(function () {
-        $progress_dialog.dialog("close")
+        $progress_dialog.dialog('close')
       }, 2000)
     }
 
@@ -314,6 +382,7 @@
         , pub_url     : app.api + '/publicationList'
         , msg_url     : app.api + '/msg'
         , item_url    : app.api + '/items'
+        , party_url   : app.api + '/parties'
         , getItemUrl  : getItemUrl
       }
     })
@@ -451,12 +520,14 @@
     thx_app.controller('thx_item_controller', function($scope, $http, thx_util) {
 
       $scope.showItemDetail = function (item) {
-        console.log('showItemDetail called')
-        console.log(item.xml)
+        console.log('showItemDetail called for gtin ' + item.gtin)
+        if (item) {
+          $result_dialog.html(prettyPrint(item)).dialog('open')
+        }
 
         item.xml_link = thx_util.getItemUrl(item)
         $scope.selectedItem = item
-        //$accordion_item.accordion("option", "active", 1) // activate fold#2 (view item)
+        //$accordion_item.accordion('option', 'active', 1) // activate fold#2 (view item)
         //$scope.input_item_gtin = item.gtin
         //$scope.view_catalog_item()
       }
@@ -496,6 +567,54 @@
 
       $scope.view_catalog_item = function () {
         $('#item_content_view').load(thx_util.item_url + '/' + $scope.input_item_gtin)
+      }
+
+    })
+
+    thx_app.controller('thx_party_controller', function($scope, $http, thx_util) {
+
+      $scope.showPartyDetail = function (party) {
+        console.log('showPartyDetail called for gln ' + party.gln)
+        if (party && party.json && party.json.registryPartyDataDumpDetail) {
+          $result_dialog.html(prettyPrint(party.json.registryPartyDataDumpDetail.registryParty)).dialog('open')
+        }
+      }
+
+      $scope.list_parties = function () {
+        console.log('list_parties called')
+        showBusy('Fetching party list...')
+        //$http.jsonp(thx_util.party_url + '?callback=JSON_CALLBACK' , {
+        $http.get(thx_util.party_url, { 
+          params: { test_ts: Date.now() }
+        })
+        .success(function (parties) {
+          $scope.parties = _.map(parties, function (party) {
+            party.created_ts = (new Date(party.created_ts)).toLocaleString()
+            party.modified_ts = (new Date(party.modified_ts)).toLocaleString()
+            return party
+          })
+          console.log('found ' + $scope.parties.length + ' parties')
+          hideBusy()
+        })
+        .error(function () {
+          console.log(arguments)
+          hideBusy()
+        })
+      }
+
+      $scope.post_parties = function () {
+        $http.post(thx_util.party_url, $scope.party_content_post + '\n\n')
+        .success(function (data) {
+          console.log(data)
+          alert('XML uploaded successfully (' + data + ')')
+        })
+        .error(function () {
+          console.log(arguments)
+        })
+      }
+
+      $scope.view_party = function () {
+        $('#party_content_view').load(thx_util.party_url + '/' + $scope.input_party_gln)
       }
 
     })
@@ -553,7 +672,7 @@
       sub   : 4, 
       debug : 5
     }
-    $("#tabs").tabs("option", "active", tab_names['items']) 
+    $('#tabs').tabs('option', 'active', tab_names['items']) 
 
     $('#progressbar').progressbar({ value: false })
 

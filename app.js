@@ -16,6 +16,7 @@ var routes_admin   = require('./routes/admin')
 var routes_cin     = require('./routes/cin_form')(config)
 var routes_archive = require('./routes/msg_archive')(config)
 var routes_item    = require('./routes/trade_item')(config)
+var routes_parties = require('./routes/parties')(config)
 
 var app = express()
 
@@ -88,6 +89,9 @@ app.get( '/items/:gtin',                                 routes_item.find_trade_
 app.get( '/json/items/:gtin',                            routes_item.find_trade_item)
 app.get( '/items',                                       routes_item.list_trade_items)
 app.post('/items',                                       routes_item.post_trade_items)
+app.get( '/parties/:gln',                                routes_parties.find_parties)
+app.get( '/parties',                                     routes_parties.list_parties)
+app.post('/parties',                                     routes_parties.post_parties)
 
 process.on('SIGINT', function () {
   console.log('Application shutting down...')
