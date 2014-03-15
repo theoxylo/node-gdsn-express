@@ -7,7 +7,7 @@ module.exports = function (config) {
 
   api.find_parties = function(req, res, next) {
     log.debug('find_parties')
-    var gln      = req.params.gln
+    var gln = req.params.gln
     config.database.findParty(gln, function (err, results) {
       if (err) return next(err)
       res.json(results);
@@ -16,7 +16,11 @@ module.exports = function (config) {
 
   api.list_parties = function(req, res, next) {
     log.debug('list_parties')
-    config.database.listParties(function (err, results) {
+    var page = parseInt(req.param('page'))
+    log.info('page ' + page)
+    if (!page || page < 0) page = 0
+    var perPage = 20
+    config.database.listParties(page, perPage, function (err, results) {
       if (err) return next(err)
       res.json(results);
     })

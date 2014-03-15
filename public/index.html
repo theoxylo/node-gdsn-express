@@ -114,7 +114,9 @@
     <div id="accordion_party">
       <div>List Trading Parties</div>
       <div>
-        <br/><button ng-click="list_parties()">Update</button>
+        <br/>
+        <button ng-if="page > 0" ng-click="list_parties(-1)">Prev</button>
+        <button ng-if="parties" ng-click="list_parties(1)">Next</button>
         <div ng-if="parties" style="border-style:solid;border-width:1px;border-color:green">
           <table>
             <tr>
@@ -136,6 +138,7 @@
             </tr>
           </table>
         </div>
+        <button ng-if="!parties" ng-click="list_parties()">Load Parties</button>
       </div>
       <div>Trading Party Details</div>
       <div>
@@ -143,13 +146,13 @@
         <br/><input type="text" ng-model="input_party_gln"/>
         <br/><button ng-click="view_party()">View</button>
         <br/><textarea rows="6" cols="100" id="party_content_view"></textarea>
-        <br/><span ng-if="input_party_gln">[<a ng-href="/api/1.0/parties/{{input_party_gln}}?download=true">Download link to catalog party {{input_party_gln}}</a>]</span>
+        <br/><span ng-if="input_party_gln">[<a ng-href="/api/1.0/party/{{input_party_gln}}?download=true">Download link to catalog party {{input_party_gln}}</a>]</span>
       </div>
       <div>Post Trading Parties RPDD File</div>
       <div>
         <div ng-controller="thx_file_controller">
-          <input type="file" ng-file-select="onFileSelect($files, 'party_url')"></input>
-          <button ng-click="uploadFile('party_url')">Upload File</button>
+          <input type="file" ng-file-select="onFileSelect($files, 'parties_url')"></input>
+          <button ng-click="uploadFile('parties_url')">Upload File</button>
         </div>
         <div>
           <br/>Or paste CIN XML:
@@ -164,7 +167,10 @@
     <div id="accordion_item">
       <div>List Catalog Items</div>
       <div>
-        <br/><button ng-click="list_items()">Update</button>
+        <br/>
+        <button ng-if="page > 0" ng-click="list_items(-1)">Prev</button>
+        <button ng-if="items" ng-click="list_items(1)">Next</button>
+
         <div ng-if="selectedItem" class="blue_box">
           <p>Selected GTIN: {{selectedItem.gtin}}</p>
           <p><a ng-href="{{selectedItem.xml_link}}?json=true" target="_new">View JSON for catalog item {{selectedItem.gtin}}</a></p>
@@ -200,6 +206,7 @@
             </tr>
           </table>
         </div>
+        <button ng-if="!items" ng-click="list_items()">Load Items</button>
       </div>
       <div>Catalog Item Details</div>
       <div>
@@ -346,7 +353,7 @@
     var $progress_dialog = $('#progress_dialog')
     $progress_dialog.dialog({
       autoOpen: false
-      , width: 500
+      , width: 700
       , modal: true
     })
     
@@ -359,7 +366,7 @@
     function hideBusy() {
       setTimeout(function () {
         $progress_dialog.dialog('close')
-      }, 2000)
+      }, 500)
     }
 
     var thx_app = angular.module('thx_app', ['angularFileUpload'])
@@ -382,7 +389,8 @@
         , pub_url     : app.api + '/publicationList'
         , msg_url     : app.api + '/msg'
         , item_url    : app.api + '/items'
-        , party_url   : app.api + '/parties'
+        , party_url   : app.api + '/party'
+        , parties_url : app.api + '/parties'
         , getItemUrl  : getItemUrl
       }
     })
@@ -519,6 +527,8 @@
 
     thx_app.controller('thx_item_controller', function($scope, $http, thx_util) {
 
+      $scope.page = 0
+
       $scope.showItemDetail = function (item) {
         console.log('showItemDetail called for gtin ' + item.gtin)
         if (item) {
@@ -532,12 +542,18 @@
         //$scope.view_catalog_item()
       }
 
-      $scope.list_items = function () {
-        console.log('list_items called')
+      $scope.list_items = function (pageIncrement) {
+        if (pageIncrement) {
+          $scope.page += pageIncrement
+        }
+        else {
+          $scope.page = 0
+        }
+        console.log('list_items called with page increment ' + pageIncrement)
+
         showBusy('Fetching item list...')
-        //$http.jsonp(thx_util.item_url + '?callback=JSON_CALLBACK' , {
         $http.get(thx_util.item_url, { 
-          params: { test_ts: Date.now() }
+          params: { page: $scope.page }
         })
         .success(function (items) {
           $scope.items = _.map(items, function (item) {
@@ -573,6 +589,8 @@
 
     thx_app.controller('thx_party_controller', function($scope, $http, thx_util) {
 
+      $scope.page = 0
+
       $scope.showPartyDetail = function (party) {
         console.log('showPartyDetail called for gln ' + party.gln)
         if (party && party.json && party.json.registryPartyDataDumpDetail) {
@@ -580,12 +598,20 @@
         }
       }
 
-      $scope.list_parties = function () {
-        console.log('list_parties called')
+      $scope.page = 0
+
+      $scope.list_parties = function (pageIncrement) {
+        if (pageIncrement) {
+          $scope.page += pageIncrement
+        }
+        else {
+          $scope.page = 0
+        }
+        console.log('list_parties called with page increment ' + pageIncrement)
+
         showBusy('Fetching party list...')
-        //$http.jsonp(thx_util.party_url + '?callback=JSON_CALLBACK' , {
-        $http.get(thx_util.party_url, { 
-          params: { test_ts: Date.now() }
+        $http.get(thx_util.parties_url, { 
+          params: { page: $scope.page }
         })
         .success(function (parties) {
           $scope.parties = _.map(parties, function (party) {
@@ -603,7 +629,7 @@
       }
 
       $scope.post_parties = function () {
-        $http.post(thx_util.party_url, $scope.party_content_post + '\n\n')
+        $http.post(thx_util.parties_url, $scope.party_content_post + '\n\n')
         .success(function (data) {
           console.log(data)
           alert('XML uploaded successfully (' + data + ')')

@@ -2,7 +2,6 @@ module.exports = function (config) {
 
   var api = {}
 
-  var fs  = require('fs')
   var log = require('../lib/Logger')('routes_form', {debug: true})
 
   api.view_cin_from_other_dp_upload_form = function(req, res, next) {
@@ -18,7 +17,7 @@ module.exports = function (config) {
     var errorSent = false
     var messages = []
 
-    fs.readFile(req.files.cin.path, 'utf8', function (err, xml) {
+    config.gdsn.readFile(req.files.cin.path, function (err, xml) {
       if (err) return next(err)
 
       api.process_cin_xml_from_other_dp(req.files.cin.name, xml, function (err, msg) {

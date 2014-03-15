@@ -1,5 +1,20 @@
-var config = require('./config.js')
+/*
+ * Welcome to gdsn server devlopment on node.js!
+ *
+ * The project has the following source locations:
+ *
+ *  app.js (this file)
+ *  lib/
+ *  routes/
+ *  node_modules/gdsn/
+ *
+ *  SVN: $URL: $
+ */
+var config  = require('./config.js')
+
 var express = require('express')
+var fs      = require('fs');
+var https   = require('https');
 
 var log = require('./lib/Logger')('gdsnApp', config)
 log.debug('DEBUG logging enabled')
@@ -78,18 +93,22 @@ app.post('/cin_from_other_dp', express.multipart(), routes_cin.post_cin_from_oth
 // documented 1.0 api endpoints
 app.use( '/api/1.0', app.router)
 app.get( '/', function (req, res, next) { res.render('api_docs_10') })
+
 app.get( '/msg/:instance_id',                            routes_archive.find_archive)
 app.get( '/msg',                                         routes_archive.list_archive)
 app.post('/msg',                                         routes_archive.post_archive)
+
 app.get( '/items/:gtin/:provider/:tm/:recipient/:tmsub', routes_item.find_trade_item)
 app.get( '/items/:gtin/:provider/:tm/:recipient',        routes_item.find_trade_item)
 app.get( '/items/:gtin/:provider/:tm',                   routes_item.find_trade_item)
 app.get( '/items/:gtin/:provider',                       routes_item.find_trade_item)
 app.get( '/items/:gtin',                                 routes_item.find_trade_item)
 app.get( '/json/items/:gtin',                            routes_item.find_trade_item)
+
 app.get( '/items',                                       routes_item.list_trade_items)
 app.post('/items',                                       routes_item.post_trade_items)
-app.get( '/parties/:gln',                                routes_parties.find_parties)
+
+app.get( '/party/:gln',                                  routes_parties.find_parties)
 app.get( '/parties',                                     routes_parties.list_parties)
 app.post('/parties',                                     routes_parties.post_parties)
 
@@ -101,11 +120,20 @@ process.on('SIGINT', function () {
   }, 500) // simulate shutdown activities for .5 seconds
 })
 
-app.listen(config.http_port)
-log.info("Express GDSN server listening on port " + config.http_port)
+// start the server using normal HTTP
+//app.listen(config.http_port) // non SSL
+
+// start the server using SSL
+var https_options = {
+  key   : fs.readFileSync(config.key_file),
+  cert  : fs.readFileSync(config.cert_file)
+};
+var server = https.createServer(https_options, app)
+server.listen(config.https_port)
+
+log.info("Express GDSN server listening on port " + config.https_port)
 
 // Inbox filesystem watcher
-var fs = require('fs')
 log.info("Inbox dir: " + config.inbox_dir)
 fs.watch(config.inbox_dir, function (event, filename) {
   log.info('event is: ' + event + ' for filename ' + filename)

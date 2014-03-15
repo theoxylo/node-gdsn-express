@@ -6,7 +6,11 @@ module.exports = function (config) {
 
   api.list_trade_items = function(req, res, next) {
     log.debug('list_items')
-    config.database.listTradeItems(function (err, results) {
+    var page = parseInt(req.param('page'))
+    log.info('page ' + page)
+    if (!page || page < 0) page = 0
+    var perPage = 20
+    config.database.listTradeItems(page, perPage, function (err, results) {
       if (err) return next(err)
       res.json(results);
     })
