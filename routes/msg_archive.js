@@ -25,7 +25,10 @@ module.exports = function (config) {
 
   api.list_archive = function(req, res, next) {
     log.debug('list_archive')
-    config.database.listMessages(function (err, results) {
+    var page = parseInt(req.param('page'))
+    log.info('page ' + page)
+    if (!page || page < 0) page = 0
+    config.database.listMessages(page, config.per_page_count, function (err, results) {
       if (err) return next(err)
       res.json(results)
     })

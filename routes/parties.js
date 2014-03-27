@@ -19,8 +19,7 @@ module.exports = function (config) {
     var page = parseInt(req.param('page'))
     log.info('page ' + page)
     if (!page || page < 0) page = 0
-    var perPage = 20
-    config.database.listParties(page, perPage, function (err, results) {
+    config.database.listParties(page, config.per_page_count, function (err, results) {
       if (err) return next(err)
       res.json(results);
     })

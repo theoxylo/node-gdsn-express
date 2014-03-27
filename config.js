@@ -8,4 +8,6 @@ module.exports = {
   , outbox_dir      : __dirname + '/msg/outbox' // for outgoing messages sent by the data pool
   , key_file        : __dirname + '/key.pem'
   , cert_file       : __dirname + '/key-cert.pem'
+  , per_page_count  : 10
+  , base_url        : '/cs_api/1.0'
 }

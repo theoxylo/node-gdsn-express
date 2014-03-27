@@ -4,11 +4,9 @@
   <!-- Version $URL: $ -->
   <meta charset="utf-8">
   <title>Catalog Services Dashboard</title>
-  <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-  <!--<link rel="stylesheet" type="text/css" href="css/styles.css" />-->
-  <link rel="stylesheet" type="text/css" href="css/styles_new.css" />
-  <link rel="stylesheet" type="text/css" href="jqui/jquery-ui-1.10.4.custom.css" />
+  <link rel="stylesheet" href="css/styles_new.css" />
+  <link rel="stylesheet" href="jqui/jquery-ui-1.10.4.custom.css" />
 
   <style type="text/css">
     .clickable { 
@@ -24,6 +22,9 @@
     #progressbar .ui-progressbar-value {
       background-color:#ccf;
     }
+    p.vert_spacer {
+        height:20px
+    }
     div.blue_box {
       border-style: solid;
       border-width: 1px;
@@ -33,12 +34,13 @@
     }
   </style>
 
-  <script type="text/javascript" src="js/jp-pretty-print-101.js"></script>
-  <script type="text/javascript" src="js/jquery-1.10.2.js"></script>
-  <script type="text/javascript" src="jqui/jquery-ui-1.10.4.custom.js"></script>
-  <script type="text/javascript" src="js/underscore-1.5.2.js"></script>
-  <script type="text/javascript" src="js/angular-1.2.2.js"></script>
-  <script type="text/javascript" src="js/file/angular-file-upload.js"></script>
+  <script src="js/jp-pretty-print-101.js"></script>
+  <script src="js/jquery-1.10.2.js"></script>
+  <script src="jqui/jquery-ui-1.10.4.custom.js"></script>
+  <script src="js/underscore-1.5.2.js"></script>
+  <script src="js/angular-1.2.2.js"></script>
+  <script src="js/file/angular-file-upload.js"></script>
+  <!--<script src="js/ticker.js"></script>-->
   
 </head>
 <body ng-app="thx_app">
@@ -83,14 +85,43 @@
 
   <div id="msg_tab" ng-controller="thx_msg_controller">
     <div id="accordion_msg">
+
+      <div>Search Messages</div>
+      <div>
+        <br/>
+        <button ng-if="page > 0" ng-click="list_messages(-1)">Prev</button>
+        <button ng-if="messages && messages.length == 10" ng-click="list_messages(1)">Next</button>
+        <div ng-if="messages" style="border-style:solid;border-width:1px;border-color:green">
+          <table>
+            <tr>
+              <th>ID</th>
+              <th>Sender</th>
+              <th>Receiver</th>
+              <th>Created</th>
+              <th>Modified</th>
+            </tr>
+            <tr class="clickable" ng-repeat="msg in messages" ng-click="showMessageDetail(msg)">
+              <td>{{msg.msg_id}}</td>
+              <td>{{msg.sender}}</td>
+              <td>{{msg.receiver}}</td>
+              <td>{{msg.created_ts}}</td>
+              <td>{{msg.modified_ts}}</td>
+              <!-- Raw Data: '{{msg}}' -->
+            </tr>
+          </table>
+        </div>
+        <button ng-if="!messages" ng-click="list_messages()">Load Messages</button>
+      </div>
+
       <div>View Message</div>
       <div>
         Message ID:
         <br/><input type="text" ng-model="view_msg_id"/>
         <br/><button ng-click="view_msg()">View</button>
         <br/><textarea rows="6" cols="100" id="msg_content_view"></textarea>
-        <br/><span ng-if="view_msg_id">[<a ng-href="/api/1.0/msg/{{view_msg_id}}">Link to message {{view_msg_id}}</a>]</span>
+        <br/><span ng-if="view_msg_id">[<a ng-href="/cs_api/1.0/msg/{{view_msg_id}}">Link to message {{view_msg_id}}</a>]</span>
       </div>
+
       <div>Post Message</div>
       <div>
         <div ng-controller="thx_file_controller">
@@ -102,21 +133,24 @@
           <br/><button ng-click="post_msg()">Post</button>
         </div>
       </div>
-      <div>List All Messages</div>
+
+      <div>JSON Data</div>
       <div>
-        <br/><button ng-click="list_msg()">Update</button>
+        <button ng-click="list_msg()">Update</button>
         <pre id="message_list"></pre>
       </div>
+
     </div>
-  </div>
+  </div> <!-- end msg_tab -->
 
   <div id="party_tab" ng-controller="thx_party_controller">
     <div id="accordion_party">
-      <div>List Trading Parties</div>
+
+      <div>Search Trading Parties</div>
       <div>
         <br/>
         <button ng-if="page > 0" ng-click="list_parties(-1)">Prev</button>
-        <button ng-if="parties" ng-click="list_parties(1)">Next</button>
+        <button ng-if="parties && parties.length == 10" ng-click="list_parties(1)">Next</button>
         <div ng-if="parties" style="border-style:solid;border-width:1px;border-color:green">
           <table>
             <tr>
@@ -140,14 +174,16 @@
         </div>
         <button ng-if="!parties" ng-click="list_parties()">Load Parties</button>
       </div>
+
       <div>Trading Party Details</div>
       <div>
         GLN:
         <br/><input type="text" ng-model="input_party_gln"/>
         <br/><button ng-click="view_party()">View</button>
         <br/><textarea rows="6" cols="100" id="party_content_view"></textarea>
-        <br/><span ng-if="input_party_gln">[<a ng-href="/api/1.0/party/{{input_party_gln}}?download=true">Download link to catalog party {{input_party_gln}}</a>]</span>
+        <br/><span ng-if="input_party_gln">[<a ng-href="/cs_api/1.0/party/{{input_party_gln}}?download=true">Download link to catalog party {{input_party_gln}}</a>]</span>
       </div>
+
       <div>Post Trading Parties RPDD File</div>
       <div>
         <div ng-controller="thx_file_controller">
@@ -160,33 +196,33 @@
           <br/><button ng-click="post_parties()">Post XML</button>
         </div>
       </div>
+
     </div>
-  </div>
+  </div> <!-- end party_tab -->
 
   <div id="item_tab" ng-controller="thx_item_controller">
     <div id="accordion_item">
-      <div>List Catalog Items</div>
-      <div>
-        <br/>
-        <button ng-if="page > 0" ng-click="list_items(-1)">Prev</button>
-        <button ng-if="items" ng-click="list_items(1)">Next</button>
 
-        <div ng-if="selectedItem" class="blue_box">
-          <p>Selected GTIN: {{selectedItem.gtin}}</p>
-          <p><a ng-href="{{selectedItem.xml_link}}?json=true" target="_new">View JSON for catalog item {{selectedItem.gtin}}</a></p>
-          <p><a ng-href="{{selectedItem.xml_link}}?json=true&download=true">Download JSON for catalog item {{selectedItem.gtin}}</a></p>
-          <p><a ng-href="{{selectedItem.xml_link}}" target="_new">View XML for catalog item {{selectedItem.gtin}}</a></p>
-          <p><a ng-href="{{selectedItem.xml_link}}?download=true">Download XML for catalog item {{selectedItem.gtin}}</a></p>
-          <p>Child GTINs: {{selectedItem.child_gtins.join(' ')}}</p>
-        </div>
-        <div ng-if="items" style="border-style:solid;border-width:1px;border-color:green">
+      <div>Search Catalog Items</div>
+      <div>
+        GTIN <input type="text" ng-model="input_item_gtin"/>
+        Provider GLN<input type="text" ng-model="input_item_provider"/>
+        Recipient GLN<input type="text" ng-model="input_item_recipient"/>
+        <button ng-click="list_items(0)">Search</button>
+        <button ng-click="reset_search()">Reset</button>
+        <br/>
+        <div ng-if="items">
+          <div>
+            <button ng-if="page > 0" ng-click="list_items(-1)">Prev</button>
+            <button ng-if="more_items" ng-click="list_items(1)">Next</button><span ng-if="!(more_items)">No more items to display</span>
+            <div>Page:<span>{{ page + 1 }}</span></div>
+          </div>
           <table>
             <tr>
               <th>GTIN</th>
               <th>Provider</th>
               <th>TM</th>
               <th>Recipient</th>
-              <th>Unit Type</th>
               <th>Child Count</th>
               <th>Created</th>
               <th>Modified</th>
@@ -197,7 +233,6 @@
               <td>{{item.provider}}</td>
               <td>{{item.tm}}</td>
               <td>{{item.recipient}}</td>
-              <td>{{item.unit_type}}</td>
               <td>{{item.child_gtins && item.child_gtins.length}}</td>
               <td>{{item.created_ts}}</td>
               <td>{{item.modified_ts}}</td>
@@ -205,17 +240,27 @@
               <!-- Raw Data: '{{item}}' -->
             </tr>
           </table>
-        </div>
-        <button ng-if="!items" ng-click="list_items()">Load Items</button>
+          <div ng-if="selectedItem" class="blue_box">
+            <p>Selected GTIN: {{selectedItem.gtin}}</p>
+            <p><a ng-href="{{selectedItem.xml_link}}&json=true" target="_new">View JSON for catalog item {{selectedItem.gtin}}</a></p>
+            <p><a ng-href="{{selectedItem.xml_link}}&json=true&download=true">Download JSON for catalog item {{selectedItem.gtin}}</a></p>
+            <p><a ng-href="{{selectedItem.xml_link}}" target="_new">View XML for catalog item {{selectedItem.gtin}}</a></p>
+            <p><a ng-href="{{selectedItem.xml_link}}&download=true">Download XML for catalog item {{selectedItem.gtin}}</a></p>
+            <p>Child GTINs: {{selectedItem.child_gtins.join(' ')}}</p>
+          </div>
+        </div> <!-- end if items -->
+        <div>Results per page: <input ng-model="input_per_page" size="3"></input></div>
       </div>
+
       <div>Catalog Item Details</div>
       <div>
         GTIN:
         <br/><input type="text" ng-model="input_item_gtin"/>
         <br/><button ng-click="view_catalog_item()">View</button>
         <br/><textarea rows="6" cols="100" id="item_content_view"></textarea>
-        <br/><span ng-if="input_item_gtin">[<a ng-href="/api/1.0/items/{{input_item_gtin}}?download=true">Download link to catalog item {{input_item_gtin}}</a>]</span>
+        <br/><span ng-if="input_item_gtin">[<a ng-href="/cs_api/1.0/items/{{input_item_gtin}}?download=true">Download link to catalog item {{input_item_gtin}}</a>]</span>
       </div>
+
       <div>Post Catalog Items</div>
       <div>
         <div ng-controller="thx_file_controller">
@@ -228,12 +273,14 @@
           <br/><button ng-click="post_catalog_items()">Post XML</button>
         </div>
       </div>
+
     </div>
-  </div>
+  </div> <!-- end item_tab -->
 
   <div id="pub_tab" ng-controller="thx_pub_controller">
     <div id="accordion_pub">
-      <div>Publication List</div>
+
+      <div>Search Publications</div>
       <div id="pub_list">
         <div>
           <input type="text" ng-model="publisher"></input>
@@ -250,8 +297,10 @@
           <div ng-if="data.url">Data URL: <a ng-href="{{data.url}}">{{data.url}}</a></div>
         </div>
       </div>
+
       <div>Find Unpublished Items</div>
       <div id="find_not_pub">Loading...</div>
+
       <div>Publish Item to Subscriber GLN</div>
       <div id="pub_util">
         <form id="form_publish">
@@ -265,23 +314,25 @@
             <div id="api_result">Loading...</div>
         </form>
       </div>
+
     </div>
-  </div>
+  </div> <!-- end pub_tab -->
 
   <div id="sub_tab" ng-controller="thx_sub_controller">
     <div id="accordion_sub">
-      <div>Subscription List</div>
+      <div>Search Subscriptions</div>
       <div>
         <input type="text" ng-model="subscriber"></input>
         <input type="button" ng-click="getSubscriptions(subscriber)" value="Get Subscriptions"></input>
         <div gdsn-subscriptions default-subscriber="1100001011292"/>
       </div>
     </div>
-  </div>
+  </div> <!-- end sub_tab -->
 
 </div><!-- end tabs -->
 
 <div id="debug_tab">
+  <div>Test ticker<span id="ticker"></span></div>
   <div>Model values:</div>
   <div>Subscriber: {{subscriber}}</div>
   <div>Publisher: {{publisher}}</div>
@@ -296,6 +347,8 @@
 
 <div id="result_dialog">Loading...</div>
 
+<div id="error_dialog">An error occurred!</div>
+
 <div id="progress_dialog">
     <p class="vert_spacer" ></p>
     <div id="progressbar"></div>
@@ -308,7 +361,7 @@
       version: "1.0"
       , ts: Date.now()
       , debug: true
-      , api: '/api/1.0'
+      , api: '/cs_api/1.0'
     }
 
     var $accordion_party = $("#accordion_party")
@@ -350,6 +403,15 @@
       , buttons: { OK: function() { $result_dialog.dialog('close') } }
     })
     
+    var $error_dialog = $('#error_dialog')
+    $error_dialog.dialog({
+      autoOpen: false
+      , title: 'Error'
+      , width: 500
+      , modal: true
+      , buttons: { OK: function() { $error_dialog.dialog('close') } }
+    })
+    
     var $progress_dialog = $('#progress_dialog')
     $progress_dialog.dialog({
       autoOpen: false
@@ -374,13 +436,13 @@
     thx_app.factory('thx_util', function () {
 
       var getItemUrl = function (item) {
-        var url = app.api + '/items/'
-        url += item.gtin + '/'
-        url += item.provider + '/'
-        url += item.tm + '/'
-        url += item.recipient + '/'
-        if (item.tm_sub) url += item.tmsub + '/'
-          console.log('item url: ' + url)
+        var url = app.api + '/items/subscribed'
+        url += '?gtin=' + item.gtin
+        url += '&provider=' + item.provider
+        url += '&recipient=' + item.recipient
+        url += '&tm=' + item.tm
+        if (item.tm_sub) url += '&tm_sub=' + item.tmsub
+        console.log('item url: ' + url)
         return url
       }
 
@@ -403,7 +465,7 @@
           var file = $scope[url + '_file']
           if (!file) return
           $scope.upload = $upload.upload({
-            url: thx_util[url], // 'api/1.0/items',
+            url: thx_util[url], // 'cs_api/1.0/items',
             // method: POST or PUT,
             // headers: {'headerKey': 'headerValue'},
             // withCredentials: true,
@@ -505,14 +567,38 @@
 
     thx_app.controller('thx_msg_controller', function($scope, $http, thx_util) {
 
-      $scope.post_msg = function () {
-        $http.post(thx_util.msg_url, $scope.msg_content_post + '\n\n')
-        .success(function (data) {
-          console.log(data)
+      $scope.page = 0
+
+      $scope.list_messages = function (pageIncrement) {
+        if (pageIncrement) {
+          $scope.page += pageIncrement
+        }
+        else {
+          $scope.page = 0
+        }
+        console.log('list_messages called with page increment ' + pageIncrement)
+
+        showBusy('Fetching message list...')
+        $http.get(thx_util.msg_url, { 
+          params: { page: $scope.page }
+        })
+        .success(function (messages) {
+          $scope.messages = _.map(messages, function (msg) {
+            msg.created_ts = (new Date(msg.created_ts)).toLocaleString()
+            msg.modified_ts = (new Date(msg.modified_ts)).toLocaleString()
+            return msg
+          })
+          hideBusy()
         })
         .error(function () {
-          console.log(arguments)
+          hideBusy()
+          $error_dialog.html('An error occurred -- please try again').dialog('open')
         })
+      }
+
+      $scope.showMessageDetail = function (msg) {
+        console.log('showMessageDetail called for msg ' + msg.msg_id)
+        $result_dialog.html(prettyPrint(msg)).dialog('open')
       }
 
       $scope.list_msg = function () {
@@ -523,23 +609,41 @@
         $('#msg_content_view').load(thx_util.msg_url + '/' + $scope.view_msg_id)
       }
 
+      $scope.post_msg = function () {
+        $http.post(thx_util.msg_url, $scope.msg_content_post + '\n\n')
+        .success(function (data) {
+          console.log(data)
+        })
+        .error(function () {
+          console.log(arguments)
+        })
+      }
+
     })
 
     thx_app.controller('thx_item_controller', function($scope, $http, thx_util) {
 
       $scope.page = 0
+      $scope.input_per_page = 3
+      $scope.more_items = true
 
       $scope.showItemDetail = function (item) {
         console.log('showItemDetail called for gtin ' + item.gtin)
-        if (item) {
-          $result_dialog.html(prettyPrint(item)).dialog('open')
-        }
+        $result_dialog.html(prettyPrint(item)).dialog('open')
 
         item.xml_link = thx_util.getItemUrl(item)
         $scope.selectedItem = item
         //$accordion_item.accordion('option', 'active', 1) // activate fold#2 (view item)
         //$scope.input_item_gtin = item.gtin
         //$scope.view_catalog_item()
+      }
+
+      $scope.reset_search = function () {
+        $scope.input_item_gtin      = ''
+        $scope.input_item_provider  = ''
+        $scope.input_item_recipient = ''
+        $scope.items = null
+        $scope.page = 0
       }
 
       $scope.list_items = function (pageIncrement) {
@@ -549,24 +653,36 @@
         else {
           $scope.page = 0
         }
-        console.log('list_items called with page increment ' + pageIncrement)
 
         showBusy('Fetching item list...')
         $http.get(thx_util.item_url, { 
-          params: { page: $scope.page }
+          params: { 
+              page      : $scope.page 
+            , per_page  : $scope.input_per_page
+            , gtin      : $scope.input_item_gtin
+            , provider  : $scope.input_item_provider
+            , recipient : $scope.input_item_recipient
+          }
         })
         .success(function (items) {
-          $scope.items = _.map(items, function (item) {
-            item.created_ts = (new Date(item.created_ts)).toLocaleString()
-            item.modified_ts = (new Date(item.modified_ts)).toLocaleString()
-            return item
-          })
-          $scope.selectedItem = null
+          if (items && items.length) {
+            $scope.items = _.map(items, function (item) {
+              item.created_ts = (new Date(item.created_ts)).toLocaleString()
+              item.modified_ts = (new Date(item.modified_ts)).toLocaleString()
+              return item
+            })
+            $scope.selectedItem = null
+            $scope.more_items = (items.length === $scope.input_per_page)
+          }
+          else {
+            if ($scope.page > 0) $scope.page--
+            $scope.more_items = false
+          }
           hideBusy()
         })
         .error(function () {
-          console.log(arguments)
           hideBusy()
+          $error_dialog.html('An error occurred -- please try again').dialog('open')
         })
       }
 
@@ -623,8 +739,8 @@
           hideBusy()
         })
         .error(function () {
-          console.log(arguments)
           hideBusy()
+          $error_dialog.html('An error occurred -- please try again').dialog('open')
         })
       }
 
@@ -693,16 +809,21 @@
     var tab_names = {
       main  : 0, 
       msg   : 1, 
-      items : 2, 
-      pub   : 3, 
-      sub   : 4, 
-      debug : 5
+      party : 2,
+      items : 3, 
+      pub   : 4, 
+      sub   : 5, 
+      debug : 6
     }
     $('#tabs').tabs('option', 'active', tab_names['items']) 
 
     $('#progressbar').progressbar({ value: false })
 
     $('#api_result').hide()
+
+    console.log('ticker setup')
+    var ticker = createTicker('ticker')
+    ticker.start()
 
   })()
 </script>

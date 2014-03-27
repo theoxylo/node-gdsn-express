@@ -1,52 +1,124 @@
 module.exports = function (config) {
   
+  var _ = require('underscore')
+
   var api = {}
 
   var log  = require('../lib/Logger')('routes_item', {debug: true})
 
-  api.list_trade_items = function(req, res, next) {
+  var get_query = function (req) {
+    var query = {}
+
+    var gtin      = req.param('gtin')
+    var provider  = req.param('provider')
+    var tm        = req.param('tm')
+    var tm_sub    = req.param('tm_sub')
+    var recipient = req.param('recipient')
+
+    if (gtin)      query.gtin      = { $regex: gtin }
+    if (provider)  query.provider  = { $regex: provider }
+    if (tm)        query.tm        = { $regex: tm }
+    if (tm_sub)    query.tm_sub    = { $regex: tm_sub }
+    if (recipient) query.recipient = { $regex: recipient }
+
+    return query
+  }
+
+  api.list_trade_items = function (req, res, next) {
     log.debug('list_items')
+
     var page = parseInt(req.param('page'))
     log.info('page ' + page)
     if (!page || page < 0) page = 0
-    var perPage = 20
-    config.database.listTradeItems(page, perPage, function (err, results) {
+
+    var per_page = parseInt(req.param('per_page'))
+    log.info('per_page ' + per_page)
+    if (!per_page || per_page < 0 || per_page > 100) per_page = config.per_page_count
+
+    log.info('req params: ' + JSON.stringify(req.query))
+    var query = get_query(req)
+
+    config.database.getTradeItems(query, page, per_page, false, false, function (err, items) {
       if (err) return next(err)
-      res.json(results);
+      res.json(items);
     })
   }
 
-  api.find_trade_item = function (req, res, next) {
-    log.debug('find_trade_item')
-    var gtin      = req.params.gtin
-    var provider  = req.params.provider
-    var tm        = req.params.tm
-    var tmsub     = req.params.tmsub
-    var recipient = req.params.recipient
+  api.find_trade_items = function (req, res, next) {
+    log.debug('find_trade_items')
+    log.info('req params: ' + JSON.stringify(req.query))
+    var query = get_query(req)
 
-    config.database.findTradeItem(gtin, provider, tm, tmsub, recipient, function (err, results) {
+    if (req.path.indexOf('/subscribed') > 0) {
+      try {
+        var recipients = req.session.config.recipients
+        if (recipients) {
+          log.info('limited result to configured recipients: ' + recipients.join(', '))
+          query.recipient = { $in: recipients }
+        }
+      }
+      catch (e) {
+        log.warn('profile config "recipients" not found, skipping check')
+      }
+    }
+
+    config.database.getTradeItems(query, 0, 100, true, true, function (err, items) {
       if (err) return next(err)
-      var item = results && results[0]
 
-      if (!item) return next(new Error('item not found'))
+      if (req.param('json')) { // json override
+        req.headers.accept = 'application/json'
+      }
 
-      if (req.query.json || req.path.indexOf('json') > 0) { // json
-        if (req.query.download) {
-          res.set('Content-Disposition', 'attachment; filename="item_' + item.gtin + '.json"')
-          res.json(item.json);
+      res.format({
+        xml: function () {
+          res.set('Content-Type', 'application/xml;charset=utf-8')
+          if (req.query.download) {
+            res.set('Content-Disposition', 'attachment; filename="item_' + item.gtin + '.xml"')
+          }
+          // send just first item in xml format
+          res.end(items && items[0] && items[0].xml)
+        },
+        json: function () { // json
+
+          // apply custom view filter if client config is present in session
+          var mappings
+          var client = 'n/a'
+          try {
+            mappings = req.session.config.xml_mappings
+            client = req.session.config.client_name
+          }
+          catch (e) {
+            log.warn('problem reading client config: ' + e)
+          }
+
+          items = _.map(items, function (item) {
+            var json = {}
+            if (mappings) {
+              json = config.gdsn.getCustomTradeItemInfo(item.xml, mappings, item)
+              delete json.xml
+              delete json.json
+            }
+            else {
+              json = item.json
+            }
+            json.client_name = client
+            return json
+          })
+
+          if (req.query.download) {
+            res.set('Content-Disposition', 'attachment; filename="items_' + Date.now() + '.json"')
+            res.json(items);
+          }
+          else {
+            res.jsonp(items);
+          }
+        },
+        default: function () {
+          res.end('Unknown format requested in Accept header: ' + req.headers.accept)
         }
-        else {
-          res.jsonp(item.json);
-        }
-      }
-      else { // xml
-        res.set('Content-Type', 'application/xml;charset=utf-8')
-        if (req.query.download) {
-          res.set('Content-Disposition', 'attachment; filename="item_' + item.gtin + '.xml"')
-        }
-        res.send(item.xml)
-      }
-    })
+      }) // end res.format
+
+    }) // end getTradeItems callback
   }
 
   api.post_trade_items = function (req, res, next) {
