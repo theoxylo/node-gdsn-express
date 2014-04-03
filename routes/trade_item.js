@@ -4,7 +4,7 @@ module.exports = function (config) {
 
   var api = {}
 
-  var log  = require('../lib/Logger')('routes_item', {debug: true})
+  var log  = require('../lib/Logger')('rt_items', {debug: true})
 
   var get_query = function (req) {
     var query = {}
@@ -21,7 +21,28 @@ module.exports = function (config) {
     if (tm_sub)    query.tm_sub    = { $regex: tm_sub }
     if (recipient) query.recipient = { $regex: recipient }
 
+    try {
+      var recipients = req.session.config.recipients
+      if (recipients) {
+        log.info('limited subscription query results to configured recipients: ' + recipients.join(', '))
+        query.recipient = { $in: recipients }
+      }
+    }
+    catch (e) {
+      log.warn('profile config "recipients" not found, no filter applied')
+    }
+
     return query
+  }
+
+  var getItemHref = function (item) {
+    var href = config.base_url 
+    href += '/items/' + item.gtin 
+    href += '/' + item.provider 
+    href += '/' + item.tm 
+    href += '/' + item.recipient
+    if (item.tm_sub) href += '/' + item.tm_sub
+    return href
   }
 
   api.list_trade_items = function (req, res, next) {
@@ -40,68 +61,78 @@ module.exports = function (config) {
 
     config.database.getTradeItems(query, page, per_page, false, false, function (err, items) {
       if (err) return next(err)
-      res.json(items);
+      items = items || []
+      items = items.map(function (item) {
+        item.href = getItemHref(item)
+        return item
+      })
+      var result = {
+        collection: {
+          version: '1.0'
+          , href : config.base_url + req.url
+          , items: items
+        }
+      }
+      res.json(result);
     })
   }
 
   api.find_trade_items = function (req, res, next) {
-    log.debug('find_trade_items')
+    log.debug('find_trade_items req.path: ' + req.path)
+
     log.info('req params: ' + JSON.stringify(req.query))
     var query = get_query(req)
 
-    if (req.path.indexOf('/subscribed') > 0) {
-      try {
-        var recipients = req.session.config.recipients
-        if (recipients) {
-          log.info('limited result to configured recipients: ' + recipients.join(', '))
-          query.recipient = { $in: recipients }
-        }
-      }
-      catch (e) {
-        log.warn('profile config "recipients" not found, skipping check')
-      }
-    }
+    var page = parseInt(req.param('page'))
+    log.info('page ' + page)
+    if (!page || page < 0) page = 0
 
-    config.database.getTradeItems(query, 0, 100, true, true, function (err, items) {
+    var per_page = parseInt(req.param('per_page'))
+    log.info('per_page ' + per_page)
+    if (!per_page || per_page < 0 || per_page > 100) per_page = config.per_page_count
+
+    config.database.getTradeItems(query, page, per_page, true, true, function (err, items) {
       if (err) return next(err)
 
       if (req.param('json')) { // json override
         req.headers.accept = 'application/json'
       }
+      else if (req.param('xml')) { // xml override
+        req.headers.accept = 'application/xml'
+      }
+      log.debug('Accept header: ' + req.headers['accept'])
 
       res.format({
+
         xml: function () {
           res.set('Content-Type', 'application/xml;charset=utf-8')
-          if (req.query.download) {
+          if (req.param('download')) {
             res.set('Content-Disposition', 'attachment; filename="item_' + item.gtin + '.xml"')
           }
           // send just first item in xml format
           res.end(items && items[0] && items[0].xml)
         },
+
         json: function () { // json
 
-          // apply custom view filter if client config is present in session
-          var mappings
-          var client = 'n/a'
-          try {
-            mappings = req.session.config.xml_mappings
-            client = req.session.config.client_name
-          }
-          catch (e) {
-            log.warn('problem reading client config: ' + e)
-          }
+          // apply custom logic if client config is present in session
+          var client_config = (req.session && req.session.config) || {}
 
-          items = _.map(items, function (item) {
+          items = items.map(function (item) {
             var json = {}
-            if (mappings) {
-              json = config.gdsn.getCustomTradeItemInfo(item.xml, mappings, item)
+            if (client_config.json_transform) {
+              json = client_config.json_transform(item.json.tradeItem)
+            }
+            else if (client_config.mappings) {
+              json = config.gdsn.getCustomTradeItemInfo(item.xml, client_config.mappings, item)
               delete json.xml
               delete json.json
             }
             else {
               json = item.json
             }
-            json.client_name = client
+            json.client_name = (client_config) ? client_config.client_name : 'Unknown Clinet'
+            json.request_url = req.url
             return json
           })
 
@@ -113,9 +144,11 @@ module.exports = function (config) {
             res.jsonp(items);
           }
         },
+
         default: function () {
           res.end('Unknown format requested in Accept header: ' + req.headers.accept)
         }
+
       }) // end res.format
 
     }) // end getTradeItems callback

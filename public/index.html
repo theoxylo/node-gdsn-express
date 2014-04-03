@@ -227,6 +227,7 @@
               <th>Created</th>
               <th>Modified</th>
               <th>CIN Message ID</th>
+              <!--<th>HREF</th>-->
             </tr>
             <tr class="clickable" ng-repeat="item in items" ng-click="showItemDetail(item)">
               <td>{{item.gtin}}</td>
@@ -237,19 +238,20 @@
               <td>{{item.created_ts}}</td>
               <td>{{item.modified_ts}}</td>
               <td>{{item.msg_id}}</td>
+              <!--<td><a ng-href="{{item.href}}" target="_new">XML</a></td>-->
               <!-- Raw Data: '{{item}}' -->
             </tr>
           </table>
           <div ng-if="selectedItem" class="blue_box">
             <p>Selected GTIN: {{selectedItem.gtin}}</p>
-            <p><a ng-href="{{selectedItem.xml_link}}&json=true" target="_new">View JSON for catalog item {{selectedItem.gtin}}</a></p>
-            <p><a ng-href="{{selectedItem.xml_link}}&json=true&download=true">Download JSON for catalog item {{selectedItem.gtin}}</a></p>
-            <p><a ng-href="{{selectedItem.xml_link}}" target="_new">View XML for catalog item {{selectedItem.gtin}}</a></p>
-            <p><a ng-href="{{selectedItem.xml_link}}&download=true">Download XML for catalog item {{selectedItem.gtin}}</a></p>
+            <p><a ng-href="{{selectedItem.href}}" target="_new">View XML for catalog item {{selectedItem.gtin}}</a></p>
+            <p><a ng-href="{{selectedItem.href}}?download=true">Download XML for catalog item {{selectedItem.gtin}}</a></p>
+            <p><a ng-href="{{selectedItem.href}}?json=true" target="_new">View JSON for catalog item {{selectedItem.gtin}}</a></p>
+            <p><a ng-href="{{selectedItem.href}}?json=true&download=true">Download JSON for catalog item {{selectedItem.gtin}}</a></p>
             <p>Child GTINs: {{selectedItem.child_gtins.join(' ')}}</p>
           </div>
         </div> <!-- end if items -->
-        <div>Results per page: <input ng-model="input_per_page" size="3"></input></div>
+        <!--<div>Results per page: <input ng-model="input_per_page" size="3"></input></div>-->
       </div>
 
       <div>Catalog Item Details</div>
@@ -435,17 +437,6 @@
 
     thx_app.factory('thx_util', function () {
 
-      var getItemUrl = function (item) {
-        var url = app.api + '/items/subscribed'
-        url += '?gtin=' + item.gtin
-        url += '&provider=' + item.provider
-        url += '&recipient=' + item.recipient
-        url += '&tm=' + item.tm
-        if (item.tm_sub) url += '&tm_sub=' + item.tmsub
-        console.log('item url: ' + url)
-        return url
-      }
-
       return {
           sub_url     : app.api + '/subscriptionList'
         , pub_url     : app.api + '/publicationList'
@@ -453,7 +444,6 @@
         , item_url    : app.api + '/items'
         , party_url   : app.api + '/party'
         , parties_url : app.api + '/parties'
-        , getItemUrl  : getItemUrl
       }
     })
 
@@ -624,14 +614,12 @@
     thx_app.controller('thx_item_controller', function($scope, $http, thx_util) {
 
       $scope.page = 0
-      $scope.input_per_page = 3
+      $scope.input_per_page = 10
       $scope.more_items = true
 
       $scope.showItemDetail = function (item) {
         console.log('showItemDetail called for gtin ' + item.gtin)
         $result_dialog.html(prettyPrint(item)).dialog('open')
-
-        item.xml_link = thx_util.getItemUrl(item)
         $scope.selectedItem = item
         //$accordion_item.accordion('option', 'active', 1) // activate fold#2 (view item)
         //$scope.input_item_gtin = item.gtin
@@ -664,9 +652,15 @@
             , recipient : $scope.input_item_recipient
           }
         })
-        .success(function (items) {
-          if (items && items.length) {
-            $scope.items = _.map(items, function (item) {
+        .success(function (result) {
+          var items = []
+          try {
+            items = result.collection.items || []
+          }
+          catch (e) {}
+
+          if (items.length) {
+            $scope.items = _.map(result.collection.items, function (item) {
               item.created_ts = (new Date(item.created_ts)).toLocaleString()
               item.modified_ts = (new Date(item.modified_ts)).toLocaleString()
               return item

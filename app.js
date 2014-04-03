@@ -46,6 +46,7 @@ app.locals({test: true})
 app.use(express.favicon(__dirname + '/public/favicon.ico'))
 app.use(express.logger('dev'))
 app.use(express.basicAuth(function (user, pass) {
+  console.log('********************************************************************************** checking auth info for user: ' + user)
   if ('admin' == user & 'devadmin' == pass) return true
   if (pass == user + 'Admin') {
     return true
@@ -55,33 +56,25 @@ app.use(express.basicAuth(function (user, pass) {
 app.use(express.urlencoded())
 app.use(express.cookieParser('secret cookie salt 12345'))
 app.use(express.session())
-app.use(function (req, res, next) { // load profile
+app.use(profileLoader)
 
-  var session = req.session || {}
-  if (session.config) return next()
-
-  var filename = __dirname + '/profiles/' + req.user + '.config'
-  try {
-    log.info('loading config for user ' + req.user)
-    session.config = require(filename)
-    log.info(JSON.stringify(session.config))
-  }
-  catch (e) {
-    log.warn('error loading profile "' + filename + '": ' + e)
-  }
-  next()
+app.use(config.base_url + '/session', function (req, res, next) { // echo server client profile for current user
+  res.json(req.session || {})
 })
-app.use( config.base_url + '/profile', function (req, res, next) { // server profile
+
+app.use(config.base_url + '/profile', function (req, res, next) { // echo server client profile for current user
   res.json(req.session.config || {})
 })
-app.use('/', function (req, res, next) {
+
+app.use('/cs_api/', function (req, res, next) {
   log.debug('checking path for config: ' + req.path)
   try {
     var configured = false
     var urls = req.session.config.urls
-    _.each(urls, function (url) {
+    urls.forEach(function (url) {
       log.debug('checking url: ' + url)
-      if (url == req.path) configured = true
+      //if (url == req.path) configured = true
+      if (req.path.startsWith(url)) configured = true
     })
     if (configured) return next()
     res.end('path ' + req.path + ' not configured for client ' + req.user)
@@ -130,7 +123,7 @@ app.get('/cin_from_other_dp', routes_cin.view_cin_from_other_dp_upload_form)
 app.post('/cin_from_other_dp', express.multipart(), routes_cin.post_cin_from_other_dp_upload_form)
 
 // documented 1.0 api endpoints
-app.use( config.base_url, app.router)
+app.use(config.base_url, app.router)
 app.get( '/', function (req, res, next) { res.render('api_docs_10') })
 
 app.get( '/msg/:instance_id',                            routes_archive.find_archive)
@@ -138,6 +131,12 @@ app.get( '/msg',                                         routes_archive.list_arc
 app.post('/msg',                                         routes_archive.post_archive)
 
 app.get( '/items/subscribed',                            routes_item.find_trade_items)
+app.get( '/items/:gtin/:provider/:tm/:recipient/:tmsub', routes_item.find_trade_items)
+app.get( '/items/:gtin/:provider/:tm/:recipient',        routes_item.find_trade_items)
+app.get( '/items/:gtin/:provider/:tm',                   routes_item.find_trade_items)
+app.get( '/items/:gtin/:provider',                       routes_item.find_trade_items)
+app.get( '/items/:gtin',                                 routes_item.find_trade_items)
+
 app.get( '/items',                                       routes_item.list_trade_items)
 app.post('/items',                                       routes_item.post_trade_items)
 
@@ -154,17 +153,22 @@ process.on('SIGINT', function () {
 })
 
 // start the server using normal HTTP
-//app.listen(config.http_port) // non SSL
+if (config.http_port) {
+  app.listen(config.http_port)
+  log.info("Express GDSN server listening on HTTP port " + config.http_port)
+}
 
 // start the server using SSL
-var https_options = {
-  key   : fs.readFileSync(config.key_file),
-  cert  : fs.readFileSync(config.cert_file)
-};
-var server = https.createServer(https_options, app)
-server.listen(config.https_port)
+if (config.https_port) {
+  var https_options = {
+    key   : fs.readFileSync(config.key_file),
+    cert  : fs.readFileSync(config.cert_file)
+  };
+  var server = https.createServer(https_options, app)
+  server.listen(config.https_port)
+  log.info("Express GDSN server listening on HTTPS port " + config.https_port)
+}
 
-log.info("Express GDSN server listening on port " + config.https_port)
 
 // Inbox filesystem watcher
 log.info("Inbox dir: " + config.inbox_dir)
@@ -177,3 +181,25 @@ fs.watch(config.inbox_dir, function (event, filename) {
     })
   }
 })
+
+function profileLoader(req, res, next) { // load profile
+  if (!req.user) return next(new Error('must be logged in'))
+
+  if (req.session.config && req.session.config.user == req.user) {
+    log.debug('found existing session config for user ' + req.user)
+    return next()
+  }
+
+  var filename = __dirname + '/profiles/' + req.user + '.config'
+  try {
+    log.info('loading config for user ' + req.user + ', file: ' + filename)
+    var config = require(filename)
+    config.user = req.user
+    log.info(JSON.stringify(config))
+    req.session.config = config
+  }
+  catch (e) {
+    log.warn('error loading profile "' + filename + '": ' + e)
+  }
+  next()
+}
