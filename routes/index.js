@@ -5,8 +5,9 @@ exports.getSnoopHandler = function (count) {
   return function(req, res, next) {
     count++
     res.cookie('test_response_cookie', 'some cookie data, count ' + count)
-    req.session.count = count
-    req.session.timestamp = Date.now()
+    var session = req.session || {}
+    session.count = count
+    session.timestamp = Date.now()
     res.contentType('text/html')
     res.render('snoop', {
       title: "Node HTTP Snoop",

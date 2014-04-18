@@ -40,7 +40,6 @@
   <script src="js/underscore-1.5.2.js"></script>
   <script src="js/angular-1.2.2.js"></script>
   <script src="js/file/angular-file-upload.js"></script>
-  <!--<script src="js/ticker.js"></script>-->
   
 </head>
 <body ng-app="thx_app">
@@ -222,6 +221,7 @@
               <th>GTIN</th>
               <th>Provider</th>
               <th>TM</th>
+              <th>TM Subdivision</th>
               <th>Recipient</th>
               <th>Child Count</th>
               <th>Created</th>
@@ -233,6 +233,7 @@
               <td>{{item.gtin}}</td>
               <td>{{item.provider}}</td>
               <td>{{item.tm}}</td>
+              <td>{{item.tm_sub}}</td>
               <td>{{item.recipient}}</td>
               <td>{{item.child_gtins && item.child_gtins.length}}</td>
               <td>{{item.created_ts}}</td>
@@ -334,7 +335,6 @@
 </div><!-- end tabs -->
 
 <div id="debug_tab">
-  <div>Test ticker<span id="ticker"></span></div>
   <div>Model values:</div>
   <div>Subscriber: {{subscriber}}</div>
   <div>Publisher: {{publisher}}</div>
@@ -358,6 +358,11 @@
 
 <script>
   (function() {
+
+    var log = function (msg) {
+      if (console && console.log) console.log(msg)
+      else alert(msg)
+    }
 
     app = {
       version: "1.0"
@@ -422,7 +427,7 @@
     })
     
     function showBusy(title) {
-      console.log('busy 2: ' + title)
+      log('busy 2: ' + title)
       $progress_dialog.dialog('option', 'title', title)
       $progress_dialog.dialog('open')
     }
@@ -462,11 +467,11 @@
             //data: {myObj: $scope.myModelObj},
             file: file,
           }).progress(function(evt) {
-            console.log('percent: ' + parseInt(100.0 * evt.loaded / evt.total));
+            log('percent: ' + parseInt(100.0 * evt.loaded / evt.total));
           }).success(function(data, status, headers, config) {
             // file is uploaded successfully
-            console.log(data);
-            alert('File uploaded successfully (' + data + ')')
+            log(data);
+            alert('File uploaded successfully (' + data.msg + ')')
           });
           //.error(...)
           //.then(success, error, progress); 
@@ -478,8 +483,8 @@
       $scope.thx_controller_test = 'thx_controller_test_value'
 
       $scope.selectSubscription = function (sub) {
-        console.log('selectSubscription')
-        console.log(sub)
+        log('selectSubscription')
+        log(sub)
         $scope.selectedSub = JSON.stringify(sub)
         //$scope.selectedSub = sub
       }
@@ -496,7 +501,7 @@
             $scope.selectedSub = null
           })
           .error(function () {
-            console.log(arguments)
+            log(arguments)
           })
         }
         else {
@@ -511,8 +516,8 @@
       $scope.thx_controller_test = 'thx_controller_test_value'
 
       $scope.showPubDetail = function (pub) {
-        console.log('showPubDetail')
-        console.log(pub)
+        log('showPubDetail')
+        log(pub)
         $scope.selectedPub = JSON.stringify(pub)
         //$scope.selectedPub = pub
       }
@@ -528,28 +533,28 @@
           $scope.selectedPub = null
         })
         .error(function () {
-          console.log(arguments)
+          log(arguments)
         })
       }
 
       $scope.publish_item = function () {
         $('#api_result').hide()
         var data = $('#form_publish').serialize()
-        console.log('publishing item with data: ' + data)
+        log('publishing item with data: ' + data)
         $.ajax({
             dataType: 'json',
             url: app.api + '/publish?' + data
         })
         .done(function (msg, status) {
           alert('API Publish operation complete: ' + status)
-          console.log('API Publish operation complete: ' + status)
+          log('API Publish operation complete: ' + status)
           $result.append('<div>Result: ' + status + '</div>')
           $result.show().on('click', function () {
             $(this).hide()
           })
         })
         .fail(function () {
-            console.log('ajax fail: ' + arguments)
+            log('ajax fail: ' + arguments)
         })
       }
 
@@ -566,7 +571,7 @@
         else {
           $scope.page = 0
         }
-        console.log('list_messages called with page increment ' + pageIncrement)
+        log('list_messages called with page increment ' + pageIncrement)
 
         showBusy('Fetching message list...')
         $http.get(thx_util.msg_url, { 
@@ -587,7 +592,7 @@
       }
 
       $scope.showMessageDetail = function (msg) {
-        console.log('showMessageDetail called for msg ' + msg.msg_id)
+        log('showMessageDetail called for msg ' + msg.msg_id)
         $result_dialog.html(prettyPrint(msg)).dialog('open')
       }
 
@@ -602,10 +607,10 @@
       $scope.post_msg = function () {
         $http.post(thx_util.msg_url, $scope.msg_content_post + '\n\n')
         .success(function (data) {
-          console.log(data)
+          log(data)
         })
         .error(function () {
-          console.log(arguments)
+          log(arguments)
         })
       }
 
@@ -618,12 +623,10 @@
       $scope.more_items = true
 
       $scope.showItemDetail = function (item) {
-        console.log('showItemDetail called for gtin ' + item.gtin)
+        log('showItemDetail called for gtin ' + item.gtin)
         $result_dialog.html(prettyPrint(item)).dialog('open')
         $scope.selectedItem = item
-        //$accordion_item.accordion('option', 'active', 1) // activate fold#2 (view item)
-        //$scope.input_item_gtin = item.gtin
-        //$scope.view_catalog_item()
+        $scope.input_item_gtin = item.gtin
       }
 
       $scope.reset_search = function () {
@@ -683,11 +686,11 @@
       $scope.post_catalog_items = function () {
         $http.post(thx_util.item_url, $scope.item_content_post + '\n\n')
         .success(function (data) {
-          console.log(data)
+          log(data)
           alert('XML uploaded successfully (' + data + ')')
         })
         .error(function () {
-          console.log(arguments)
+          log(arguments)
         })
       }
 
@@ -702,7 +705,7 @@
       $scope.page = 0
 
       $scope.showPartyDetail = function (party) {
-        console.log('showPartyDetail called for gln ' + party.gln)
+        log('showPartyDetail called for gln ' + party.gln)
         if (party && party.json && party.json.registryPartyDataDumpDetail) {
           $result_dialog.html(prettyPrint(party.json.registryPartyDataDumpDetail.registryParty)).dialog('open')
         }
@@ -717,7 +720,7 @@
         else {
           $scope.page = 0
         }
-        console.log('list_parties called with page increment ' + pageIncrement)
+        log('list_parties called with page increment ' + pageIncrement)
 
         showBusy('Fetching party list...')
         $http.get(thx_util.parties_url, { 
@@ -729,7 +732,7 @@
             party.modified_ts = (new Date(party.modified_ts)).toLocaleString()
             return party
           })
-          console.log('found ' + $scope.parties.length + ' parties')
+          log('found ' + $scope.parties.length + ' parties')
           hideBusy()
         })
         .error(function () {
@@ -741,11 +744,11 @@
       $scope.post_parties = function () {
         $http.post(thx_util.parties_url, $scope.party_content_post + '\n\n')
         .success(function (data) {
-          console.log(data)
+          log(data)
           alert('XML uploaded successfully (' + data + ')')
         })
         .error(function () {
-          console.log(arguments)
+          log(arguments)
         })
       }
 
@@ -756,7 +759,7 @@
     })
 
     thx_app.directive('gdsnSubscriptions', function (thx_util) {
-      console.log('directive gdsnSubscriptions')
+      log('directive gdsnSubscriptions')
       return {
         restrict: 'EA'
         , replace: true
@@ -765,18 +768,18 @@
         //, scope: false // default; uses enclosing controller scope
         , scope: true // can read enclosing controller scope, not only set local dir scope (can still set scope.$parent)
         , link: function (scope, element, attrs) {
-            console.log('link')
-            console.log('link attrs')
-            console.log(attrs)
+            log('link')
+            log('link attrs')
+            log(attrs)
 
             //scope.$parent.subscriber = element.attr('default-subscriber')
 
             scope.$parent.subscriber = attrs.defaultSubscriber
-            console.log('scope.subscriber ' + scope.subscriber)
+            log('scope.subscriber ' + scope.subscriber)
             scope.dir_link_test = 'dir_link_test_value'
 
-            console.log('scope')
-            console.log(scope)
+            log('scope')
+            log(scope)
           }
         , controller: function ($scope) {
             $scope.dir_controller_test = 'dir_controller_test_value'
@@ -815,11 +818,15 @@
 
     $('#api_result').hide()
 
-    console.log('ticker setup')
-    var ticker = createTicker('ticker')
-    ticker.start()
+    if ('undefined' != typeof(createTicker)) { // uncoment ticker.js to enable ticker test
+      $('#debug_tab').append('<div>Test ticker<span id="ticker"></span></div>')
+      log('ticker setup')
+      var ticker = createTicker('ticker')
+      ticker.start()
+    }
 
   })()
 </script>
+<!--<script src="js/ticker.js"></script>-->
 </body>
 </html>

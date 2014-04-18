@@ -15,7 +15,6 @@
     , "express":    "3.5.0"
     , "ejs":        "0.8.5"
     , "mongojs":    "0.10.1"
-    , "underscore": "1.6.0"
   },
   "repository": {
     "type": "git",

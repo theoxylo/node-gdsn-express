@@ -20,7 +20,7 @@ div, fieldset {
 
 html, body, form, h1, h2, h2, h3, h4, h5, h6, p, td, a {
   color: blue; 
-  margin-left: 0px;
+  margin-left: 10px;
   margin-right: 10px;
   margin-top: 10px;
   margin-bottom: 10px;
