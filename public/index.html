@@ -16,6 +16,9 @@
     .selected {
       border: #ccf solid 1px; 
     }
+    td {
+      text-align: center;
+    }
   </style>
 
   <style type="text/css">
@@ -83,7 +86,7 @@
   </div>
 
   <div id="msg_tab" ng-controller="thx_msg_controller">
-    <div id="accordion_msg">
+    <div id="msg_accordion">
 
       <div>Search Messages</div>
       <div>
@@ -143,7 +146,7 @@
   </div> <!-- end msg_tab -->
 
   <div id="party_tab" ng-controller="thx_party_controller">
-    <div id="accordion_party">
+    <div id="party_accordion">
 
       <div>Search Trading Parties</div>
       <div>
@@ -200,13 +203,15 @@
   </div> <!-- end party_tab -->
 
   <div id="item_tab" ng-controller="thx_item_controller">
-    <div id="accordion_item">
+    <div id="item_accordion">
 
       <div>Search Catalog Items</div>
       <div>
-        GTIN <input type="text" ng-model="input_item_gtin"/>
-        Provider GLN<input type="text" ng-model="input_item_provider"/>
-        Recipient GLN<input type="text" ng-model="input_item_recipient"/>
+        <span>GTIN <input type="text" ng-model="input_item_gtin" size="16" placeholder="99999999999999"></input></span>
+        <span>Provider GLN<input type="text" ng-model="input_item_provider" size="15" placeholder="1100001011292"></input></span>
+        <span>Recipient GLN<input type="text" ng-model="input_item_recipient" size="15" placeholder="0625199000015"></input></span>
+        <span>TM Country<input type="text" ng-model="input_item_tm" size="3" placeholder="840"></input></span>
+        <span>TM Sub<input type="text" ng-model="input_item_tm_sub" size="5" placeholder="US-CA"></input></span>
         <button ng-click="list_items(0)">Search</button>
         <button ng-click="reset_search()">Reset</button>
         <br/>
@@ -220,13 +225,13 @@
             <tr>
               <th>GTIN</th>
               <th>Provider</th>
-              <th>TM</th>
-              <th>TM Subdivision</th>
+              <th>TM Country</th>
+              <th>TM Sub</th>
               <th>Recipient</th>
               <th>Child Count</th>
               <th>Created</th>
               <th>Modified</th>
-              <th>CIN Message ID</th>
+              <th>CIN Message</th>
               <!--<th>HREF</th>-->
             </tr>
             <tr class="clickable" ng-repeat="item in items" ng-click="showItemDetail(item)">
@@ -281,7 +286,7 @@
   </div> <!-- end item_tab -->
 
   <div id="pub_tab" ng-controller="thx_pub_controller">
-    <div id="accordion_pub">
+    <div id="pub_accordion">
 
       <div>Search Publications</div>
       <div id="pub_list">
@@ -306,7 +311,7 @@
 
       <div>Publish Item to Subscriber GLN</div>
       <div id="pub_util">
-        <form id="form_publish">
+        <form id="pub_form">
             <p>* Publisher GLN:<br/><input type="text" name="ds" ng-model="publisher"/></p>
             <p>* Product GTIN:<br/><input type='text' name='gtin'/></p>
             <p>* Product TM numeric ISO code (e.g. '840'):<br/><input type='text' name='tm'/></p>
@@ -314,7 +319,7 @@
             <p>* Publish-To GLN:<br/><input type='text' name='dr'ng-model="subscriber"/></p>
             <p>Initial load<br/><input type='checkbox' name='il'/></p>
             <button ng-click="publish_item()">Submit</button>
-            <div id="api_result">Loading...</div>
+            <div id="pub_result">Loading...</div>
         </form>
       </div>
 
@@ -322,14 +327,50 @@
   </div> <!-- end pub_tab -->
 
   <div id="sub_tab" ng-controller="thx_sub_controller">
-    <div id="accordion_sub">
+    <div id="sub_accordion">
+      <div>Fetch Subscribed Items</div>
+      <div>
+
+        <div>
+          <form id="sub_form">
+            <table><tr><td>
+                <p>GTIN<br/><input id="input_gtin" value="00038000105234" size="40"></input></p>
+                <p>Provider GLN<br/><input id="input_provider" value="1100001011292" size="40"></input></p>
+                <p><input id="input_include_children" type="checkbox"></input>  Include Children</p>
+                <p><input id="input_include_parents" type="checkbox"></input>   Include Parents</p>
+                <p><button id="btn_fetch" ng-click="getSubscribedItems()">Fetch Items</button></p>
+              </td>
+              <td>
+                <p>Target Market Country Code<br/><input id="input_tm" value="" size="40"></input></p>
+                <p>Target Market Subdivision Code<br/><input id="input_tm_sub" value="" size="40"></input></p>
+                <p>Data Transform <select name="trans_type" id="input_server_transform"><option value="">None</option><option value="client">Client</option><option value="server">Server</option></select></p>
+                <p><input id="input_multi_gtin" type="checkbox"></input>        Multi: allow multiple items with same GTIN</p>
+                <p><button id="btn_fetch_hide" ng-click="resetSubscribedItems()">Clear Results</button></p>
+              </td></tr>
+            </table>
+          </form>
+        </div>
+
+        <p id="sub_error" ng-if="sub_error">{{ sub_error }}</p>
+        <div id="sub_result" ng-if="subscribed_items">
+          <p id="sub_msg" ng-if="sub_msg">{{ sub_msg }}</p>
+          <div ng-repeat="item in subscribed_items">
+            <span>Item {{ item.href }} ({{ item.fetch_type }}):</span>
+            <br/><textarea rows="6" cols="120">{{ item }}</textarea>
+          </div>
+        </div>
+
+        <script src="js/bp_cs_client.js"></script>
+      </div> <!-- end sub_client -->
+
       <div>Search Subscriptions</div>
       <div>
         <input type="text" ng-model="subscriber"></input>
         <input type="button" ng-click="getSubscriptions(subscriber)" value="Get Subscriptions"></input>
         <div gdsn-subscriptions default-subscriber="1100001011292"/>
       </div>
-    </div>
+
+    </div> <!-- end sub_accordion -->
   </div> <!-- end sub_tab -->
 
 </div><!-- end tabs -->
@@ -371,32 +412,32 @@
       , api: '/cs_api/1.0'
     }
 
-    var $accordion_party = $("#accordion_party")
-    $accordion_party.accordion({
+    var $party_accordion = $("#party_accordion")
+    $party_accordion.accordion({
         heightStyle: 'content',
         collapsible: true
     })
 
-    var $accordion_item = $("#accordion_item")
-    $accordion_item.accordion({
+    var $item_accordion = $("#item_accordion")
+    $item_accordion.accordion({
         heightStyle: 'content',
         collapsible: true
     })
 
-    var $accordion_pub = $('#accordion_pub')
-    $accordion_pub.accordion({
+    var $pub_accordion = $('#pub_accordion')
+    $pub_accordion.accordion({
         heightStyle: 'content',
         collapsible: true
     })
 
-    var $accordion_sub = $('#accordion_sub')
-    $accordion_sub.accordion({
+    var $sub_accordion = $('#sub_accordion')
+    $sub_accordion.accordion({
         heightStyle: 'content',
         collapsible: true
     })
 
-    var $accordion_msg = $('#accordion_msg')
-    $accordion_msg.accordion({
+    var $msg_accordion = $('#msg_accordion')
+    $msg_accordion.accordion({
         heightStyle: 'content',
         collapsible: true
     })
@@ -441,7 +482,6 @@
     var thx_app = angular.module('thx_app', ['angularFileUpload'])
 
     thx_app.factory('thx_util', function () {
-
       return {
           sub_url     : app.api + '/subscriptionList'
         , pub_url     : app.api + '/publicationList'
@@ -466,15 +506,20 @@
             // withCredentials: true,
             //data: {myObj: $scope.myModelObj},
             file: file,
-          }).progress(function(evt) {
+          })
+          .progress(function(evt) {
             log('percent: ' + parseInt(100.0 * evt.loaded / evt.total));
-          }).success(function(data, status, headers, config) {
+          })
+          .success(function(data, status, headers, config) {
             // file is uploaded successfully
             log(data);
             alert('File uploaded successfully (' + data.msg + ')')
-          });
-          //.error(...)
-          //.then(success, error, progress); 
+          })
+          .error(function(msg) {
+            log('ajax upload file failed')
+            log(arguments)
+            $error_dialog.html('An error occurred: ' + msg).dialog('open')
+          })
       }
     })
 
@@ -492,8 +537,8 @@
       $scope.getSubscriptions = function () {
         if (/\d{13}/.test($scope.subscriber)) {
           //$http.get(thx_util.sub_url, { 
-          $http.jsonp('http://plt-gdsn01.itradenetwork.com:8080/gdsn-server/api/getSubscriptionList' + '?callback=JSON_CALLBACK' , {
-            params: { subscriber: $scope.subscriber }
+          $http.jsonp('http://plt-gdsn01.itradenetwork.com:8080/gdsn-server/api/getSubscriptionList' , {
+            params: { subscriber: $scope.subscriber, callback: 'JSON_CALLBACK' }
           })
           .success(function (data) {
             $scope.data = data
@@ -509,6 +554,85 @@
         }
       }
 
+      $scope.resetSubscribedItems = function () {
+        console.log('resetSubscribedItems')
+        $scope.sub_error = null
+        $scope.subscribed_items = null
+      }
+
+      $scope.getSubscribedItems = function () {
+        console.log('getSubscribedItems')
+
+        var gtin = $('#input_gtin').val()
+        if (!gtin) return alert('GTIN is required')
+
+        var provider  = $('#input_provider').val()
+        var tm        = $('#input_tm').val()
+        var tm_sub    = $('#input_tm_sub').val()
+        var transform = $('#input_server_transform').val()
+        log('transform param: ' + transform)
+        var children  = $('#input_include_children').prop('checked')
+        var parents   = $('#input_include_parents').prop('checked')
+        var multi     = $('#input_multi_gtin').prop('checked')
+
+        var url = app.api + '/subscribed/' + gtin
+        if (provider) url += '/' + provider
+        if (tm)       url += '/' + tm
+        if (tm_sub)   url += '/' + tm_sub
+        log('url: ' + url)
+
+        var form_serialize = $('#sub_form').serialize()
+        log('sub form form_serialize: ' + form_serialize)
+
+        showBusy('Fetching subscribed items...')
+
+        //$http.jsonp(url, {
+        //$http.get('/err', {
+        $http.get(url, {
+          params: { 
+              children: children
+            , parents: parents
+            , multi: multi
+            , transform: transform
+            //, callback: 'JSON_CALLBACK'
+          }
+        })
+        .success(function (data) {
+          hideBusy()
+          if (data.collection.error) {
+            $scope.subscribed_items = null // clear previous results to avoid confusion
+            var e = data.collection.error
+            $scope.sub_error = 'Error: ' + e.title + ' (' + e.message + ')'
+            $error_dialog.html('An error occurred: ' + e.title + ' (' + e.message + ')')
+            if (data.collection.links) {
+              var links = data.collection.links
+              //if (links.length) $scope.sub_msg += ('<p>Please specify more criteria as shown below:</p>')
+              //links.forEach(function (link) {
+                //$scope.sub_msg += ('<p><a target="new" href="' + link.href + '">' + link.href + '</a></p>')
+              //})
+            }
+            return
+          }
+          var items = data.collection.items || []
+          $scope.sub_msg = 'Item count: ' + items.length
+          $scope.sub_error = null
+
+          items = items.map(function (item) {
+            if (transform == 'client') item = cs_client.transform(item)
+            log('appending item ' + item.gtin)
+            return item
+          })
+          $scope.subscribed_items = items
+        })
+        .error(function (msg) {
+          log('ajax getSubscribedItems failed')
+          log(arguments)
+          $scope.sub_error = 'Error: ' + msg
+          $scope.subscribed_items = null // clear previous results to avoid confusion
+          hideBusy()
+          $error_dialog.html('An error occurred: ' + msg).dialog('open')
+        })
+      }
     })
 
     thx_app.controller('thx_pub_controller', function($scope, $http, thx_util) {
@@ -524,8 +648,8 @@
 
       $scope.getPublications = function (pubGln) {
         //$http.get(thx_util.pub_url, { 
-        $http.jsonp('http://plt-gdsn01.itradenetwork.com:8080/gdsn-server/api/getPublicationList' + '?callback=JSON_CALLBACK' , {
-          params: { publisher: pubGln }
+        $http.jsonp('http://plt-gdsn01.itradenetwork.com:8080/gdsn-server/api/getPublicationList' , {
+          params: { publisher: pubGln, callback: 'JSON_CALLBACK' }
         })
         .success(function (data) {
           $scope.data = data
@@ -533,28 +657,33 @@
           $scope.selectedPub = null
         })
         .error(function () {
+          log('ajax getPublications failed')
           log(arguments)
+          alert('getPublications failed: ' + msg)
         })
       }
 
       $scope.publish_item = function () {
-        $('#api_result').hide()
-        var data = $('#form_publish').serialize()
+        var $pub_result = $('#pub_result')
+        $pub_result.hide()
+        var data = $('#pub_form').serialize()
         log('publishing item with data: ' + data)
-        $.ajax({
-            dataType: 'json',
-            url: app.api + '/publish?' + data
+
+        $http.get(app.api + '/publish?' + data, { 
+          params: { page: $scope.page }
         })
-        .done(function (msg, status) {
+        .success(function (messages) {
           alert('API Publish operation complete: ' + status)
           log('API Publish operation complete: ' + status)
-          $result.append('<div>Result: ' + status + '</div>')
-          $result.show().on('click', function () {
-            $(this).hide()
-          })
+          $pub_result.append('<div>Result: ' + status + '</div>')
+          $pub_result.show()
+          hideBusy()
         })
-        .fail(function () {
-            log('ajax fail: ' + arguments)
+        .error(function () {
+          log('ajax publish_item failed')
+          log(arguments)
+          hideBusy()
+          $error_dialog.html('An error occurred -- please try again').dialog('open')
         })
       }
 
@@ -633,6 +762,8 @@
         $scope.input_item_gtin      = ''
         $scope.input_item_provider  = ''
         $scope.input_item_recipient = ''
+        $scope.input_item_tm        = ''
+        $scope.input_item_tm_sub    = ''
         $scope.items = null
         $scope.page = 0
       }
@@ -653,17 +784,19 @@
             , gtin      : $scope.input_item_gtin
             , provider  : $scope.input_item_provider
             , recipient : $scope.input_item_recipient
+            , tm        : $scope.input_item_tm
+            , tm_sub    : $scope.input_item_tm_sub
           }
         })
-        .success(function (result) {
+        .success(function (data) {
           var items = []
           try {
-            items = result.collection.items || []
+            items = data.collection.items || []
           }
           catch (e) {}
 
           if (items.length) {
-            $scope.items = _.map(result.collection.items, function (item) {
+            $scope.items = _.map(data.collection.items, function (item) {
               item.created_ts = (new Date(item.created_ts)).toLocaleString()
               item.modified_ts = (new Date(item.modified_ts)).toLocaleString()
               return item
@@ -815,8 +948,6 @@
     $('#tabs').tabs('option', 'active', tab_names['items']) 
 
     $('#progressbar').progressbar({ value: false })
-
-    $('#api_result').hide()
 
     if ('undefined' != typeof(createTicker)) { // uncoment ticker.js to enable ticker test
       $('#debug_tab').append('<div>Test ticker<span id="ticker"></span></div>')

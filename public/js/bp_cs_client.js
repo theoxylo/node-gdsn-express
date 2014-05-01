@@ -9,67 +9,88 @@ cs_client = {
       return ccWords.join(' ')
     }
   , getCountry: function (code) {
-      if (code == '124') return 'Canada'
-      if (code == '840') return 'United States'
-      return code
+      var countries = {
+          '124' : 'Canada'
+        , '840' : 'United States'
+      }
+      return countries[code] || code || ''
     }
+  , getDataPool: function (dp_gln) {
+      var data_pools = {
+          '0068780850147' : 'ECCnet'
+        , '7540000000530' : 'GS1 Canada'
+        , '8380160030003' : '1WS Test'
+        , '0838016003001' : '1WS'
+        , '0850522001050' : 'FSE'
+        , '1100001011285' : 'iTradeNetwork'
+      }
+      return data_pools[dp_gln] || dp_gln || ''
+  }
   , getNutrient: function (code) {
-      if (code == 'ENER')   return 'Calories'
-      if (code == 'ENER-')  return 'Calories'
-      if (code == 'ENERPF') return 'Calories from Fat'
-      if (code == 'BIOT')   return 'Biotin'
-      if (code == 'NA')     return 'Sodium'
-      if (code == 'CHO-')   return 'Total Carbohydrate'
-      if (code == 'CHOL-')  return 'Cholesterol'
-      if (code == 'K')      return 'Potassium'
-      if (code == 'PRO-')   return 'Protein'
-      if (code == 'FAT')    return 'Total Fat'
-      if (code == 'FASAT')  return 'Saturated Fat'
-      if (code == 'FATRN')  return 'Trans Fat'
-      if (code == 'FAPU')   return 'Polyunsaturated Fat'
-      if (code == 'FAMS')   return 'Monounsaturated Fat'
-      if (code == 'SUGAR')  return 'Sugar'
-      if (code == 'FIB-')   return 'Fiber'
-      if (code == 'FIBTG')  return 'Fiber'
-      if (code == 'VITA-')  return 'Vitamin A'
-      if (code == 'VITC')   return 'Vitamin C'
-      if (code == 'CA')     return 'Calcium'
-      if (code == 'FE')     return 'Iron'
-      if (code == 'VITD-')  return 'Vitamin D'
-      if (code == 'VITE-')  return 'Vitamin E'
-      if (code == 'VITK')   return 'Vitamin K'
-      if (code == 'THIA')   return 'Thiamin'
-      if (code == 'RIBF')   return 'Riboflavin'
-      if (code == 'NIAEQ')  return 'Niacin'
-      if (code == 'VITB6-') return 'Vitamin B6'
-      if (code == 'FOL')    return 'Folate'
-      if (code == 'VITB12') return 'Vitamin B12'
-      if (code == 'PANTAC') return 'Pantothenic Acid'
-      if (code == 'P')      return 'Phosphorus'
-      if (code == 'ID')     return 'Iodine'
-      if (code == 'MG')     return 'Magnesium'
-      if (code == 'ZN')     return 'Zinc'
-      if (code == 'SE')     return 'Selenium'
-      if (code == 'CU')     return 'Copper'
-      if (code == 'MN')     return 'Manganese'
-      if (code == 'CR')     return 'Chromium'
-      if (code == 'MO')     return 'Molybdenum'
-      if (code == 'CLD')    return 'Chloride'
-      return code
+      var nutrients = {
+          'ENER'     : 'Calories'
+        , 'ENER-'    : 'Calories'
+        , 'ENERPF'   : 'Calories from Fat'
+        , 'BIOT'     : 'Biotin'
+        , 'NA'       : 'Sodium'
+        , 'CHO-'     : 'Total Carbohydrate'
+        , 'CHOL-'    : 'Cholesterol'
+        , 'K'        : 'Potassium'
+        , 'PRO-'     : 'Protein'
+        , 'FAT'      : 'Total Fat'
+        , 'FASAT'    : 'Saturated Fat'
+        , 'FATRN'    : 'Trans Fat'
+        , 'FATNLEA'  : 'Fat'
+        , 'FAPU'     : 'Polyunsaturated Fat'
+        , 'FAMS'     : 'Monounsaturated Fat'
+        , 'SUGAR'    : 'Sugar'
+        , 'SUGAR-'   : 'Sugar'
+        , 'FIB-'     : 'Fiber'
+        , 'FIBTG'    : 'Fiber'
+        , 'FIBTSW'   : 'Fiber'
+        , 'VITA-'    : 'Vitamin A'
+        , 'VITC'     : 'Vitamin C'
+        , 'VITC-'    : 'Vitamin C'
+        , 'CA'       : 'Calcium'
+        , 'FE'       : 'Iron'
+        , 'VITD-'    : 'Vitamin D'
+        , 'VITE-'    : 'Vitamin E'
+        , 'VITK'     : 'Vitamin K'
+        , 'THIA'     : 'Thiamin'
+        , 'RIBF'     : 'Riboflavin'
+        , 'NIAEQ'    : 'Niacin'
+        , 'VITB6-'   : 'Vitamin B6'
+        , 'FOL'      : 'Folate'
+        , 'VITB12'   : 'Vitamin B12'
+        , 'PANTAC'   : 'Pantothenic Acid'
+        , 'P'        : 'Phosphorus'
+        , 'ID'       : 'Iodine'
+        , 'MG'       : 'Magnesium'
+        , 'ZN'       : 'Zinc'
+        , 'SE'       : 'Selenium'
+        , 'CU'       : 'Copper'
+        , 'MN'       : 'Manganese'
+        , 'CR'       : 'Chromium'
+        , 'MO'       : 'Molybdenum'
+        , 'CLD'      : 'Chloride'
+      }
+      return nutrients[code] || code || ''
     }
   , getAllergen: function (code) {
-      if (code == 'AC') return 'Crustacean'
-      if (code == 'AE') return 'Eggs'
-      if (code == 'AF') return 'Fish'
-      if (code == 'AM') return 'Milk'
-      if (code == 'AN') return 'Tree Nuts'
-      if (code == 'AP') return 'Peanuts'
-      if (code == 'AS') return 'Sesame'
-      if (code == 'AX') return 'Gluten'
-      if (code == 'AY') return 'Soybean'
-      if (code == 'UM') return 'Shellfish'
-      if (code == 'UW') return 'Wheat'
-      return code
+      var allergens = {
+          'AC' : 'Crustacean'
+        , 'AE' : 'Eggs'
+        , 'AF' : 'Fish'
+        , 'AM' : 'Milk'
+        , 'AN' : 'Tree Nuts'
+        , 'AP' : 'Peanuts'
+        , 'AS' : 'Sesame'
+        , 'AX' : 'Gluten'
+        , 'AY' : 'Soybean'
+        , 'UM' : 'Shellfish'
+        , 'UW' : 'Wheat'
+      }
+      return allergerns[code] || code || ''
     }
   , getMeasurement: function (measurements, prop) {
       var measure = measurements
@@ -95,7 +116,7 @@ cs_client = {
       }, '')
       return result
     }
-  , transform: function (item) {
+  , transform: function (item, lang) {
 
       if (!item) return {}
 
@@ -113,6 +134,8 @@ cs_client = {
       result.tm_sub    = item.tm_sub
       result.gpc       = item.gpc
       result.href      = item.href
+
+      result.source_dp = self.getDataPool(item.source_dp)
 
       if (item.fetch_type) result.fetch_type = item.fetch_type
 
@@ -149,22 +172,32 @@ cs_client = {
         var tiDesc             = tiInfo.tradeItemDescriptionInformation
         if (tiDesc) {
           result.brandName             = tiDesc.brandName
-          result.productName           = self.getTextForLang(tiDesc.tradeItemDescription)
-          result.additionalDescription = self.getTextForLang(tiDesc.additionalTradeItemDescription)
-          result.shortDescription      = self.getTextForLang(tiDesc.descriptionShort && tiDesc.descriptionShort.description)
-          result.functionalName        = self.getTextForLang(tiDesc.functionalName && tiDesc.functionalName.description)
+          result.productName           = self.getTextForLang(tiDesc.tradeItemDescription, lang)
+          result.additionalDescription = self.getTextForLang(tiDesc.additionalTradeItemDescription, lang)
+          result.shortDescription      = self.getTextForLang(tiDesc.descriptionShort && tiDesc.descriptionShort.description, lang)
+          result.functionalName        = self.getTextForLang(tiDesc.functionalName && tiDesc.functionalName.description, lang)
+
+          var tiExtInfo = tiDesc.tradeItemExternalInformation
+          if (tiExtInfo) {
+            result.images = tiExtInfo.map(function (e) {
+              return {
+                url: e.uniformResourceIdentifier
+                , type: e.typeOfInformation
+              }
+            })
+          }
         }
         
         var tiNeutral              = tiInfo.tradingPartnerNeutralTradeItemInformation
         if (tiNeutral) {
           if (tiNeutral.tradeItemCountryOfOrigin) {
-            result.countryOfOrigin = self.getCountry(tiNeutral.tradeItemCountryOfOrigin.countryISOCode)
+            result.countryOfOrigin = tiNeutral.tradeItemCountryOfOrigin.map(function (e) { return self.getCountry(e.countryISOCode) })
           }
           if (tiNeutral.brandOwnerOfTradeItem) {
             result.brandOwner = tiNeutral.brandOwnerOfTradeItem.nameOfBrandOwner
           }
           if (tiNeutral.manufacturerOfTradeItem) {
-            result.manufacturer = tiNeutral.manufacturerOfTradeItem.nameOfManufacturer
+            result.manufacturer = tiNeutral.manufacturerOfTradeItem.map(function (e) { return e.nameOfManufacturer })
           }
           if (tiNeutral.tradeItemHandlingInformation) {
             result.ShelfLifefromProduction = tiNeutral.tradeItemHandlingInformation.minimumTradeItemLifespanFromTimeOfProduction
@@ -187,7 +220,7 @@ cs_client = {
           }
 
           if (tiNeutral.marketingInformation) {
-            result.marketingMessage = self.getTextForLang(tiNeutral.marketingInformation.tradeItemMarketingMessage, 'en')
+            result.marketingMessage = self.getTextForLang(tiNeutral.marketingInformation.tradeItemMarketingMessage, lang)
           }
 
         } // end tiNeutral
@@ -197,15 +230,20 @@ cs_client = {
 
       var extInfo = food_ext && food_ext.tradeItemExternalInformation
       if (extInfo) {
-        result.images = extInfo.map(function (e) {
-          return e.uniformResourceIdentifier
+        if (!result.images) result.images = []
+        var foodUrls = extInfo.map(function (e) {
+          return {
+            url: e.uniformResourceIdentifier
+            , type: e.typeOfInformation
+          }
         })
+        result.images = result.images.concat(foodUrls)
       }
 
       var mktInfo = food_ext && food_ext.foodAndBeverageMarketingInformationExtension
       if (mktInfo) {
         if (mktInfo.servingSuggestion) {
-          result.servingSuggestion = self.getTextForLang(mktInfo.servingSuggestion, 'en')
+          result.servingSuggestion = self.getTextForLang(mktInfo.servingSuggestion, lang)
         }
       }
 
@@ -215,7 +253,7 @@ cs_client = {
         result.foodAndBeverageInformation = fbInfoList.map(function (fbInfo) {
 
           var food = {}
-          food.productVariant = self.getTextForLang(fbInfo.productionVariantDescription, 'en')
+          food.productVariant = self.getTextForLang(fbInfo.productionVariantDescription, lang)
 
           var aInfo = fbInfo.foodAndBeverageAllergyRelatedInformation
           if (aInfo) {
@@ -252,7 +290,7 @@ cs_client = {
             if (ingredients) {
               ingredients.forEach(function (e) {
                 if (!e.ingredientName) return
-                var ing = self.getTextForLang(e.ingredientName.description, 'en')
+                var ing = self.getTextForLang(e.ingredientName.description, lang)
                 if (ing) {
                   if (!food.ingredients) food.ingredients = []
                   food.ingredients.push(self.getText(ing))
@@ -260,7 +298,7 @@ cs_client = {
               })
             }
             if (ingInfo.ingredientStatement) {
-              food.ingredientStatement = self.getTextForLang(ingInfo.ingredientStatement.description, 'en')
+              food.ingredientStatement = self.getTextForLang(ingInfo.ingredientStatement.description, lang)
             }
           }
 
@@ -269,7 +307,7 @@ cs_client = {
             food.nutrientInformation = nutInfoList.map(function (nInfo) {
               var info = {}
               info.preparationState = self.getText(nInfo.preparationState)
-              info.householdServingSize = self.getTextForLang(nInfo.householdServingSize && nInfo.householdServingSize.description, 'en')
+              info.householdServingSize = self.getTextForLang(nInfo.householdServingSize && nInfo.householdServingSize.description, lang)
               info.servingSize = self.getMeasurement(nInfo.servingSize)
               var nutrients = nInfo.foodAndBeverageNutrient
               info.nutrientList = nutrients.map(function (e) {
@@ -290,7 +328,7 @@ cs_client = {
               var prep = {}
               prep.preparationType = prepInfo.preparationType
               if (prepInfo.preparationInstructions) {
-                prep.preparationInstructions = self.getTextForLang(prepInfo.preparationInstructions.description, 'en')
+                prep.preparationInstructions = self.getTextForLang(prepInfo.preparationInstructions.description, lang)
               }
               return prep
             })

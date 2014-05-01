@@ -21,7 +21,7 @@ module.exports = function (config) {
     log.info('req params: ' + JSON.stringify(req.query))
     var query = item_utils.get_query(req)
 
-    config.database.getTradeItems(query, page, per_page, false, false, function (err, items) {
+    config.database.getTradeItems(query, page, per_page, false, function (err, items) {
       if (err) return next(err)
       log.info('list_trade_items getTradeItems return item count: ' + items.length)
       items = items.map(function (item) {
@@ -67,7 +67,7 @@ module.exports = function (config) {
     log.info('per_page ' + per_page)
     if (!per_page || per_page < 0 || per_page > 100) per_page = config.per_page_count
 
-    config.database.getTradeItems(query, page, per_page, true, false, function (err, items) {
+    config.database.getTradeItems(query, page, per_page, true, function (err, items) {
       if (err) return next(err)
       log.info('find_trade_items getTradeItems return item count: ' + items.length)
 

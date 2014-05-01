@@ -1,15 +1,20 @@
 /*
- * Welcome to gdsn server devlopment on node.js!
+ * Welcome to Catalog Services API development on Node.js!
  *
  * The project has the following source locations:
- *
  *  app.js (this file)
  *  lib/
+ *  profiles/
  *  routes/
  *  node_modules/gdsn/
  *
- *  SVN: $URL: $
+ * Client-side code and files are found here:
+ *  public/
+ *  public/js
+ *
+ * SVN Tag: $URL: $
  */
+
 var config  = require('./config.js')
 config.user_config = {}
 
@@ -115,6 +120,25 @@ app.use(function (err, req, res, next) {
   })
 })
 
+// test
+app.get('/async-series-test', function (req, res, next) {
+
+  require('./lib/async').test(false, function(err, result) {
+    if (err) return res.send(500, err)
+    res.json(result)
+    res.end()
+  })
+
+})
+app.get('/async-waterfall-test', function (req, res, next) {
+
+  require('./lib/async').test(true, function(err, result) {
+    if (err) return res.send(500, err)
+    res.json(result)
+    res.end()
+  })
+
+})
 
 // testing xml canonicalization...
 app.post('/c14', routes.getXmlC14Handler(config))
@@ -128,6 +152,12 @@ app.post('/cin_from_other_dp', express.multipart(), routes_cin.post_cin_from_oth
 // documented 1.0 api endpoints
 app.use(config.base_url, app.router)
 app.get( '/', function (req, res, next) { res.render('api_docs_10') })
+
+app.get( '/util/archive_items', function(req, res, next) {
+  config.database.archive_items(function(result) {
+    res.end(result)
+  })
+})
 
 app.get( '/msg/:instance_id',                             routes_archive.find_archive)
 app.get( '/msg',                                          routes_archive.list_archive)

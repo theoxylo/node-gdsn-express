@@ -9,7 +9,7 @@ module.exports = function (config) {
 
   function processFoundItems(err, items) {
     if (err) return data.next(err)
-    log.info('get_subscribed_item  getTradeItems return item count: ' + items.length)
+    log.info('get_subscribed_item returned item count: ' + items.length)
 
     items = item_utils.de_dupe_items(items)
 
@@ -34,10 +34,7 @@ module.exports = function (config) {
           , code   : '597'
           , message: 'more than one item was found for the given criteria'
         }
-        href += ((href.indexOf('?') == -1) ? '?' : '&')
-        result.collection.links = [
-            {rel: 'multi', href: href + 'multi=true'}
-        ]
+        result.collection.links = []
         items.forEach(function (item) {
           item.href = get_item_href(item)
           result.collection.links.push({rel: 'match', href: item.href})
@@ -52,51 +49,16 @@ module.exports = function (config) {
     var items_with_children = (data.req_param['children'] ? items.slice() : [])
     var items_with_parents = (data.req_param['parents'] ? items.slice() : [])
 
-    expandChildren(items_with_children, items, function (err, items) {
-      expandParents(items_with_parents, items, presentResults)
+    item_utils.fetch_children(items_with_children, function (err, results1) {
+      if (err) return presentResults(err)
+      results1 = results1.map(function (e) { if (!e.fetch_type) e.fetch_type = 'child' ; return e })
+      item_utils.fetch_parents(items_with_parents, function (err, results2) {
+        if (err) return presentResults(err)
+        results2 = results2.map(function (e) { if (!e.fetch_type) e.fetch_type = 'parent' ; return e })
+        presentResults(null, items.concat(results1.concat(results2)))
+      })
     })
-  }
 
-  function expandChildren (root_items, all_items, cb) {
-    var item = root_items.shift()
-    if (!item) return cb(null, all_items)
-    log.debug(item)
-    var child_query = {
-      recipient : item.recipient,
-      provider  : item.provider,
-      tm        : item.tm,
-      tm_sub    : item.tm_sub
-    }
-
-    item_utils.fetch_children(item, child_query, function (err, children) {
-      if (err) return cb(err)
-      log.info('fetch children callback with children length: ' + children.length)
-      children = children.map(function (e) { e.fetch_type = 'child'; return e })
-      all_items = all_items.concat(children)
-      log.info('items length after adding some children: ' + all_items.length)
-      expandChildren(root_items, all_items, cb)
-    })
-  }
-
-  function expandParents (root_items, all_items, cb) {
-    var item = root_items.shift()
-    if (!item) return cb(null, all_items)
-    log.debug(item)
-    var parent_query = {
-      recipient : item.recipient,
-      provider  : item.provider,
-      tm        : item.tm,
-      tm_sub    : item.tm_sub
-    }
-
-    item_utils.fetch_parents(item, parent_query, function (err, parents) {
-      if (err) return cb(err)
-      log.info('fetch parents callback with parents length: ' + parents.length)
-      parents = parents.map(function (e) { e.fetch_type = 'parent'; return e })
-      all_items = all_items.concat(parents)
-      log.info('items length after adding some parents: ' + all_items.length)
-      expandParents(root_items, all_items, cb)
-    })
   }
 
   function get_item_href(item) {
@@ -243,7 +205,7 @@ module.exports = function (config) {
         log.warn('profile config "recipients" not found, no filter applied')
       }
 
-      config.database.getTradeItems(query, 0, 100, true, false, processFoundItems)
+      config.database.getTradeItems(query, 0, 100, true, processFoundItems)
     }
   }
 }

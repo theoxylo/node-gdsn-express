@@ -1,26 +1,35 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <!-- Version $URL: http://svn.instill.com/repos/instill_dev/Catalog_Services/node-api-server/trunk/public/api_sample_client.html $ -->
   <meta charset="utf-8">
   <title>CS API Sample Web Client</title>
+  <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
 
 <h2>Fetch Subscribed Items</h2>
 
-<div>Server (host and port)<br/><input id="input_server" value="plt-gdsn02.itradenetwork.com:8080" size="30"></input></div>
-<div>GTIN<br/><input id="input_gtin" value="00038000105234"></input></div>
-<div>Provider GLN<br/><input id="input_provider" value="1100001011292"></input></div>
-<div>Target Market Country Code<br/><input id="input_tm" value=""></input></div>
-<div>Target Market Subdivision Code<br/><input id="input_tm_sub" value=""></input></div>
-<div>Data Transform <select name="trans_type" id="input_server_transform"><option value="">None</option><option value="client">Client</option><option value="server">Server</option></select></div>
-<div><input id="input_include_children" type="checkbox"></input>  Include Children</div>
-<div><input id="input_include_parents" type="checkbox"></input>   Include Parents</div>
-<div><input id="input_multi_gtin" type="checkbox"></input>        Allow Multi-GTIN (multiple items with same GTIN)</div>
+<div>
+<table><tr><td>
+    <p>Server (host and port)<br/><input id="input_server" value="plt-gdsn02.itradenetwork.com:8080" size="40"></input></p>
+    <p>GTIN<br/><input id="input_gtin" value="00038000105234" size="40"></input></p>
+    <p>Provider GLN<br/><input id="input_provider" value="1100001011292" size="40"></input></p>
+    <p>Target Market Country Code<br/><input id="input_tm" value="" size="40"></input></p>
+    <p>Target Market Subdivision Code<br/><input id="input_tm_sub" value="" size="40"></input></p>
+  </td>
+  <td>
+    <p>Data Transform <select name="trans_type" id="input_server_transform"><option value="">None</option><option value="client">Client</option><option value="server">Server</option></select></p>
+    <p><input id="input_include_children" type="checkbox"></input>  Include Children</p>
+    <p><input id="input_include_parents" type="checkbox"></input>   Include Parents</p>
+    <p><input id="input_multi_gtin" type="checkbox"></input>        Multi: allow multiple items with same GTIN</p>
+    <p><button id="btn_fetch">Fetch Items</button> <span id="fetch_time"></span></p>
+    <p><button id="btn_fetch_hide">Clear Results</button></p>
+  </td></tr>
+</table>
+</div>
 
-<br/><button id="btn_fetch">Fetch Items</button> <span id="fetch_time"></span>
-<br/><button id="btn_fetch_hide">Hide Results</button>
-<br/><div id="results"></div>
+<div id="results"></div>
 
 <script src="js/jp-pretty-print-101.js"></script>
 <script src="js/jquery-1.10.2.js"></script>
@@ -92,17 +101,17 @@ $(function () {
       console.log('trans: ' + trans)
       $results.empty()
       if(typeof data == 'string') {
-        $results.append('<div>' + data + '</div>')
+        $results.append('<p>' + data + '</p>')
         return
       }
       if (data.collection.error) {
         var e = data.collection.error
-        $results.append('<div>Error: ' + e.title + ' (' + e.message + ')</div>')
+        $results.append('<p>Error: ' + e.title + ' (' + e.message + ')</p>')
         if (data.collection.links) {
           var links = data.collection.links
-          if (links.length) $results.append('<div>Please specify more criteria or use the "multi" option as in these links:</div>')
+          if (links.length) $results.append('<p>Please specify more criteria as shown below:</p>')
           links.forEach(function (link) {
-            $results.append('<div><a target="new" href="' + link.href + '">' + link.href + '</a></div>')
+            $results.append('<p><a target="new" href="' + link.href + '">' + link.href + '</a></p>')
           })
         }
         return
@@ -112,7 +121,7 @@ $(function () {
         if (trans == 'client') item = cs_client.transform(item)
         log('appending item ' + item.gtin)
         $results.append('<br/><span>Item ' + item.href + ' (' + item.fetch_type + '):</span>')
-        $results.append('<br/><textarea rows="6" cols="100">' + JSON.stringify(item) + '</textarea>')
+        $results.append('<br/><textarea rows="6" cols="120">' + JSON.stringify(item) + '</textarea>')
       })
     })
   })

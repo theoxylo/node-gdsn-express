@@ -33,8 +33,8 @@ h1, h2 {
 
 table, td, th {
   border-collapse: collapse;
-  border: 1px solid black;
   padding: 4px;
+  text-align: center;
 }
 
 .noBorder {
