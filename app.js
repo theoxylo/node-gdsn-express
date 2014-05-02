@@ -120,24 +120,34 @@ app.use(function (err, req, res, next) {
   })
 })
 
-// test
-app.get('/async-series-test', function (req, res, next) {
+// testing async utilties for batching functions
+var async = require('./lib/async')
 
-  require('./lib/async').test(false, function(err, result) {
-    if (err) return res.send(500, err)
-    res.json(result)
+app.get('/async-parallel-test', function (req, res, next) {
+  async.test('p', function(err, result) {
+    var combined = {
+      err: err && err.length ? err.map(function (e) { return { message: e.message }}) : null,
+      result: result
+    }
+    res.json(combined)
     res.end()
   })
-
 })
-app.get('/async-waterfall-test', function (req, res, next) {
 
-  require('./lib/async').test(true, function(err, result) {
-    if (err) return res.send(500, err)
+app.get('/async-serial-test', function (req, res, next) {
+  async.test('s', function(err, result) {
+    if (err) return next(err)
     res.json(result)
     res.end()
   })
+})
 
+app.get('/async-waterfall-test', function (req, res, next) {
+  async.test('w', function(err, result) {
+    if (err) return next(err)
+    res.json(result)
+    res.end()
+  })
 })
 
 // testing xml canonicalization...
