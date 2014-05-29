@@ -144,7 +144,7 @@ module.exports = function (config) {
   }
 
   api.post_trade_items = function (req, res, next) {
-    console.log('post_trade_items handler called')
+    log.debug('post_trade_items handler called')
 
     var content = ''
     req.setEncoding('utf8')
@@ -161,22 +161,29 @@ module.exports = function (config) {
       })
     })
 
-    var saved_gtins = []
+    var Parallel = require('../lib/async').Parallel
+    var parallel = new Parallel()
 
     config.gdsn.items.getEachTradeItemFromStream(req, function (err, item) {
       if (err) return next(err)
 
       if (item) {
-        //var itemDigest = xml_digest.digest(item.xml)
-        //item.tradeItem = itemDigest.tradeItem
-        config.database.saveTradeItem(item, function (err, gtin) {
-          if (err) return next(err)
-          saved_gtins.push(gtin)
+        log.debug('received item from getEachTradeItemFromStream callback with gtin ' + item.gtin)
+        var fn = config.database.saveTradeItem.bind(config.database, item)
+        parallel.push(function (data, cb) {
+          fn(cb)
         })
       }
       else { // null item is passed when there are no more items in the stream
-        res.json({msg: 'Saved ' + saved_gtins.length + ' items', saved_gtins: saved_gtins})
-        res.end()
+        log.debug('no more items from getEachTradeItemFromStream callback')
+        parallel.start({ name: 'parallel_start_data' }, function (err, result) {
+          log.debug('parallel err: ' + JSON.stringify(err))
+          log.debug('parallel results: ' + JSON.stringify(result))
+          if (err) return next(err)
+          result.shift()
+          res.json({msg: 'Saved ' + result.length + ' items, GTINs: ' + result.join(', ')})
+          res.end()
+        })
       }
 
     })

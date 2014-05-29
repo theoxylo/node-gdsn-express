@@ -50,6 +50,25 @@ app.locals({test: true})
 
 app.use(express.favicon(__dirname + '/public/favicon.ico'))
 app.use(express.logger('dev'))
+
+app.use(config.base_url + '/login/', function (req, res, next) {
+  log.debug('login req.url: ' + req.url)
+  log.debug('login user: ' + req.query['user'])
+  var user = req.query['user']
+  var pass = req.query['pass']
+
+  var token = new Buffer(user + ":" + pass, 'utf8').toString('base64')
+  log.info('token for user ' + user + ', pass ' + pass + ': ' + token)
+
+  /*
+  if (user == 'bp_cps' && pass == 'bp_cpsAdmin') {
+    //res.jsonp({token: 'YnBfY3BzOmJwX2Nwc0FkbWlu', timestamp: Date.now()})
+    if (token !== 'YnBfY3BzOmJwX2Nwc0FkbWlu') next('not working')
+  }
+  */
+  res.jsonp({token: token, timestamp: Date.now()})
+})
+
 app.use(config.base_url, express.basicAuth(function (user, pass) {
   console.log('********************************************************************************** checking auth info for user: ' + user)
   if ('admin' == user & 'devadmin' == pass) return true
@@ -168,6 +187,8 @@ app.get( '/util/archive_items', function(req, res, next) {
     res.end(result)
   })
 })
+
+app.get( '/login-docs', function (req, res, next) { res.render('login_api_docs_10') })
 
 app.get( '/msg/:instance_id',                             routes_archive.find_archive)
 app.get( '/msg',                                          routes_archive.list_archive)

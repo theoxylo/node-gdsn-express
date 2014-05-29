@@ -333,20 +333,36 @@
 
         <div>
           <form id="sub_form">
-            <table><tr><td>
-                <p>GTIN<br/><input id="input_gtin" value="00038000105234" size="40"></input></p>
-                <p>Provider GLN<br/><input id="input_provider" value="1100001011292" size="40"></input></p>
-                <p><input id="input_include_children" type="checkbox"></input>  Include Children</p>
-                <p><input id="input_include_parents" type="checkbox"></input>   Include Parents</p>
-                <p><button id="btn_fetch" ng-click="getSubscribedItems()">Fetch Items</button></p>
-              </td>
-              <td>
-                <p>Target Market Country Code<br/><input id="input_tm" value="" size="40"></input></p>
-                <p>Target Market Subdivision Code<br/><input id="input_tm_sub" value="" size="40"></input></p>
-                <p>Data Transform <select name="trans_type" id="input_server_transform"><option value="">None</option><option value="client">Client</option><option value="server">Server</option></select></p>
-                <p><input id="input_multi_gtin" type="checkbox"></input>        Multi: allow multiple items with same GTIN</p>
-                <p><button id="btn_fetch_hide" ng-click="resetSubscribedItems()">Clear Results</button></p>
-              </td></tr>
+            <table>
+              <tr>
+                <td>
+                  <p>GTIN<br/><input id="input_gtin" value="00038000105234" size="40"></input></p>
+                  <p>Provider GLN<br/><input id="input_provider" value="" size="40"></input></p>
+                </td>
+                <td>
+                  <p>Target Market Country Code<br/><input id="input_tm" value="" size="40"></input></p>
+                  <p>Target Market Subdivision Code<br/><input id="input_tm_sub" value="" size="40"></input></p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p><input id="input_include_children" type="checkbox"></input>  Include Children</p>
+                  <p><input id="input_include_parents" type="checkbox"></input>   Include Parents</p>
+                  <p><input id="input_food_only" type="checkbox"></input>         Only items with Food/Bev Info </p>
+                </td>
+                <td>
+                  <p>Data Transform <select name="trans_type" id="input_server_transform"><option value="">None</option><option value="client">Client</option><option value="server">Server</option></select></p>
+                  <p><input id="input_multi_gtin" type="checkbox"></input>        Multi: allow multiple items with same GTIN</p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p><button id="btn_fetch" ng-click="getSubscribedItems()">Fetch Items</button></p>
+                </td>
+                <td>
+                  <p><button id="btn_fetch_hide" ng-click="resetSubscribedItems()">Clear Results</button></p>
+                </td>
+              </tr>
             </table>
           </form>
         </div>
@@ -574,6 +590,7 @@
         var children  = $('#input_include_children').prop('checked')
         var parents   = $('#input_include_parents').prop('checked')
         var multi     = $('#input_multi_gtin').prop('checked')
+        var food     = $('#input_food_only').prop('checked')
 
         var url = app.api + '/subscribed/' + gtin
         if (provider) url += '/' + provider
@@ -594,6 +611,7 @@
             , parents: parents
             , multi: multi
             , transform: transform
+            , food: food
             //, callback: 'JSON_CALLBACK'
           }
         })
@@ -759,13 +777,13 @@
       }
 
       $scope.reset_search = function () {
-        $scope.input_item_gtin      = ''
-        $scope.input_item_provider  = ''
-        $scope.input_item_recipient = ''
-        $scope.input_item_tm        = ''
-        $scope.input_item_tm_sub    = ''
-        $scope.items = null
-        $scope.page = 0
+        delete $scope.input_item_gtin
+        delete $scope.input_item_provider
+        delete $scope.input_item_recipient
+        delete $scope.input_item_tm
+        delete $scope.input_item_tm_sub
+        delete $scope.items
+        delete $scope.page
       }
 
       $scope.list_items = function (pageIncrement) {

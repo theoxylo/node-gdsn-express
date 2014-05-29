@@ -90,7 +90,7 @@ cs_client = {
         , 'UM' : 'Shellfish'
         , 'UW' : 'Wheat'
       }
-      return allergerns[code] || code || ''
+      return allergens[code] || code || ''
     }
   , getMeasurement: function (measurements, prop) {
       var measure = measurements
@@ -134,6 +134,8 @@ cs_client = {
       result.tm_sub    = item.tm_sub
       result.gpc       = item.gpc
       result.href      = item.href
+
+      result.food_and_bev = item.food_and_bev
 
       result.source_dp = self.getDataPool(item.source_dp)
 
@@ -257,13 +259,12 @@ cs_client = {
 
           var aInfo = fbInfo.foodAndBeverageAllergyRelatedInformation
           if (aInfo) {
-            var allergens = aInfo.foodAndBeverageAllergen
-            
             var may_contain = {levelOfContainment: 'MayContain', allergenList: []}
             var contains = {levelOfContainment: 'Contains', allergenList: []}
+            food.allergens = [contains, may_contain]
 
+            var allergens = aInfo.foodAndBeverageAllergen
             allergens.forEach(function (allergen) {
-
               if (allergen.levelOfContainment == 'MAY_CONTAIN') {
                 may_contain.allergenList.push(self.getAllergen(allergen.allergenTypeCode))
               }
@@ -271,7 +272,6 @@ cs_client = {
                 contains.allergenList.push(self.getAllergen(allergen.allergenTypeCode))
               }
             })
-            food.allergens = [contains, may_contain]
           }
 
           var dietCodes = fbInfo.foodAndBeverageDietRelatedInformation
@@ -344,5 +344,27 @@ cs_client = {
       result.transform_millis = Date.now() - start
 
       return result
+    }
+  , reduce: function (items) {
+      return items.reduce(function (result, element, index, array) {
+        //for (var prop in element) {
+          //console.log('element ' + index + ' prop: ' + prop + ', value: ' + element[prop])
+        //}
+        if (!result.gtin) result.gtin = []
+        if (element.gtin) result.gtin.push(element.gtin)
+
+        if (!result.images) result.images = []
+        if (element.images) result.images = result.images.concat(element.images)
+
+        if (!result.foodAndBeverageInformation) result.foodAndBeverageInformation = []
+        if (element.foodAndBeverageInformation) {
+          result.foodAndBeverageInformation = result.foodAndBeverageInformation.concat(element.foodAndBeverageInformation)
+        }
+
+        result.food_and_bev = result.food_and_bev || element.food_and_bev
+
+        return result
+      }
+      , {})
     }
 }

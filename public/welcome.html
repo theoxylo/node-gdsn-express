@@ -230,10 +230,12 @@
 <p>GDSN allows Trading Parties to exchange Catalog Item information based on a pub/sub distribution model. It is a set of standards and services provided by the GS1 organization () and private Data Pools.</p>
 
 <p>GDSN includes the following components:</p>
-<li>a set of standards, including XML Schema (XSD) definitions that describe items and workflow</li>
-<li>a Global Registry (GR) that registers items and tracks subscription and party information</li>
-<li>a collection of Data Pools (DPs), service providers that interoperate on behalf of parties</li>
-<li>many trading parties such as manufacturers, distributors, and retailers. 
+<ul>
+  <li>a set of standards, including XML Schema (XSD) definitions that describe items and workflow</li>
+  <li>a Global Registry (GR) that registers items and tracks subscription and party information</li>
+  <li>a collection of Data Pools (DPs), service providers that interoperate on behalf of parties</li>
+  <li>many trading parties such as manufacturers, distributors, and retailers. 
+</ul>
 
 <p>Within the GDSN, each catalog item is identified by the unique combination of GTIN, provider GLN, and TM (target market country and subdivision). These values are available within the item data, making items self-contained. In practice, it is also necessary to track the item recipient GLN (which is not part of the item data). Usually the recipient is the GLN of the subscriber receiving published data. For the original catalog item (as registered by the provider), the recipient will always be the GLN of the provider's home data pool.
 
@@ -243,11 +245,11 @@
 
 The compound natural key (gtin-provider-tm-recipient) for items allows for complex use cases, such as:
 
-1.	Multiple TM: providers can create items specific to different countries or states. Each item may have completely different data as needed, so it is more than just “versioning”.
-
-2.	Multiple provider GLNs for the same GTIN: a distributor may “republish” an item using their own GLN, allowing customization of the item as needed. Or the same GTIN could just randomly happen to get used by various providers.
-
-3.	Multiple recipients: each recipient may have slightly different requirements regarding item definition. For example, some recipients don’t want nutritional data or other “extended” data.
+<ol>
+  <li>Multiple TM: providers can create items specific to different countries or states. Each item may have completely different data as needed, so it is more than just 'versioning'.
+  <li>Multiple provider GLNs for the same GTIN: a distributor may 'republish' an item using their own GLN, allowing customization of the item as needed. Or the same GTIN could just randomly happen to get used by various providers.
+  <li>Multiple recipients: each recipient may have slightly different requirements regarding item definition. For example, some recipients don’t want nutritional data or other 'extended' data.
+</ol>
 
 <h2>GDSN External Code Lists</h2>
 
