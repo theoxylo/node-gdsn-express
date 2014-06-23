@@ -19,8 +19,9 @@ var config  = require('./config.js')
 config.user_config = {}
 
 var express = require('express')
-var fs      = require('fs');
-var https   = require('https');
+var fs      = require('fs')
+var https   = require('https')
+var request = require('request')
 
 var log = require('./lib/Logger')('gdsnApp', config)
 log.debug('DEBUG logging enabled')
@@ -32,13 +33,17 @@ config.gdsn = new Gdsn(config)
 var Database = require('./lib/Database')
 config.database = new Database(config)
 
-var routes         = require('./routes')
-var routes_admin   = require('./routes/admin')
-var routes_cin     = require('./routes/cin_form')(config)
-var routes_archive = require('./routes/msg_archive')(config)
-var routes_item    = require('./routes/trade_item')(config)
-var routes_subscr  = require('./routes/items_subscribed')(config)
-var routes_parties = require('./routes/parties')(config)
+var routes          = require('./routes')
+var routes_admin    = require('./routes/admin')
+var routes_cin      = require('./routes/cin_form')(config)
+var routes_subscr   = require('./routes/items_subscribed')(config)
+var routes_login    = require('./routes/login')
+var routes_allergen = require('./routes/lookup_allergen')
+var routes_country  = require('./routes/lookup_country')
+var routes_nutrient = require('./routes/lookup_nutrient')
+var routes_archive  = require('./routes/msg_archive')(config)
+var routes_parties  = require('./routes/parties')(config)
+var routes_item     = require('./routes/trade_item')(config)
 
 var app = express()
 
@@ -51,24 +56,6 @@ app.locals({test: true})
 app.use(express.favicon(__dirname + '/public/favicon.ico'))
 app.use(express.logger('dev'))
 
-app.use(config.base_url + '/login/', function (req, res, next) {
-  log.debug('login req.url: ' + req.url)
-  log.debug('login user: ' + req.query['user'])
-  var user = req.query['user']
-  var pass = req.query['pass']
-
-  var token = new Buffer(user + ":" + pass, 'utf8').toString('base64')
-  log.info('token for user ' + user + ', pass ' + pass + ': ' + token)
-
-  /*
-  if (user == 'bp_cps' && pass == 'bp_cpsAdmin') {
-    //res.jsonp({token: 'YnBfY3BzOmJwX2Nwc0FkbWlu', timestamp: Date.now()})
-    if (token !== 'YnBfY3BzOmJwX2Nwc0FkbWlu') next('not working')
-  }
-  */
-  res.jsonp({token: token, timestamp: Date.now()})
-})
-
 app.use(config.base_url, express.basicAuth(function (user, pass) {
   console.log('********************************************************************************** checking auth info for user: ' + user)
   if ('admin' == user & 'devadmin' == pass) return true
@@ -77,9 +64,11 @@ app.use(config.base_url, express.basicAuth(function (user, pass) {
   }
   return false
 }))
+
 app.use(express.urlencoded())
 app.use(express.cookieParser('secret cookie salt 12345'))
 //app.use(express.session())
+
 app.use('/', function logout(req, res, next) {
   if (req.param.logout) {
     req.user = ''
@@ -118,6 +107,7 @@ app.use('/', function (req, res, next) {
 app.get('/err', function (req, res, next) {
   next(new Error('this is a test error'))
 })
+
 app.use('/snoop', routes.getSnoopHandler(10))
 app.use(express.static(__dirname + '/public'))
 app.use(express.directory(__dirname + '/public'))
@@ -136,6 +126,29 @@ app.use(function (err, req, res, next) {
     , json: function () {
       res.send(err.stack)
     }
+  })
+})
+
+// url content-type query service
+app.get(config.base_url + '/get_headers', function (req, res, next) {
+  var url = req.param('url')
+  console.log('url: ' + url)
+  request.head(url, function (err, head_res, body) {
+    if (err) return next(err)
+    var headers = head_res.headers
+    console.log('head res: ' + headers)
+    var result = {
+      statusCode: head_res.statusCode,
+      url: url,
+      timestamp: Date.now()
+    }
+    for (var prop in headers) {
+      if (headers.hasOwnProperty(prop)) {
+        console.log(prop + ': ' + headers[prop])
+        result[prop] = headers[prop]
+      }
+    }
+    res.json(result)
   })
 })
 
@@ -180,7 +193,22 @@ app.post('/cin_from_other_dp', express.multipart(), routes_cin.post_cin_from_oth
 
 // documented 1.0 api endpoints
 app.use(config.base_url, app.router)
-app.get( '/', function (req, res, next) { res.render('api_docs_10') })
+
+app.get('/gpc-sax', function (req, res, next) {
+  var gpc_util = require('./lib/GpcXmlUtil')
+  gpc_util.sax(config.gpc_file, function (err, gpc) {
+    //console.log('sax gpc: ' + JSON.stringify(gpc))
+    res.jsonp(gpc)
+  })
+})
+
+app.get('/gpc-dom', function (req, res, next) {
+  var gpc_util = require('./lib/GpcXmlUtil')
+  gpc_util.dom(config.gpc_file, function (err, gpc) {
+    //console.log('dom gpc: ' + JSON.stringify(gpc))
+    res.jsonp(gpc)
+  })
+})
 
 app.get( '/util/archive_items', function(req, res, next) {
   config.database.archive_items(function(result) {
@@ -188,7 +216,12 @@ app.get( '/util/archive_items', function(req, res, next) {
   })
 })
 
-app.get( '/login-docs', function (req, res, next) { res.render('login_api_docs_10') })
+app.get('/login',           routes_login.getRequestHandler(config))
+
+// lookup services
+app.get('/lookup_allergen', routes_allergen.getRequestHandler(config))
+app.get('/lookup_country' , routes_country.getRequestHandler(config))
+app.get('/lookup_nutrient', routes_nutrient.getRequestHandler(config))
 
 app.get( '/msg/:instance_id',                             routes_archive.find_archive)
 app.get( '/msg',                                          routes_archive.list_archive)
@@ -201,14 +234,14 @@ app.get( '/subscribed/:gtin',                             routes_subscr.get_subs
 app.get( '/subscribed/',                                  routes_subscr.get_subscribed_item)
 app.get( '/subscribed', function (req, res, next) { res.render('subscribed_api_docs_10') })
 
+app.get( '/items-list',                                   routes_item.list_trade_items)
+app.get( '/items/migrate',                                routes_item.migrate_trade_items)
 app.get( '/items/:recipient/:gtin/:provider/:tm/:tm_sub', routes_item.find_trade_items)
 app.get( '/items/:recipient/:gtin/:provider/:tm',         routes_item.find_trade_items)
 app.get( '/items/:recipient/:gtin/:provider',             routes_item.find_trade_items)
 app.get( '/items/:recipient/:gtin',                       routes_item.find_trade_items)
 app.get( '/items/:recipient',                             routes_item.find_trade_items)
-app.get( '/items/',                                       routes_item.find_trade_items)
-
-app.get( '/items',                                        routes_item.list_trade_items)
+app.get( '/items',                                        routes_item.find_trade_items)
 app.post('/items',                                        routes_item.post_trade_items)
 
 app.get( '/party/:gln',                                   routes_parties.find_parties)
@@ -234,7 +267,7 @@ if (config.https_port) {
   var https_options = {
     key   : fs.readFileSync(config.key_file),
     cert  : fs.readFileSync(config.cert_file)
-  };
+  }
   var server = https.createServer(https_options, app)
   server.listen(config.https_port)
   log.info("Express GDSN server listening on HTTPS port " + config.https_port)
@@ -264,7 +297,7 @@ function profileLoader(req, res, next) { // load profile
   }
 
   log.info('loading config')
-  var filename = __dirname + '/profiles/' + req.user + '.config'
+  var filename = __dirname + '/profiles/' + req.user + '.js'
   try {
     log.info('loading user_config for user ' + req.user + ', file: ' + filename)
     user_config = require(filename)

@@ -1,10 +1,19 @@
-<h3>Welcome</h3>
-
+<p/>
 <h2>API Documentation</h2>
 <div>
   Most API calls can return a variety of response formats and content types. Return type is based on URL, request parameters, or the "Accept" header, depending on what is supported by the specific endpoint.
 </div>
 <div id="accordion_docs">
+
+  <div>Login Session</div>
+  <div id="doc_login"/>
+
+  <div>All Catalog Items</div>
+  <div id="doc_items"/>
+
+  <div>Subscribed Items</div>
+  <div id="doc_subscribed"/>
+
   <div>Messages</div>
   <div>
     <div>A message is an XML document that provides data on catalog items or trading parties.</div>
@@ -31,37 +40,7 @@
       </tr>
     </table>
   </div>
-  <div>Catalog Items</div>
-  <div>
-    <div>A catalog item is the main type of data provided by CS</div>
-    <table>
-      <tr>
-        <th>Endpoint</th>
-        <th>Method</th>
-        <th>Description</th>
-      </tr>
-      <tr>
-        <td>/api/1.0/items</td>
-        <td>GET</td>
-        <td>Returns an array of catalog item summary records (without full item content)</td>
-      </tr>
-      <tr>
-        <td>
-          <div>/api/1.0/items/:gtin</div>
-          <div>/api/1.0/items/:gtin/:ds</div>
-          <div>/api/1.0/items/:gtin/:ds/:tm</div>
-          <div>/api/1.0/items/:gtin/:ds/:tm/:dr</div>
-        </td>
-        <td>GET</td>
-        <td>Returns the most recent full catalog item details for the specified GTIN, DS, TM and DR. Either JSON or XML can be returned</td>
-      </tr>
-      <tr>
-        <td>/api/1.0/items</td>
-        <td>POST</td>
-        <td>Returns operation result</td>
-      </tr>
-    </table>
-  </div>
+
   <div>Trading Parties</div>
   <div>
     <table>
@@ -77,11 +56,12 @@
       </tr>
     </table>
   </div>
+
   <div>Publications</div>
   <div>
     <table>
       <tr>
-        <th>Content Type</th>
+        <th></th>
         <th></th>
         <th></th>
       </tr>
@@ -92,125 +72,32 @@
       </tr>
     </table>
   </div>
+
   <div>Subscriptions</div>
   <div>
-    <h2>ITN Catalog Services API - Subscribed Items</h2>
-    <table border="1">
+    <table>
       <tr>
-        <td>Base URL</td>
-        <td>/cs_api/1.0/subscribed/</td>
+        <th></th>
+        <th></th>
+        <th></th>
       </tr>
       <tr>
-        <td>Documentation</td>
-        <td><a href="/cs_api/1.0/subscribed">/cs_api/1.0/subscribed</a> (this page)</td>
-      </tr>
-      <tr>
-        <td>Description</td>
-        <td>Returns a collection of subscribed items, optionally including related items in the same hierarchy</td>
-      </tr>
-      <tr>
-        <td>Sample Client</td>
-        <td><a href="/api_sample_client.html" target="new">Open New</a></td>
+        <td></td>
+        <td></td>
+        <td></td>
       </tr>
     </table>
-
-    <h2>URL Templates (Path Parameters)</h2>
-    <p>Some parameters can be submitted as part of the resource path: </p>
-    <table border="1">
-      <tr>
-        <th>HTTP Method</th>
-        <th>URL Template</th>
-      </tr>
-      <tr>
-        <td>GET</td>
-        <td>GET /cs_api/1.0/subscribed/:gtin</td>
-      </tr>
-      <tr>
-        <td>GET</td>
-        <td>GET /cs_api/1.0/subscribed/:gtin/:provider</td>
-      </tr>
-      <tr>
-        <td>GET</td>
-        <td>GET /cs_api/1.0/subscribed/:gtin/:provider/:tm</td>
-      </tr>
-      <tr>
-        <td>GET</td>
-        <td>GET /cs_api/1.0/subscribed/:gtin/:provider/:tm/:tm_sub</td>
-      </tr>
-    </table>
-
-    <h2>Parameters</h2>
-    <table border="1">
-      <tr>
-        <th>Name</th>
-        <th>Required</th>
-        <th>Expected Values</th>
-        <th>Description</th>
-      </tr>
-      <tr>
-        <td>gtin</td>
-        <td>yes</td>
-        <td>14 character numeric string (not a number)</td>
-        <td>This is the exact GTIN of the item(s) to be fetched. Matching items will have a 'fetch_type' of 'match'</td>
-      </tr>
-      <tr>
-        <td>provider</td>
-        <td>no</td>
-        <td>13 (usually) character numeric string (not a number)</td>
-        <td>The party GLN (or other identifier) of the publisher/owner/provider</td>
-      </tr>
-      <tr>
-        <td>tm</td>
-        <td>no</td>
-        <td>3 character numeric ISO country code</td>
-        <td>The intended target market associated with the items (e.g. '840' for US)</td>
-      </tr>
-      <tr>
-        <td>tm_sub</td>
-        <td>no</td>
-        <td>5 character ISO country code</td>
-        <td>The intended target market subdivision associated with the items (e.g. 'US-CA' for California)</td>
-      </tr>
-      <tr>
-        <td>multi</td>
-        <td>no</td>
-        <td>[true|false]</td>
-        <td>Indicates that search results containing multiple items matching items are ok. Defaults to false, in which case an error is returned if multiple items are matched</td>
-      </tr>
-      <tr>
-        <td>children</td>
-        <td>no</td>
-        <td>[true|false]</td>
-        <td>Causes the search results to include any children of the matched items (including children of children, etc). All child items will have a 'fetch_type' of 'child'</td>
-      </tr>
-      <tr>
-        <td>parents</td>
-        <td>no</td>
-        <td>[true|false]</td>
-        <td>Causes the search results to include any parents of the matched items (including parents of parents, etc). All parent items will have a 'fetch_type' of 'parent'</td>
-      </tr>
-      <tr>
-        <td>transform</td>
-        <td>no</td>
-        <td>[client|server|none]</td>
-        <td>If set to 'server', applies custom tranform to each item as configured in current user profile</td>
-      </tr>
-      <tr>
-        <td>download</td>
-        <td>no</td>
-        <td>[true|false]</td>
-        <td>Prompts user to save data to file in capable clients (e.g. most web browsers)</td>
-      </tr>
-    </table>
-
-    <h2>Examples</h2>
-    <div>Multiple GTIN error: <a target="new" href="/cs_api/1.0/subscribed/00038000105234">Multiple GTIN Error</a></div>
-    <div>Multiple GTIN match: <a target="new" href="/cs_api/1.0/subscribed/00038000105234?multi=true">Multiple GTIN Results</a></div>
-    <div>Multiple GTIN match with parents: <a target="new" href="/cs_api/1.0/subscribed/00038000105234?multi=true&parents=true">Multiple GTIN Results with Parents</a></div>
-    <div>Multiple GTIN match with children: <a target="new" href="/cs_api/1.0/subscribed/00038000105234?multi=true&children=true">Multiple GTIN Results with Children</a></div>
-    <div>Multiple GTIN match with parents and children: <a target="new" href="/cs_api/1.0/subscribed/00038000105234?multi=true&parents=true&children=true">Multiple GTIN Results with Parents and Children</a></div>
-    <div>The GTIN and provider can also be sent as named parameters: <a target="new" href="/cs_api/1.0/subscribed/?gtin=00038000105234&provider=0038000000010&tm=840&tm_sub=US-CA&parents=true&children=true&download=true">Using all named perameters</a></div>
   </div>
+
+  <div>Lookup - Allergen</div>
+  <div id="doc_allergens"/>
+
+  <div>Lookup - Country</div>
+  <div id="doc_countries"/>
+
+  <div>Lookup - Nutrient</div>
+  <div id="doc_nutrients"/>
+
 </div>
 
 <script>
@@ -221,6 +108,13 @@
       , heightStyle: 'content'
       , collapsible: true
     })
+
+    $('#doc_items').load('/cs_api/1.0/items #docs')
+    $('#doc_login').load('/cs_api/1.0/login #docs')
+    $('#doc_subscribed').load('/cs_api/1.0/subscribed #docs')
+    $('#doc_allergens').load('/cs_api/1.0/lookup_allergen #docs')
+    $('#doc_countries').load('/cs_api/1.0/lookup_country #docs')
+    $('#doc_nutrients').load('/cs_api/1.0/lookup_nutrient #docs')
 
    })()
 </script>

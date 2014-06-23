@@ -6,6 +6,7 @@ module.exports = function (config) {
 
   var item_utils = require('../lib/item_utils.js')(config)
   var xml_digest = require('../lib/xml_to_json.js')(config)
+  var Parallel   = require('../lib/async').Parallel
 
   api.list_trade_items = function (req, res, next) {
     log.debug('list_items')
@@ -55,6 +56,10 @@ module.exports = function (config) {
 
   api.find_trade_items = function (req, res, next) {
     log.debug('find_trade_items req.path: ' + req.path)
+
+    if (req.url.indexOf('?') < 0) {
+      return res.render('items_api_docs_10')
+    }
 
     log.info('req params: ' + JSON.stringify(req.query))
     var query = item_utils.get_query(req)
@@ -106,8 +111,8 @@ module.exports = function (config) {
             item.client_name = client_config.client_name
             item.href        = item_utils.get_item_href(item)
 
-            var itemDigest = xml_digest.digest(item.xml)
-            item.tradeItem = itemDigest.tradeItem
+            //var itemDigest = xml_digest.digest(item.xml)
+            //item.tradeItem = itemDigest.tradeItem
             delete item.xml
 
             item.data = [
@@ -128,6 +133,10 @@ module.exports = function (config) {
           if (req.query.download) {
             res.set('Content-Disposition', 'attachment; filename="items_' + Date.now() + '.json"')
             res.json(result)
+          }
+          else if (req.query.pp) {
+            res.setHeader('Content-Type', 'text/html')
+            res.render('item_pretty_print', {result: result, test: 'hello'})
           }
           else {
             res.jsonp(result)
@@ -161,7 +170,6 @@ module.exports = function (config) {
       })
     })
 
-    var Parallel = require('../lib/async').Parallel
     var parallel = new Parallel()
 
     config.gdsn.items.getEachTradeItemFromStream(req, function (err, item) {
@@ -169,6 +177,10 @@ module.exports = function (config) {
 
       if (item) {
         log.debug('received item from getEachTradeItemFromStream callback with gtin ' + item.gtin)
+
+        var itemDigest = xml_digest.digest(item.xml)
+        item.tradeItem = itemDigest.tradeItem
+
         var fn = config.database.saveTradeItem.bind(config.database, item)
         parallel.push(function (data, cb) {
           fn(cb)
@@ -179,15 +191,58 @@ module.exports = function (config) {
         parallel.start({ name: 'parallel_start_data' }, function (err, result) {
           log.debug('parallel err: ' + JSON.stringify(err))
           log.debug('parallel results: ' + JSON.stringify(result))
-          if (err) return next(err)
-          result.shift()
-          res.json({msg: 'Saved ' + result.length + ' items, GTINs: ' + result.join(', ')})
-          res.end()
         })
       }
 
     })
 
+  }
+
+  api.migrate_trade_items = function (req, res, next) {
+    log.debug('migrate_trade_items handler called')
+
+    var query = {}
+    query.tradeItem = {$exists: false}
+    query.archived_ts = { $in : ['', null] }
+
+    var gtinsMigrated = []
+
+    var intervalId = setInterval(function () {
+      config.database.getTradeItems(query, 0, 10, true, function (err, items) {
+        if (err) return next(err)
+        log.info('migrate_trade_items getTradeItems return item count: ' + items.length)
+
+        if (!items.length) {
+          clearInterval(intervalId)
+          res.json({msg: 'Migrated ' + gtinsMigrated.length + ' items, GTINs: ' + gtinsMigrated.join(', ')})
+          return res.end()
+        }
+
+        var parallel = new Parallel()
+
+        items.forEach(function (item) {
+          log.debug('migrating tradeitem with gtin ' + item.gtin)
+
+          var itemDigest = xml_digest.digest(item.xml)
+          item.tradeItem = itemDigest.tradeItem
+
+          var fn = config.database.saveTradeItem.bind(config.database, item)
+          parallel.push(function (data, cb) {
+            fn(cb)
+          })
+        })
+
+        parallel.start({ name: 'migrate_parallel_start_data' }, function (err, result) {
+          log.debug('parallel err: ' + JSON.stringify(err))
+          log.debug('parallel results: ' + JSON.stringify(result))
+          if (err) return next(err)
+
+          result.shift()
+          gtinsMigrated = gtinsMigrated.concat(result)
+        })
+
+      })
+    }, 1000)
   }
 
   return api

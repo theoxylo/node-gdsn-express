@@ -11,10 +11,12 @@
     "start": "node app"
   },
   "dependencies": {
-      "gdsn":       "0.1.1"
-    , "express":    "3.5.0"
-    , "ejs":        "0.8.5"
-    , "mongojs":    "0.10.1"
+    "gdsn": "0.1.1",
+    "express": "3.5.0",
+    "ejs": "0.8.5",
+    "mongojs": "0.10.1",
+    "request": "2.36.0",
+    "cheerio": "^0.17.0"
   },
   "repository": {
     "type": "git",

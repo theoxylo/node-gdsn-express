@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ITN Catalog Services API - Lookup Country</title>
+  <link rel="stylesheet" href="/css/styles_new.css">
+</head>
+<body>
+<div id="docs">
+
+<!-- Version $URL: $ -->
+
+<h1>ITN Catalog Services API - Lookup Country</h1>
+
+<table border="1">
+  <tr>
+    <td>Base URL</td>
+    <td>/cs_api/1.0/lookup_country</td>
+  </tr>
+  <tr>
+    <td>Documentation</td>
+    <td><a href="/cs_api/1.0/lookup_country">/cs_api/1.0/lookup_country</a> (this page)</td>
+  </tr>
+  <tr>
+    <td>Description</td>
+    <td>Returns language-specific information about a country given a country code and language</td>
+  </tr>
+  <tr>
+    <td>Sample Client</td>
+    <td><a href="/api_sample_client.html" target="new">Open New</a></td>
+  </tr>
+</table>
+
+<h2>Parameters</h2>
+<table border="1">
+  <tr>
+    <th>Name</th>
+    <th>Required</th>
+    <th>Expected Values</th>
+    <th>Default</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>code</td>
+    <td>no</td>
+    <td>3-digit numeric string</td>
+    <td>840</td>
+    <td>The ISO numeric country code: http://en.wikipedia.org/wiki/ISO_3166-1</td>
+  </tr>
+  <tr>
+    <td>lang</td>
+    <td>no</td>
+    <td>2-character alpha language code</td>
+    <td>en</td>
+    <td>The desired language code: http://en.wikipedia.org/wiki/ISO_639-1</td>
+  </tr>
+</table>
+
+<h2>Examples</h2>
+<div>List of values:
+  <a href="/cs_api/1.0/lookup_country?" target="_blank">/cs_api/1.0/lookup_country?lang=es</a>
+</div>
+<div>Look-up response: 
+  <pre>
+    {
+      "lang": "es",
+      "timestamp": 1403205971915,
+      "href": "/lookup_country?lang=es",
+      "countries": {
+        "124": "Canadá",
+        "250": "Francia",
+        "840": "Estados Unidos"
+      }
+    }
+  </pre>
+</div>
+
+<div>Single value:
+  <a href="/cs_api/1.0/lookup_country?lang=es&code=840" target="_blank">/cs_api/1.0/lookup_country?lang=es&code=840</a>
+</div>
+<div>Look-up response: 
+  <pre>
+    {
+      "lang": "es",
+      "timestamp": 1403206115462,
+      "href": "/lookup_country?lang=es&code=840",
+      "countries": {
+        "840": "Estados Unidos"
+      }
+    }
+  </pre>
+</div>
+
+</div>
+</body>
+</html>

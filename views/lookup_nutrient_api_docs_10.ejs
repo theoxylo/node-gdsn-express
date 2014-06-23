@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ITN Catalog Services API - Lookup Nutrient</title>
+  <link rel="stylesheet" href="/css/styles_new.css">
+</head>
+<body>
+<div id="docs">
+
+<!-- Version $URL: $ -->
+
+<h1>ITN Catalog Services API - Lookup Nutrient</h1>
+
+<table border="1">
+  <tr>
+    <td>Base URL</td>
+    <td>/cs_api/1.0/lookup_nutrient</td>
+  </tr>
+  <tr>
+    <td>Documentation</td>
+    <td><a href="/cs_api/1.0/lookup_nutrient" target="_blank">/cs_api/1.0/lookup_nutrient</a> (this page)</td>
+  </tr>
+  <tr>
+    <td>Description</td>
+    <td>Returns language-specific information about a nutrient given a nutrient code and language</td>
+  </tr>
+  <tr>
+    <td>Sample Client</td>
+    <td><a href="/api_sample_client.html" target="_blank">Open New</a></td>
+  </tr>
+</table>
+
+<h2>Parameters</h2>
+<table border="1">
+  <tr>
+    <th>Name</th>
+    <th>Required</th>
+    <th>Expected Values</th>
+    <th>Default</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>code</td>
+    <td>no</td>
+    <td>alpha string</td>
+    <td>ENER</td>
+    <td>The standard INFOODS nutrient type code: <a href="http://www.fao.org/infoods/infoods/standards-guidelines/food-component-identifiers-tagnames/en" target="_blank">[code list]</td>
+  </tr>
+  <tr>
+    <td>lang</td>
+    <td>no</td>
+    <td>2-character alpha language code</td>
+    <td>en</td>
+    <td>The desired language code: <a href="http://en.wikipedia.org/wiki/ISO_639-1" target="_blank">[code list]</td>
+  </tr>
+</table>
+
+<h2>Examples</h2>
+<div>List of values:
+  <a href="/cs_api/1.0/lookup_nutrient?" target="_blank">/cs_api/1.0/lookup_nutrient?lang=es</a>
+</div>
+<div>Look-up response: 
+  <pre>
+    {
+      "lang": "es",
+      "timestamp": 1403206187118,
+      "href": "/lookup_nutrient?lang=es",
+      "nutrients": {
+        "ENER": "Energy",
+        "ENER-": "Energy",
+        "ENERPF": "Energy from Fat",
+        "BIOT": "Biotin",
+        "NA": "Sodium",
+        "CHO-": "Total Carbohydrate",
+        "CHOL-": "Cholesterol",
+        "K": "Potassium",
+        "PRO-": "Protein",
+        "FAT": "Total Fat",
+        "FASAT": "Saturated Fat",
+        "FATRN": "Trans Fat",
+        "FATNLEA": "Fat",
+        "FAPU": "Polyunsaturated Fat",
+        "FAMS": "Monounsaturated Fat",
+        "SUGAR": "Sugar",
+        "SUGAR-": "Sugar",
+        "FIB-": "Fiber",
+        "FIBTG": "Fiber",
+        "FIBTSW": "Fiber",
+        "VITA-": "Vitamin A",
+        "VITC": "Vitamin C",
+        "VITC-": "Vitamin C",
+        "CA": "Calcium",
+        "FE": "Iron",
+        "VITD-": "Vitamin D",
+        "VITE-": "Vitamin E",
+        "VITK": "Vitamin K",
+        "THIA": "Thiamin",
+        "RIBF": "Riboflavin",
+        "NIA": "Niacin",
+        "NIAEQ": "Niacin",
+        "VITB6-": "Vitamin B6",
+        "FOL": "Folate",
+        "FOL-": "Folate",
+        "VITB12": "Vitamin B12",
+        "PANTAC": "Pantothenic Acid",
+        "P": "Phosphorus",
+        "ID": "Iodine",
+        "MG": "Magnesium",
+        "ZN": "Zinc",
+        "SE": "Selenium",
+        "CU": "Copper",
+        "MN": "Manganese",
+        "CR": "Chromium",
+        "MO": "Molybdenum",
+        "CLD": "Chloride"
+      }
+    }
+  </pre>
+</div>
+
+<div>Single value:
+  <a href="/cs_api/1.0/lookup_nutrient?lang=es&code=VITC" target="_blank">/cs_api/1.0/lookup_nutrient?lang=es&code=VITC</a>
+</div>
+<div>Look-up response: 
+  <pre>
+    {
+      "lang": "es",
+      "timestamp": 1403206270532,
+      "href": "/lookup_nutrient?lang=es&code=VITC",
+      "nutrients": {
+        "VITC": "Vitamin C"
+      }
+    }
+  </pre>
+</div>
+
+</div>
+</body>
+</html>

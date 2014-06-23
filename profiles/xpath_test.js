@@ -30,5 +30,8 @@ module.exports = {
     , allergy_cereals : "/tradeItem/extension/foodAndBeverageTradeItemExtension/foodAndBeverageInformation/foodAndBeverageAllergyRelatedInformation/foodAndBeverageAllergen[allergenTypeCode='AW']/levelOfContainment"
     , allergy_gluten : "/tradeItem/extension/foodAndBeverageTradeItemExtension/foodAndBeverageInformation/foodAndBeverageAllergyRelatedInformation/foodAndBeverageAllergen[allergenTypeCode='AX']/levelOfContainment"
     , allergy_soybean : "/tradeItem/extension/foodAndBeverageTradeItemExtension/foodAndBeverageInformation/foodAndBeverageAllergyRelatedInformation/foodAndBeverageAllergen[allergenTypeCode='AY']/levelOfContainment"
+    , depthInches: "/tradeItem/tradeItemInformation/tradingPartnerNeutralTradeItemInformation/tradeItemMeasurements/depth/measurementValue[@unitOfMeasure='IN']/value"
+    , depthFeet  : "/tradeItem/tradeItemInformation/tradingPartnerNeutralTradeItemInformation/tradeItemMeasurements/depth/measurementValue[@unitOfMeasure='FT']/value"
+
   }
 }

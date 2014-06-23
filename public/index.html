@@ -82,6 +82,38 @@
   </ul>
 
   <div id="main_menu">
+    <div id="main_menu-quicklinks">
+      <h2>Welcome to Catalog Services</h2>
+      <h3>Quick Links</h3>
+
+      <h4>Sample Web Client</h4>
+      <p><a href="/api_sample_client.html" target="_blank">Sample API Test Client</a></p>
+
+      <h4>API Docs</h4>
+      <p><a href="/cs_api/1.0/login"           target="_blank">Login Endpoint Docs</a></p>
+      <p><a href="/cs_api/1.0/items"           target="_blank">Items Endpoint Docs</a></p>
+      <p><a href="/cs_api/1.0/subscribed"      target="_blank">Subscriber Endpoint Docs</a></p>
+      <p><a href="/cs_api/1.0/lookup_allergen" target="_blank">Allergen Code Lookup Endpoint Docs</a></p>
+      <p><a href="/cs_api/1.0/lookup_country"  target="_blank">Country Code Lookup Endpoint Docs</a></p>
+      <p><a href="/cs_api/1.0/lookup_nutrient" target="_blank">Nutrient Code Lookup Endpoint Docs</a></p>
+
+      <h4>Examples</h4>
+      <p>(Login: test / testAdmin)</p>
+      <p>(Login: bp_cps / bp_cpsAdmin)</p>
+      <p><a href="/cs_api/1.0/login?user=test&pass=testAdmin"      target="_blank">Login Endpoint Example: test/testAdmin</a></p>
+      <p><a href="/cs_api/1.0/items?xml_text=uniformRes&json=true" target="_blank">Items Endpoint Example: XML Text Search for 'uniformRes'</a></p>
+      <p><a href="/cs_api/1.0/items?msg_id_text=ECCNET&json=true"  target="_blank">Items Endpoint Example: Latest ECCnet Items by Msg ID</a></p>
+      <p><a href="/cs_api/1.0/items?gtin=279&tm=840&json=true"     target="_blank">Items Endpoint Example: GTIN with 279, TM 840</a></p>
+      <p><a href="/cs_api/1.0/items?page=2&per_page=10&json=true"  target="_blank">Items Endpoint Example: Most Recently Modified, 21 - 30</a></p>
+      <p><a href="/cs_api/1.0/subscribed/00038000105234"           target="_blank">Subscriber Endpoint Example: GTIN 00038000105234</a></p>
+      <p><a href="/cs_api/1.0/subscribed/00067000004650?transform=server&lang=fr" target="_blank">Subscriber Endpoint Example: bp_cps fr item</a></p>
+      <p><a href="/cs_api/1.0/lookup_allergen?lang=es"           target="_blank">Allergen Code Lookup Endpoint Example: List by lang</a></p>
+      <p><a href="/cs_api/1.0/lookup_allergen?lang=en&code=AC"   target="_blank">Allergen Code Lookup Endpoint Example: AC/en</a></p>
+      <p><a href="/cs_api/1.0/lookup_country?lang=en"            target="_blank">Country Code Lookup Endpoint Example: List by lang</a></p>
+      <p><a href="/cs_api/1.0/lookup_country?lang=es&code=840"   target="_blank">Country Code Lookup Endpoint Example: 840/es</a></p>
+      <p><a href="/cs_api/1.0/lookup_nutrient?lang=en"           target="_blank">Nutrient Code Lookup Endpoint Example: List by lang</a></p>
+      <p><a href="/cs_api/1.0/lookup_nutrient?lang=en&code=VITC" target="_blank">Nutrient Code Lookup Endpoint Example: VITC/en</a></p>
+    </div>
     <div id="welcome">[Loading welcome.html]</div>
   </div>
 
@@ -207,20 +239,23 @@
 
       <div>Search Catalog Items</div>
       <div>
-        <span>GTIN <input type="text" ng-model="input_item_gtin" size="16" placeholder="99999999999999"></input></span>
-        <span>Provider GLN<input type="text" ng-model="input_item_provider" size="15" placeholder="1100001011292"></input></span>
-        <span>Recipient GLN<input type="text" ng-model="input_item_recipient" size="15" placeholder="0625199000015"></input></span>
-        <span>TM Country<input type="text" ng-model="input_item_tm" size="3" placeholder="840"></input></span>
-        <span>TM Sub<input type="text" ng-model="input_item_tm_sub" size="5" placeholder="US-CA"></input></span>
+        <span>GTIN          <input type="text" ng-model="input_item_gtin" size="16" placeholder="99999999999999"></input></span>
+        <span>Provider GLN  <input type="text" ng-model="input_item_provider" size="15" placeholder="1100001011292"></input></span>
+        <span>Recipient GLN <input type="text" ng-model="input_item_recipient" size="15" placeholder="0625199000015"></input></span>
+        <span>TM Country    <input type="text" ng-model="input_item_tm" size="3" placeholder="840"></input></span>
+        <span>TM Sub        <input type="text" ng-model="input_item_tm_sub" size="5" placeholder="US-CA"></input></span>
+        <p/>
+        <span>XML Regex     <input type="text" ng-model="input_item_xml_text" size="30" placeholder="foodAndBev"></input></span>
+        <span>Msg ID Regex  <input type="text" ng-model="input_item_msg_id_text" size="30" placeholder="CIN_IN_"></input></span>
         <button ng-click="list_items(0)">Search</button>
         <button ng-click="reset_search()">Reset</button>
-        <br/>
+        <p/>
         <div ng-if="items">
-          <div>
+          <p>
             <button ng-if="page > 0" ng-click="list_items(-1)">Prev</button>
             <button ng-if="more_items" ng-click="list_items(1)">Next</button><span ng-if="!(more_items)">No more items to display</span>
             <div>Page:<span>{{ page + 1 }}</span></div>
-          </div>
+          </p>
           <table>
             <tr>
               <th>GTIN</th>
@@ -244,16 +279,17 @@
               <td>{{item.created_ts}}</td>
               <td>{{item.modified_ts}}</td>
               <td>{{item.msg_id}}</td>
-              <!--<td><a ng-href="{{item.href}}" target="_new">XML</a></td>-->
+              <!--<td><a ng-href="{{item.href}}" target="_blank">XML</a></td>-->
               <!-- Raw Data: '{{item}}' -->
             </tr>
           </table>
           <div ng-if="selectedItem" class="blue_box">
             <p>Selected GTIN: {{selectedItem.gtin}}</p>
-            <p><a ng-href="{{selectedItem.href}}" target="_new">View XML for catalog item {{selectedItem.gtin}}</a></p>
+            <p><a ng-href="{{selectedItem.href}}" target="_blank">View XML for catalog item {{selectedItem.gtin}}</a></p>
             <p><a ng-href="{{selectedItem.href}}?download=true">Download XML for catalog item {{selectedItem.gtin}}</a></p>
-            <p><a ng-href="{{selectedItem.href}}?json=true" target="_new">View JSON for catalog item {{selectedItem.gtin}}</a></p>
+            <p><a ng-href="{{selectedItem.href}}?json=true" target="_blank">View JSON for catalog item {{selectedItem.gtin}}</a></p>
             <p><a ng-href="{{selectedItem.href}}?json=true&download=true">Download JSON for catalog item {{selectedItem.gtin}}</a></p>
+            <p><a ng-href="{{selectedItem.href}}?pp=true" target="_blank">View PrettyPrint for catalog item {{selectedItem.gtin}}</a></p>
             <p>Child GTINs: {{selectedItem.child_gtins.join(' ')}}</p>
           </div>
         </div> <!-- end if items -->
@@ -773,7 +809,7 @@
         log('showItemDetail called for gtin ' + item.gtin)
         $result_dialog.html(prettyPrint(item)).dialog('open')
         $scope.selectedItem = item
-        $scope.input_item_gtin = item.gtin
+        //$scope.input_item_gtin = item.gtin
       }
 
       $scope.reset_search = function () {
@@ -782,6 +818,8 @@
         delete $scope.input_item_recipient
         delete $scope.input_item_tm
         delete $scope.input_item_tm_sub
+        delete $scope.input_item_xml_text
+        delete $scope.input_item_msg_id_text
         delete $scope.items
         delete $scope.page
       }
@@ -804,6 +842,9 @@
             , recipient : $scope.input_item_recipient
             , tm        : $scope.input_item_tm
             , tm_sub    : $scope.input_item_tm_sub
+            , xml_text  : $scope.input_item_xml_text
+            , msg_id_text  : $scope.input_item_msg_id_text
+            , req_ts    : Date.now()
           }
         })
         .success(function (data) {

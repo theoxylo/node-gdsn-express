@@ -4,7 +4,7 @@
   <!-- Version $URL: http://svn.instill.com/repos/instill_dev/Catalog_Services/node-api-server/trunk/public/api_sample_client.html $ -->
   <meta charset="utf-8">
   <title>CS API Sample Web Client</title>
-  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/styles_new.css">
 </head>
 <body>
 
@@ -14,8 +14,8 @@
 <table><tr><td>
     <p>User<br/><input id="input_user" value="bp_cps" size="40"></input></p>
     <p>Password<br/><input id="input_pass" value="bp_cpsAdmin" size="40"></input></p>
-    <p>Server (host and port)<br/><input id="input_server" value="localhost:8080" size="40"></input></p>
-    <p>GTIN<br/><input id="input_gtin" value="00038000772580" size="40"></input></p>
+    <p>Server (host and port)<br/><input id="input_server" value="plt-gdsn02.itradenetwork.com:8080" size="40"></input></p>
+    <p>GTIN<br/><input id="input_gtin" value="00067000004650" size="40"></input></p>
     <p><input id="input_multi_gtin" type="checkbox"></input>        Multi: allow multiple items with same GTIN</p>
     <p>Provider GLN<br/><input id="input_provider" value="" size="40"></input></p>
     <p>Target Market Country Code<br/><input id="input_tm" value="" size="40"></input></p>
@@ -27,7 +27,16 @@
         <option value="server">Server</option>
         <option value="client">Client</option>
         <option value="">None</option>
-      </select></p>
+      </select>
+    </p>
+    <p>Data Transform Language
+      <select name="trans_lang" id="input_lang_transform">
+        <option value="">Default</option>
+        <option value="en">English</option>
+        <option value="fr">French</option>
+        <option value="es">Spanish</option>
+      </select>
+    </p>
     <p><input id="input_include_children" type="checkbox"></input>  Include Children</p>
     <p><input id="input_include_parents" type="checkbox"></input>   Include Parents</p>
     <p><input id="input_food_only" type="checkbox"></input>         Only Items with Food/Bev Info</p>
@@ -85,8 +94,10 @@ $(function () {
     var provider  = $('#input_provider').val()
     var tm        = $('#input_tm').val()
     var tm_sub    = $('#input_tm_sub').val()
-    var transform = $('#input_server_transform').val()
-    log('transform param: ' + transform)
+    var trans_type = $('#input_server_transform').val()
+    log('transform type param: ' + trans_type)
+    var trans_lang = $('#input_lang_transform').val()
+    log('transform lang param: ' + trans_lang)
     var children  = $('#input_include_children').prop('checked')
     var parents   = $('#input_include_parents').prop('checked')
     var multi     = $('#input_multi_gtin').prop('checked')
@@ -114,19 +125,20 @@ $(function () {
           children: children
           , parents: parents
           , multi: multi
-          , transform: transform
+          , transform: trans_type
+          , lang: trans_lang
           , food: food
           , reduce: reduce
         }
     })
     .done(function (data) {
       log('ajax success: fetchData')
-      cb(data, transform, reduce)
+      cb(data, trans_type, trans_lang, reduce)
     })
     .fail(function (xhr, msg, error) {
       log('ajax fail: fetchData')
       log(arguments)
-      alert('Fecth items failed: ' + msg)
+      alert('Fetch items failed: ' + msg)
     })
   }
 
@@ -150,10 +162,10 @@ $(function () {
     log('pass: ' + pass)
 
     login(server, user, pass, function (data) {
-      fetchData(data.token, function (data, trans, reduce) {
+      fetchData(data.token, function (data, trans_type, trans_lang, reduce) {
         // token is the base64 encoded "user : pass" string
         // for "bp_cps : bp_cpsAdmin", the toke is "YnBfY3BzOmJwX2Nwc0FkbWlu"
-        console.log('trans: ' + trans)
+        console.log('trans_type: ' + trans_type)
         $results.empty()
         if(typeof data == 'string') {
           $results.append('<p>' + data + '</p>')
@@ -173,9 +185,9 @@ $(function () {
         }
         var items = data.collection.items || []
         $results.append('<p>Found ' + items.length + ' items</p>')
-        if (trans == 'client') {
+        if (trans_type == 'client') {
           items = items.map(function (item) {
-            return cs_client.transform(item)
+            return cs_client.transform(item, trans_lang)
           })
           if (reduce) {
             items = [cs_client.reduce(items)]

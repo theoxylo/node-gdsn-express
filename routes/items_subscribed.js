@@ -3,7 +3,6 @@ module.exports = function (config) {
   var log  = require('../lib/Logger')('rt_subsc', {debug: true})
 
   var item_utils = require('../lib/item_utils.js')(config)
-  var xml_digest = require('../lib/xml_to_json.js')(config)
 
   var data = {}
 
@@ -80,9 +79,6 @@ module.exports = function (config) {
 
       log.debug('augmenting gtin ' + item.gtin)
 
-      var itemDigest = xml_digest.digest(item.xml)
-      item.tradeItem = itemDigest.tradeItem
-
       try {
         item.food_and_bev = !!(item.tradeItem.extension.foodAndBeverageTradeItemExtension)
       }
@@ -106,26 +102,30 @@ module.exports = function (config) {
         { rel: 'self', href: item.href }
       ]
 
-      if (data.client_config.mappings) {
+      if (data.client_config.xml_mappings) {
         log.info('applying server profile xpath mappings for client ' + data.req.user + ' to item GTIN ' + item.gtin)
         try {
-          item.tradeItem = config.gdsn.getCustomTradeItemInfo(item.xml, data.client_config.mappings)
+          //log.debug('applying xpath to xml: ' + item.xml)
+          item.tradeItem = config.gdsn.getCustomTradeItemInfo(item.xml, data.client_config.xml_mappings)
+          //log.debug(JSON.stringify(item.tradeItem))
         }
         catch (e) {
           log.error('Error applying server profile xpath mappings to item: ' + e)
         }
       }
+      //else log.info('SKIPPING server profile xpath mappings for client ' + data.req.user + ' to item GTIN ' + item.gtin)
 
       if (data.req_param['transform']) {
         if (data.client_config.transform) {
           log.info('applying server profile transform for client ' + data.req.user + ' to item GTIN ' + item.gtin)
           try {
-            item = data.client_config.transform(item)
+            item = data.client_config.transform(item, data.req_param['lang'])
           }
           catch (e) {
             log.error('Error applying server profile transform to item: ' + e)
           }
         }
+        //else log.info('SKIPPING server profile transform for client ' + data.req.user + ' to item GTIN ' + item.gtin)
       }
 
       delete item.xml
@@ -210,6 +210,13 @@ module.exports = function (config) {
         data.req_param['download']  = req.param('download') == 'true'
         data.req_param['transform'] = req.param('transform') == 'server'
         data.req_param['reduce']    = req.param('reduce') == 'true'
+
+        var lang = req.param('lang')
+        if (lang) {
+          if (lang.indexOf('-')) lang = lang.split('-')[0] // 'en-us' => 'en'
+        }
+        data.req_param['lang'] = req.param('lang')
+
 
         var client_config = config.user_config[req.user] || { client_name: 'Default Client' }
         data.client_config = client_config

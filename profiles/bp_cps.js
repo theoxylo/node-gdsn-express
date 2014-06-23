@@ -3,21 +3,6 @@ module.exports = {
     client_name  : "ITN Branded Procurement 20140423"
   , recipients   : ['0625199000015']
   , urls         : ['/cs_api/1.0/subscribed','/cs_api/1.0/login-docs']
-  , getText: function (label) {
-      if (!label) return ''
-      label = label.replace(/_/g, ' ')
-      var lc = label.toLowerCase()
-      var words = lc.split(/\s/)
-      var ccWords = words.map(function (word) { return String(word.charAt(0)).toUpperCase() + word.slice(1) })
-      return ccWords.join(' ')
-    }
-  , getCountry: function (code) {
-      var countries = {
-          '124' : 'Canada'
-        , '840' : 'United States'
-      }
-      return countries[code] || code || ''
-    }
   , getDataPool: function (dp_gln) {
       var data_pools = {
           '0068780850147' : 'ECCnet'
@@ -29,82 +14,20 @@ module.exports = {
       }
       return data_pools[dp_gln] || dp_gln || ''
   }
-  , getNutrient: function (code) {
-      var nutrients = {
-          'ENER'     : 'Calories'
-        , 'ENER-'    : 'Calories'
-        , 'ENERPF'   : 'Calories from Fat'
-        , 'BIOT'     : 'Biotin'
-        , 'NA'       : 'Sodium'
-        , 'CHO-'     : 'Total Carbohydrate'
-        , 'CHOL-'    : 'Cholesterol'
-        , 'K'        : 'Potassium'
-        , 'PRO-'     : 'Protein'
-        , 'FAT'      : 'Total Fat'
-        , 'FASAT'    : 'Saturated Fat'
-        , 'FATRN'    : 'Trans Fat'
-        , 'FATNLEA'  : 'Fat'
-        , 'FAPU'     : 'Polyunsaturated Fat'
-        , 'FAMS'     : 'Monounsaturated Fat'
-        , 'SUGAR'    : 'Sugar'
-        , 'SUGAR-'   : 'Sugar'
-        , 'FIB-'     : 'Fiber'
-        , 'FIBTG'    : 'Fiber'
-        , 'FIBTSW'   : 'Fiber'
-        , 'VITA-'    : 'Vitamin A'
-        , 'VITC'     : 'Vitamin C'
-        , 'VITC-'    : 'Vitamin C'
-        , 'CA'       : 'Calcium'
-        , 'FE'       : 'Iron'
-        , 'VITD-'    : 'Vitamin D'
-        , 'VITE-'    : 'Vitamin E'
-        , 'VITK'     : 'Vitamin K'
-        , 'THIA'     : 'Thiamin'
-        , 'RIBF'     : 'Riboflavin'
-        , 'NIAEQ'    : 'Niacin'
-        , 'VITB6-'   : 'Vitamin B6'
-        , 'FOL'      : 'Folate'
-        , 'VITB12'   : 'Vitamin B12'
-        , 'PANTAC'   : 'Pantothenic Acid'
-        , 'P'        : 'Phosphorus'
-        , 'ID'       : 'Iodine'
-        , 'MG'       : 'Magnesium'
-        , 'ZN'       : 'Zinc'
-        , 'SE'       : 'Selenium'
-        , 'CU'       : 'Copper'
-        , 'MN'       : 'Manganese'
-        , 'CR'       : 'Chromium'
-        , 'MO'       : 'Molybdenum'
-        , 'CLD'      : 'Chloride'
-      }
-      return nutrients[code] || code || ''
-    }
-  , getAllergen: function (code) {
-      var allergens = {
-          'AC' : 'Crustacean'
-        , 'AE' : 'Eggs'
-        , 'AF' : 'Fish'
-        , 'AM' : 'Milk'
-        , 'AN' : 'Tree Nuts'
-        , 'AP' : 'Peanuts'
-        , 'AS' : 'Sesame'
-        , 'AX' : 'Gluten'
-        , 'AY' : 'Soybean'
-        , 'UM' : 'Shellfish'
-        , 'UW' : 'Wheat'
-      }
-      return allergens[code] || code || ''
-    }
   , getMeasurement: function (measurements, prop) {
       var measure = measurements
       if (prop) measure = measurements[prop]
-      if (!measure) return ''
+      if (!measure) return {}
 
       var values = measure.measurementValue
       if (!Array.isArray(values)) values = [values]
-      return values[0].value + ' ' + values[0].unitOfMeasure
+      return {
+        value: values[0].value
+        , uom: values[0].unitOfMeasure
+      }
     }
   , getTextForLang: function (list, lang) {
+      console.log('getTextForLang lang: ' + lang)
       if (!list) return ''
       lang = lang || 'en'
       if (!Array.isArray(list)) list = [list]
@@ -146,7 +69,7 @@ module.exports = {
 
       result.last_modified = new Date(item.modified_ts).toString()
 
-      result.unitDescriptor = self.getText(orig.tradeItemUnitDescriptor)
+      result.unitDescriptor = orig.tradeItemUnitDescriptor
 
       if (orig.tradeItemIdentification) {
         var addlId = orig.tradeItemIdentification.additionalTradeItemIdentification
@@ -154,13 +77,14 @@ module.exports = {
           result.additionalTradeItemIdentification = addlId.map(function (addl) { 
             return {
               manufacturerProductNumber : addl.additionalTradeItemIdentificationValue
-              , type                    : self.getText(addl.additionalTradeItemIdentificationType)
+              , type                    : addl.additionalTradeItemIdentificationType
             }
           })
         }
       }
 
       if (orig.nextLowerLevelTradeItemInformation) {
+        result.quantityOfChildren = orig.nextLowerLevelTradeItemInformation.quantityOfChildren
         var children = orig.nextLowerLevelTradeItemInformation.childTradeItem
         if (children) {
           result.childGtin = children.map(function (child) { return child.tradeItemIdentification.gtin })
@@ -196,7 +120,7 @@ module.exports = {
         var tiNeutral              = tiInfo.tradingPartnerNeutralTradeItemInformation
         if (tiNeutral) {
           if (tiNeutral.tradeItemCountryOfOrigin) {
-            result.countryOfOrigin = tiNeutral.tradeItemCountryOfOrigin.map(function (e) { return self.getCountry(e.countryISOCode) })
+            result.countryOfOrigin = tiNeutral.tradeItemCountryOfOrigin.map(function (e) { return e.countryISOCode })
           }
           if (tiNeutral.brandOwnerOfTradeItem) {
             result.brandOwner = tiNeutral.brandOwnerOfTradeItem.nameOfBrandOwner
@@ -204,8 +128,15 @@ module.exports = {
           if (tiNeutral.manufacturerOfTradeItem) {
             result.manufacturer = tiNeutral.manufacturerOfTradeItem.map(function (e) { return e.nameOfManufacturer })
           }
-          if (tiNeutral.tradeItemHandlingInformation) {
-            result.ShelfLifefromProduction = tiNeutral.tradeItemHandlingInformation.minimumTradeItemLifespanFromTimeOfProduction
+          var tradeItemHandlingInformation = tiNeutral.tradeItemHandlingInformation
+          if (tradeItemHandlingInformation) {
+            if (tradeItemHandlingInformation.minimumTradeItemLifespanFromTimeOfProduction) {
+              result.ShelfLifefromProduction = tradeItemHandlingInformation.minimumTradeItemLifespanFromTimeOfProduction
+            }
+            var consumerUsageStorageInstructions = tradeItemHandlingInformation.consumerUsageStorageInstructions
+            if (consumerUsageStorageInstructions) {
+              result.consumerUsageStorageInstructions = self.getTextForLang(consumerUsageStorageInstructions, lang)
+            }
           }
 
           var tiMeasure = tiNeutral.tradeItemMeasurements
@@ -248,7 +179,7 @@ module.exports = {
       var mktInfo = food_ext && food_ext.foodAndBeverageMarketingInformationExtension
       if (mktInfo) {
         if (mktInfo.servingSuggestion) {
-          result.servingSuggestion = self.getTextForLang(mktInfo.servingSuggestion, lang)
+          result.servingSuggestion = self.getTextForLang(mktInfo.servingSuggestion.description, lang)
         }
       }
 
@@ -263,16 +194,21 @@ module.exports = {
           var aInfo = fbInfo.foodAndBeverageAllergyRelatedInformation
           if (aInfo) {
             var may_contain = {levelOfContainment: 'MayContain', allergenList: []}
-            var contains = {levelOfContainment: 'Contains', allergenList: []}
-            food.allergens = [contains, may_contain]
+            var contains    = {levelOfContainment: 'Contains', allergenList: []}
+            var free_from   = {levelOfContainment: 'FreeFrom', allergenList: []}
+
+            food.allergens = [contains, may_contain, free_from]
 
             var allergens = aInfo.foodAndBeverageAllergen
             allergens.forEach(function (allergen) {
               if (allergen.levelOfContainment == 'MAY_CONTAIN') {
-                may_contain.allergenList.push(self.getAllergen(allergen.allergenTypeCode))
+                may_contain.allergenList.push(allergen.allergenTypeCode)
               }
               else if (allergen.levelOfContainment == 'CONTAINS') {
-                contains.allergenList.push(self.getAllergen(allergen.allergenTypeCode))
+                contains.allergenList.push(allergen.allergenTypeCode)
+              }
+              else if (allergen.levelOfContainment == 'FREE_FROM') {
+                free_from.allergenList.push(allergen.allergenTypeCode)
               }
             })
           }
@@ -282,7 +218,7 @@ module.exports = {
             dietCodes.forEach(function (e) {
               if (e.foodAndBeverageDietTypeInformation) {
                 if (!food.diet) food.diet = []
-                food.diet.push(self.getText(e.foodAndBeverageDietTypeInformation.dietTypeCode))
+                food.diet.push(e.foodAndBeverageDietTypeInformation.dietTypeCode)
               }
             })
           }
@@ -296,7 +232,7 @@ module.exports = {
                 var ing = self.getTextForLang(e.ingredientName.description, lang)
                 if (ing) {
                   if (!food.ingredients) food.ingredients = []
-                  food.ingredients.push(self.getText(ing))
+                  food.ingredients.push(ing)
                 }
               })
             }
@@ -309,14 +245,14 @@ module.exports = {
           if (nutInfoList) {
             food.nutrientInformation = nutInfoList.map(function (nInfo) {
               var info = {}
-              info.preparationState = self.getText(nInfo.preparationState)
+              info.preparationState = nInfo.preparationState
               info.householdServingSize = self.getTextForLang(nInfo.householdServingSize && nInfo.householdServingSize.description, lang)
               info.servingSize = self.getMeasurement(nInfo.servingSize)
               var nutrients = nInfo.foodAndBeverageNutrient
               info.nutrientList = nutrients.map(function (e) {
                 var nut = {}
-                nut.nutrient = self.getNutrient(e.nutrientTypeCode.iNFOODSCodeValue)
-                nut.measurementPrecision = self.getText(e.measurementPrecision)
+                nut.nutrient = e.nutrientTypeCode.iNFOODSCodeValue
+                nut.measurementPrecision = e.measurementPrecision
                 nut.percentageOfDailyValueIntake = e.percentageOfDailyValueIntake 
                 nut.quantityContained = self.getMeasurement(e.quantityContained)
                 return nut
@@ -335,6 +271,13 @@ module.exports = {
               }
               return prep
             })
+          }
+
+          var servingInfo = fbInfo.foodAndBeverageServingInformation
+          if (servingInfo && servingInfo.numberOfServingsPerPackage) {
+            food.servingInformation = {
+              servingsPerPackage: servingInfo.numberOfServingsPerPackage
+            }
           }
 
           return food

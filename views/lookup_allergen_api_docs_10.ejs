@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ITN Catalog Services API - Lookup Allergen</title>
+  <link rel="stylesheet" href="/css/styles_new.css">
+</head>
+<body>
+<div id="docs">
+
+<!-- Version $URL: $ -->
+
+<h1>ITN Catalog Services API - Lookup Allergen</h1>
+
+<table border="1">
+  <tr>
+    <td>Base URL</td>
+    <td>/cs_api/1.0/lookup_allergen</td>
+  </tr>
+  <tr>
+    <td>Documentation</td>
+    <td><a href="/cs_api/1.0/lookup_allergen" target="_blank">/cs_api/1.0/lookup_allergen</a> (this page)</td>
+  </tr>
+  <tr>
+    <td>Description</td>
+    <td>Returns language-specific information about an allergen given an allergen code and language</td>
+  </tr>
+  <tr>
+    <td>Sample Client</td>
+    <td><a href="/api_sample_client.html" target="_blank">Open New</a></td>
+  </tr>
+</table>
+
+<h2>Parameters</h2>
+<table border="1">
+  <tr>
+    <th>Name</th>
+    <th>Required</th>
+    <th>Expected Values</th>
+    <th>Default</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>code</td>
+    <td>no</td>
+    <td>2-character alpha string</td>
+    <td>AC</td>
+    <td>The standard GS1 2-character allergen code: <a href="http://www.gs1.org/1/productssolutions/ecom/xml/implementation/tmg_2_1/XML-Guidelines/FoodAndBeverageTradeItemExtension/docs/food_codelists.html" target="_blank">[code list]</td>
+  </tr>
+  <tr>
+    <td>lang</td>
+    <td>yes</td>
+    <td>2-character alpha language code</td>
+    <td>en</td>
+    <td>The desired language code: <a href="http://en.wikipedia.org/wiki/ISO_639-1" target="_blank">[code list]</td>
+  </tr>
+</table>
+
+<h2>Examples</h2>
+<div>List of values:
+  <a href="/cs_api/1.0/lookup_allergen?lang=es" target="_blank">/cs_api/1.0/lookup_allergen?lang=es</a>
+</div>
+<div>Look-up response: 
+  <pre>
+    {
+      "lang": "es",
+      "timestamp": 1403205804233,
+      "href": "/lookup_allergen?lang=es",
+      "allergens": {
+        "AC": "Crustacean",
+        "AE": "Huevo",
+        "AF": "Fish",
+        "AM": "Milk",
+        "AN": "Nuts",
+        "AP": "Peanuts",
+        "AS": "Sesame",
+        "AU": "Sulphur Dioxide",
+        "AW": "Gluten",
+        "AX": "Gluten",
+        "AY": "Soybean",
+        "BC": "Celery",
+        "BM": "Mustard",
+        "NC": "Cocoa",
+        "NK": "Coriander",
+        "NL": "Lupine",
+        "NM": "Corn",
+        "NP": "Pod Fruits",
+        "NR": "Rye",
+        "NW": "Carrot",
+        "UM": "Molluscs",
+        "UW": "Wheat"
+      }
+    }
+  </pre>
+</div>
+
+<div>Single value:
+  <a href="/cs_api/1.0/lookup_allergen?lang=es&code=AE" target="_blank">/cs_api/1.0/lookup_allergen?lang=es&code=AE</a>
+</div>
+<div>Look-up response: 
+  <pre>
+    {
+      "lang": "es",
+      "timestamp": 1403205947969,
+      "href": "/lookup_allergen?lang=es&code=AE",
+      "allergens": {
+        "AE": "Huevo"
+      }
+    }
+  </pre>
+</div>
+
+</div>
+</body>
+</html>
