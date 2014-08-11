@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="us">
 <head>
-  <!-- Version $URL: $ -->
+  <!-- Version $URL: http://svn.instill.com/repos/instill_dev/Catalog_Services/node-api-server/trunk/public/index.html $ -->
   <meta charset="utf-8">
   <title>Catalog Services Dashboard</title>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
@@ -69,7 +69,7 @@
 
   <div>
     <h2>Catalog Services Dashboard</h2>
-    <!-- Version $URL: $ -->
+    <!-- Version $URL: http://svn.instill.com/repos/instill_dev/Catalog_Services/node-api-server/trunk/public/index.html $ -->
   </div>
 
   <ul>
@@ -105,6 +105,7 @@
       <p><a href="/cs_api/1.0/items?msg_id_text=ECCNET&json=true"  target="_blank">Items Endpoint Example: Latest ECCnet Items by Msg ID</a></p>
       <p><a href="/cs_api/1.0/items?gtin=279&tm=840&json=true"     target="_blank">Items Endpoint Example: GTIN with 279, TM 840</a></p>
       <p><a href="/cs_api/1.0/items?page=2&per_page=10&json=true"  target="_blank">Items Endpoint Example: Most Recently Modified, 21 - 30</a></p>
+      <p><a href="/cs_api/1.0/items?unit_type=CASE&json=true"      target="_blank">Items Endpoint Example: Case Items, Most Recently Modified, 1 - 10</a></p>
       <p><a href="/cs_api/1.0/subscribed/00038000105234"           target="_blank">Subscriber Endpoint Example: GTIN 00038000105234</a></p>
       <p><a href="/cs_api/1.0/subscribed/00067000004650?transform=server&lang=fr" target="_blank">Subscriber Endpoint Example: bp_cps fr item</a></p>
       <p><a href="/cs_api/1.0/lookup_allergen?lang=es"           target="_blank">Allergen Code Lookup Endpoint Example: List by lang</a></p>
@@ -143,7 +144,7 @@
               <!-- Raw Data: '{{msg}}' -->
             </tr>
           </table>
-        </div>
+        </div><!-- end ng-if="messages" -->
         <button ng-if="!messages" ng-click="list_messages()">Load Messages</button>
       </div>
 
@@ -247,6 +248,20 @@
         <p/>
         <span>XML Regex     <input type="text" ng-model="input_item_xml_text" size="30" placeholder="foodAndBev"></input></span>
         <span>Msg ID Regex  <input type="text" ng-model="input_item_msg_id_text" size="30" placeholder="CIN_IN_"></input></span>
+        <span>Unit Descriptor
+          <select ng-model="input_item_unit_descriptor">
+            <option value="CASE">Case</option>
+            <option value="BASE_UNIT_OR_EACH">Each</option>
+            <option value="DISPLAY_SHIPPER">Display Shipper</option>
+            <option value="MIXED_MODULE">Mixed Module</option>
+            <option value="MULTIPACK">Multipack</option>
+            <option value="PACK_OR_INNER_PACK">Pack or Inner Pack</option>
+            <option value="PALLET">Pallet</option>
+            <option value="PREPACK">Prepack</option>
+            <option value="PREPACK_ASSORTMENT">Prepack Assortment</option>
+            <option value="SETPACK">Setpack</option>
+            <option value="TRANSPORT_LOAD">Transport Load</option>
+          </select>
         <button ng-click="list_items(0)">Search</button>
         <button ng-click="reset_search()">Reset</button>
         <p/>
@@ -256,7 +271,7 @@
             <button ng-if="more_items" ng-click="list_items(1)">Next</button><span ng-if="!(more_items)">No more items to display</span>
             <div>Page:<span>{{ page + 1 }}</span></div>
           </p>
-          <table>
+          <table width="100%">
             <tr>
               <th>GTIN</th>
               <th>Provider</th>
@@ -267,7 +282,6 @@
               <th>Created</th>
               <th>Modified</th>
               <th>CIN Message</th>
-              <!--<th>HREF</th>-->
             </tr>
             <tr class="clickable" ng-repeat="item in items" ng-click="showItemDetail(item)">
               <td>{{item.gtin}}</td>
@@ -279,18 +293,30 @@
               <td>{{item.created_ts}}</td>
               <td>{{item.modified_ts}}</td>
               <td>{{item.msg_id}}</td>
-              <!--<td><a ng-href="{{item.href}}" target="_blank">XML</a></td>-->
-              <!-- Raw Data: '{{item}}' -->
             </tr>
           </table>
-          <div ng-if="selectedItem" class="blue_box">
-            <p>Selected GTIN: {{selectedItem.gtin}}</p>
-            <p><a ng-href="{{selectedItem.href}}" target="_blank">View XML for catalog item {{selectedItem.gtin}}</a></p>
-            <p><a ng-href="{{selectedItem.href}}?download=true">Download XML for catalog item {{selectedItem.gtin}}</a></p>
-            <p><a ng-href="{{selectedItem.href}}?json=true" target="_blank">View JSON for catalog item {{selectedItem.gtin}}</a></p>
-            <p><a ng-href="{{selectedItem.href}}?json=true&download=true">Download JSON for catalog item {{selectedItem.gtin}}</a></p>
-            <p><a ng-href="{{selectedItem.href}}?pp=true" target="_blank">View PrettyPrint for catalog item {{selectedItem.gtin}}</a></p>
-            <p>Child GTINs: {{selectedItem.child_gtins.join(' ')}}</p>
+          <p/>
+          <div ng-if="selectedItem" class="box">
+          <table width="100%">
+            <tr>
+              <th>
+                <p>Selected GTIN: {{selectedItem.gtin}}</p>
+                <p>Functional name: {{selectedItem.tradeItem.tradeItemInformation.tradeItemDescriptionInformation.functionalName.description[0].shortText}}</p>
+                <p>Brand: {{selectedItem.brand}}</p>
+                <p>GPC Brick Code: {{selectedItem.gpc}}</p>
+                <p>Child GTINs: {{selectedItem.child_gtins.join(' ')}}</p>
+              </th>
+              <th>
+                <p>Some extension: {{selectedItem.extension}}</p>
+                <p>Food extension: {{selectedItem.food_and_bev}}</p>
+                <p>Unit type: {{selectedItem.unit_type}}</p>
+                <p>Source DP: {{selectedItem.source_dp}}</p>
+                <p>XML: <a ng-href="{{selectedItem.href}}?" target="_blank">View</a> <a ng-href="{{selectedItem.href}}?download=true">Download</a></p>
+                <p>JSON: <a ng-href="{{selectedItem.href}}?json=true" target="_blank">View</a> <a ng-href="{{selectedItem.href}}?json=true&download=true">Download</a></p>
+                <p><a href="#" ng-click="prettyPrintItem(selectedItem)">PrettyPrint Item</a></p>
+              </th>
+            </tr>
+          </table>
           </div>
         </div> <!-- end if items -->
         <!--<div>Results per page: <input ng-model="input_per_page" size="3"></input></div>-->
@@ -372,7 +398,7 @@
             <table>
               <tr>
                 <td>
-                  <p>GTIN<br/><input id="input_gtin" value="00038000105234" size="40"></input></p>
+                  <p>* GTIN<br/><input id="input_gtin" value="00038000105234" size="40"></input></p>
                   <p>Provider GLN<br/><input id="input_provider" value="" size="40"></input></p>
                 </td>
                 <td>
@@ -553,6 +579,7 @@
           if (!file) return
           $scope.upload = $upload.upload({
             url: thx_util[url], // 'cs_api/1.0/items',
+            //url: 'item', // cheerio
             // method: POST or PUT,
             // headers: {'headerKey': 'headerValue'},
             // withCredentials: true,
@@ -564,6 +591,7 @@
           })
           .success(function(data, status, headers, config) {
             // file is uploaded successfully
+            log('ajax upload file succeeded')
             log(data);
             alert('File uploaded successfully (' + data.msg + ')')
           })
@@ -628,10 +656,7 @@
         var multi     = $('#input_multi_gtin').prop('checked')
         var food     = $('#input_food_only').prop('checked')
 
-        var url = app.api + '/subscribed/' + gtin
-        if (provider) url += '/' + provider
-        if (tm)       url += '/' + tm
-        if (tm_sub)   url += '/' + tm_sub
+        var url = app.api + '/subscribed/' //+ gtin
         log('url: ' + url)
 
         var form_serialize = $('#sub_form').serialize()
@@ -643,7 +668,11 @@
         //$http.get('/err', {
         $http.get(url, {
           params: { 
-              children: children
+			  gtin: gtin
+			, provider: provider
+			, tm: tm
+			, tm_sub: tm_sub
+        	, children: children
             , parents: parents
             , multi: multi
             , transform: transform
@@ -660,10 +689,6 @@
             $error_dialog.html('An error occurred: ' + e.title + ' (' + e.message + ')')
             if (data.collection.links) {
               var links = data.collection.links
-              //if (links.length) $scope.sub_msg += ('<p>Please specify more criteria as shown below:</p>')
-              //links.forEach(function (link) {
-                //$scope.sub_msg += ('<p><a target="new" href="' + link.href + '">' + link.href + '</a></p>')
-              //})
             }
             return
           }
@@ -807,9 +832,14 @@
 
       $scope.showItemDetail = function (item) {
         log('showItemDetail called for gtin ' + item.gtin)
-        $result_dialog.html(prettyPrint(item)).dialog('open')
+        //$result_dialog.html(prettyPrint(item)).dialog('open')
         $scope.selectedItem = item
         //$scope.input_item_gtin = item.gtin
+      }
+
+      $scope.prettyPrintItem = function (item) {
+        log('prettyPrintItem  called for gtin ' + item.gtin)
+        $result_dialog.html(prettyPrint(item)).dialog('open')
       }
 
       $scope.reset_search = function () {
@@ -820,6 +850,7 @@
         delete $scope.input_item_tm_sub
         delete $scope.input_item_xml_text
         delete $scope.input_item_msg_id_text
+        delete $scope.input_item_unit_descriptor
         delete $scope.items
         delete $scope.page
       }
@@ -835,16 +866,17 @@
         showBusy('Fetching item list...')
         $http.get(thx_util.item_url, { 
           params: { 
-              page      : $scope.page 
-            , per_page  : $scope.input_per_page
-            , gtin      : $scope.input_item_gtin
-            , provider  : $scope.input_item_provider
-            , recipient : $scope.input_item_recipient
-            , tm        : $scope.input_item_tm
-            , tm_sub    : $scope.input_item_tm_sub
-            , xml_text  : $scope.input_item_xml_text
-            , msg_id_text  : $scope.input_item_msg_id_text
-            , req_ts    : Date.now()
+              page        : $scope.page 
+            , per_page    : $scope.input_per_page
+            , gtin        : $scope.input_item_gtin
+            , provider    : $scope.input_item_provider
+            , recipient   : $scope.input_item_recipient
+            , tm          : $scope.input_item_tm
+            , tm_sub      : $scope.input_item_tm_sub
+            , xml_text    : $scope.input_item_xml_text
+            , msg_id_text : $scope.input_item_msg_id_text
+            , unit_type   : $scope.input_item_unit_descriptor
+            , req_ts      : Date.now()
           }
         })
         .success(function (data) {
@@ -854,13 +886,17 @@
           }
           catch (e) {}
 
+          $scope.selectedItem = null
+
+          $scope.items = _.map(items, function (item) {
+            item.created_ts   = (new Date(item.created_ts)).toLocaleString()
+            item.modified_ts  = (new Date(item.modified_ts)).toLocaleString()
+            item.extension    = !!(item.tradeItem.extension)
+            item.food_and_bev = item.extension && !!(item.tradeItem.extension.foodAndBeverageTradeItemExtension)
+            return item
+          })
+
           if (items.length) {
-            $scope.items = _.map(data.collection.items, function (item) {
-              item.created_ts = (new Date(item.created_ts)).toLocaleString()
-              item.modified_ts = (new Date(item.modified_ts)).toLocaleString()
-              return item
-            })
-            $scope.selectedItem = null
             $scope.more_items = (items.length === $scope.input_per_page)
           }
           else {
@@ -876,10 +912,13 @@
       }
 
       $scope.post_catalog_items = function () {
+        //$http.post('/item', $scope.item_content_post + '\n\n') // cheerio testing
         $http.post(thx_util.item_url, $scope.item_content_post + '\n\n')
         .success(function (data) {
-          log(data)
-          alert('XML uploaded successfully (' + data + ')')
+          log('data: ' + data)
+          log(data.msg)
+          log(JSON.stringify(data))
+          alert('XML text uploaded successfully (' + data.msg + ')')
         })
         .error(function () {
           log(arguments)

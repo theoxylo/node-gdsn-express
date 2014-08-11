@@ -192,7 +192,18 @@ $(function () {
           if (reduce) {
             items = [cs_client.reduce(items)]
           }
+          else {
+            // example hierarchy navigation
+            var item = getMatchWithFood(items)
+            console.log('found item 1 ' + item)
+            if (!item) item = getParentWithFood(items)
+            console.log('found item 2 ' + item)
+            if (!item) item = getChildWithFood(items)
+            console.log('found item 3 ' + item)
+            if (item) items = [item]
+          }
         }
+
         items.forEach(function (item) {
           log('appending item ' + item.gtin)
           $results.append('<br/><span>Item ' + item.href + ' (' + item.fetch_type + '):</span>')
@@ -201,6 +212,30 @@ $(function () {
       })
     })
   })
+
+  function getMatchWithFood(items) {
+    var found_item = null
+    items.forEach(function (item) {
+      console.log('item fetch_type: ' + item.fetch_type)
+      console.log('item food_and_bev: ' + item.food_and_bev)
+      if (item.fetch_type == 'match' && item.food_and_bev) found_item = item
+    })
+    return found_item
+  }
+  function getParentWithFood(items) {
+    var found_item = null
+    items.forEach(function (item) {
+      if (item.fetch_type == 'parent' && item.food_and_bev) found_item = item
+    })
+    return found_item
+  }
+  function getChildWithFood(items) {
+    var found_item = null
+    items.forEach(function (item) {
+      if (item.fetch_type == 'child' && item.food_and_bev) found_item = item
+    })
+    return found_item
+  }
 
 })
 </script>
