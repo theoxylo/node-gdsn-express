@@ -21,29 +21,30 @@ config.user_config = {}
 var express = require('express')
 var fs      = require('fs')
 var https   = require('https')
-var request = require('request')
 
 var log = require('./lib/Logger')('gdsnApp', config)
 log.debug('DEBUG logging enabled')
 log.info('INFO logging enabled')
 
-var Gdsn = require('gdsn')
+log.debug('config: ' + JSON.stringify(config))
+
+var Gdsn = require('./lib/gdsn')
 config.gdsn = new Gdsn(config)
 
 var Database = require('./lib/Database')
 config.database = new Database(config)
 
-var routes          = require('./routes')
-var routes_admin    = require('./routes/admin')
-var routes_cin      = require('./routes/cin_form')(config)
-var routes_subscr   = require('./routes/items_subscribed')(config)
-var routes_login    = require('./routes/login')
-var routes_allergen = require('./routes/lookup_allergen')
-var routes_country  = require('./routes/lookup_country')
-var routes_nutrient = require('./routes/lookup_nutrient')
-var routes_archive  = require('./routes/msg_archive')(config)
-var routes_parties  = require('./routes/parties')(config)
-var routes_item     = require('./routes/trade_item')(config)
+//var routes          = require(config.routes_dir + '/index')
+//var routes_cin      = require(config.routes_dir + '/cin_form')(config)
+var routes_subscr   = require(config.routes_dir + '/items_subscribed')(config)
+var routes_login    = require(config.routes_dir + '/login')
+//var routes_allergen = require(config.routes_dir + '/lookup_allergen')
+//var routes_country  = require(config.routes_dir + '/lookup_country')
+//var routes_nutrient = require(config.routes_dir + '/lookup_nutrient')
+//var routes_archive  = require(config.routes_dir + '/msg_archive')(config)
+//var routes_parties  = require(config.routes_dir + '/parties')(config)
+var routes_item     = require(config.routes_dir + '/trade_item')(config)
+var routes_profile  = require(config.routes_dir + '/profile')(config)
 
 var app = express()
 
@@ -54,10 +55,12 @@ app.set('view engine', 'ejs')
 app.locals({test: true})
 
 app.use(express.favicon(__dirname + '/public/favicon.ico'))
-app.use(express.logger('dev'))
+app.use(express.logger())
+
+app.get(config.base_url + '/login',           routes_login.getRequestHandler(config))
 
 app.use(config.base_url, express.basicAuth(function (user, pass) {
-  console.log('********************************************************************************** checking auth info for user: ' + user)
+  log.info('_CHECKING AUTH INFO_ for user: ' + user)
   if ('admin' == user & 'devadmin' == pass) return true
   if (pass == user + 'Admin') {
     return true
@@ -66,166 +69,33 @@ app.use(config.base_url, express.basicAuth(function (user, pass) {
 }))
 
 app.use(express.urlencoded())
-app.use(express.cookieParser('secret cookie salt 12345'))
-//app.use(express.session())
 
-app.use('/', function logout(req, res, next) {
-  if (req.param.logout) {
-    req.user = ''
-  }
-  next()
-})
-app.use(config.base_url, profileLoader)
+//app.use(express.cookieParser('secret cookie salt 12345'))
 
-app.use(config.base_url, function (req, res, next) {
-  var path = config.base_url + req.path
-  log.debug('checking path for config: ' + path)
-  try {
-    var configured = false
-    var urls = config.user_config[req.user].urls
-    urls.forEach(function (url) {
-      if (!configured) {
-        log.debug('checking path against configured url prefix: ' + url)
-        configured = (path.indexOf(url) == 0)
-      }
-    })
-    if (configured) return next()
-    res.end({msg: 'path ' + path + ' not configured for client ' + req.user})
-  }
-  catch (e) {
-    log.warn('skipping path configuration check: ' + e)
-  }
-  next()
-})
-app.use(config.base_url + '/profile', function (req, res, next) { // echo server client profile for current user
-  res.json(config.user_config[req.user] || {})
-})
+app.use(config.base_url, routes_profile.profileLoader)
+
+app.use(config.base_url, routes_profile.profileChecker)
+
 app.use('/', function (req, res, next) {
+  log.info('user ' + req.user + ' passed profile loading and checking for req ' + req.query.req_id)
   if (req.path != '/') return next()
   res.redirect('/index.html')
 })
-app.get('/err', function (req, res, next) {
-  next(new Error('this is a test error'))
+
+app.get('/shut_down', function (req, res, next) {
+  if (req.query.pw === config.shut_down_pw) {
+    console.log('Server is process is exiting down via shut_down endpoint...')
+    process.exit(0)
+  }
+  next(new Error('incorrect shut_down parameter'))
 })
 
-app.use('/snoop', routes.getSnoopHandler(10))
 app.use(express.static(__dirname + '/public'))
-app.use(express.directory(__dirname + '/public'))
 
-// custom error handler
-app.use(function (err, req, res, next) {
-  if (!err) next()
-  log.error(err.stack)
-  res.status(500).format({
-    html: function () {
-      res.send('<h2>Application Error</h2><pre>' + err.stack + '</pre>')
-    }
-    , xml: function () {
-      res.send('<errorStack>' + err.stack + '</errorStack>')
-    }
-    , json: function () {
-      res.send(err.stack)
-    }
-  })
-})
-
-// url content-type query service
-app.get(config.base_url + '/get_headers', function (req, res, next) {
-  var url = req.param('url')
-  console.log('url: ' + url)
-  request.head(url, function (err, head_res, body) {
-    if (err) return next(err)
-    var headers = head_res.headers
-    console.log('head res: ' + headers)
-    var result = {
-      statusCode: head_res.statusCode,
-      url: url,
-      timestamp: Date.now()
-    }
-    for (var prop in headers) {
-      if (headers.hasOwnProperty(prop)) {
-        console.log(prop + ': ' + headers[prop])
-        result[prop] = headers[prop]
-      }
-    }
-    res.json(result)
-  })
-})
-
-// testing async utilties for batching functions
-var async = require('./lib/async')
-
-app.get('/async-parallel-test', function (req, res, next) {
-  async.test('p', function(err, result) {
-    var combined = {
-      err: err && err.length ? err.map(function (e) { return { message: e.message }}) : null,
-      result: result
-    }
-    res.json(combined)
-    res.end()
-  })
-})
-
-app.get('/async-serial-test', function (req, res, next) {
-  async.test('s', function(err, result) {
-    if (err) return next(err)
-    res.json(result)
-    res.end()
-  })
-})
-
-app.get('/async-waterfall-test', function (req, res, next) {
-  async.test('w', function(err, result) {
-    if (err) return next(err)
-    res.json(result)
-    res.end()
-  })
-})
-
-// testing xml canonicalization...
-app.post('/c14', routes.getXmlC14Handler(config))
-
-app.get('/admin/data.json', routes_admin.data) // used by /admin UI only
-
-// full-page CIN upload form and submit POST submit processing
-app.get('/cin_from_other_dp', routes_cin.view_cin_from_other_dp_upload_form)
-app.post('/cin_from_other_dp', express.multipart(), routes_cin.post_cin_from_other_dp_upload_form)
+//app.use(express.directory(__dirname + '/public'))
 
 // documented 1.0 api endpoints
 app.use(config.base_url, app.router)
-
-app.get('/gpc-sax', function (req, res, next) {
-  var gpc_util = require('./lib/GpcXmlUtil')
-  gpc_util.sax(config.gpc_file, function (err, gpc) {
-    //console.log('sax gpc: ' + JSON.stringify(gpc))
-    res.jsonp(gpc)
-  })
-})
-
-app.get('/gpc-dom', function (req, res, next) {
-  var gpc_util = require('./lib/GpcXmlUtil')
-  gpc_util.dom(config.gpc_file, function (err, gpc) {
-    //console.log('dom gpc: ' + JSON.stringify(gpc))
-    res.jsonp(gpc)
-  })
-})
-
-app.get( '/util/archive_items', function(req, res, next) {
-  config.database.archive_items(function(result) {
-    res.end(result)
-  })
-})
-
-app.get('/login',           routes_login.getRequestHandler(config))
-
-// lookup services
-app.get('/lookup_allergen', routes_allergen.getRequestHandler(config))
-app.get('/lookup_country' , routes_country.getRequestHandler(config))
-app.get('/lookup_nutrient', routes_nutrient.getRequestHandler(config))
-
-app.get( '/msg/:instance_id',                             routes_archive.find_archive)
-app.get( '/msg',                                          routes_archive.list_archive)
-app.post('/msg',                                          routes_archive.post_archive)
 
 app.get( '/subscribed/:gtin/:provider/:tm/:tm_sub',       routes_subscr.get_subscribed_item)
 app.get( '/subscribed/:gtin/:provider/:tm',               routes_subscr.get_subscribed_item)
@@ -243,10 +113,6 @@ app.get( '/items/:recipient/:gtin',                       routes_item.find_trade
 app.get( '/items/:recipient',                             routes_item.find_trade_items)
 app.get( '/items',                                        routes_item.find_trade_items)
 app.post('/items',                                        routes_item.post_trade_items)
-
-app.get( '/party/:gln',                                   routes_parties.find_parties)
-app.get( '/parties',                                      routes_parties.list_parties)
-app.post('/parties',                                      routes_parties.post_parties)
 
 process.on('SIGINT', function () {
   console.log('Application shutting down...')
@@ -273,39 +139,3 @@ if (config.https_port) {
   log.info("Express GDSN server listening on HTTPS port " + config.https_port)
 }
 
-
-// Inbox filesystem watcher
-log.info("Inbox dir: " + config.inbox_dir)
-fs.watch(config.inbox_dir, function (event, filename) {
-  log.info('event is: ' + event + ' for filename ' + filename)
-  if (filename && event == 'change') {
-    fs.stat(filename, function (err, stats) {
-      if (err) return console.log('err: ' + err)
-      log.info('stats: ' + JSON.stringify(stats))
-    })
-  }
-})
-
-function profileLoader(req, res, next) { // load profile
-  if (!req.user) return next(new Error('must be logged in'))
-
-  var user_config = config.user_config[req.user]
-
-  if (user_config) {
-    log.debug('found existing user_config for user ' + req.user)
-    return next()
-  }
-
-  log.info('loading config')
-  var filename = __dirname + '/profiles/' + req.user + '.js'
-  try {
-    log.info('loading user_config for user ' + req.user + ', file: ' + filename)
-    user_config = require(filename)
-    user_config.user = req.user
-    config.user_config[req.user] = user_config
-  }
-  catch (e) {
-    log.warn('error loading profile "' + filename + '": ' + e)
-  }
-  next()
-}

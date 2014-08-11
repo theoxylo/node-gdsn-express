@@ -1,8 +1,10 @@
 module.exports = {
-
-    client_name  : "ITN Branded Procurement 20140423"
+    client_name  : 'ITN Branded Procurement 20140730'
   , recipients   : ['0625199000015']
-  , urls         : ['/cs_api/1.0/subscribed','/cs_api/1.0/login-docs']
+  , urls         : [
+     '/cs_api/1.0/login'
+    ,'/cs_api/1.0/subscribed'
+    ]
   , getDataPool: function (dp_gln) {
       var data_pools = {
           '0068780850147' : 'ECCnet'
@@ -22,12 +24,12 @@ module.exports = {
       var values = measure.measurementValue
       if (!Array.isArray(values)) values = [values]
       return {
-        value: values[0].value
-        , uom: values[0].unitOfMeasure
+        value          : values[0].value
+        , unitOfMeasure: values[0].unitOfMeasure
       }
     }
   , getTextForLang: function (list, lang) {
-      console.log('getTextForLang lang: ' + lang)
+      //console.log('getTextForLang lang: ' + lang)
       if (!list) return ''
       lang = lang || 'en'
       if (!Array.isArray(list)) list = [list]
@@ -58,8 +60,9 @@ module.exports = {
       result.gtin      = item.gtin
       result.tm        = item.tm
       result.tm_sub    = item.tm_sub
-      result.gpc       = item.gpc
       result.href      = item.href
+
+      result.classificationCategoryCode = item.gpc
 
       result.food_and_bev = item.food_and_bev
 
@@ -69,15 +72,15 @@ module.exports = {
 
       result.last_modified = new Date(item.modified_ts).toString()
 
-      result.unitDescriptor = orig.tradeItemUnitDescriptor
+      result.tradeItemUnitDescriptor = orig.tradeItemUnitDescriptor
 
       if (orig.tradeItemIdentification) {
         var addlId = orig.tradeItemIdentification.additionalTradeItemIdentification
         if (addlId) {
           result.additionalTradeItemIdentification = addlId.map(function (addl) { 
             return {
-              manufacturerProductNumber : addl.additionalTradeItemIdentificationValue
-              , type                    : addl.additionalTradeItemIdentificationType
+              additionalTradeItemIdentificationValue  : addl.additionalTradeItemIdentificationValue
+              , additionalTradeItemIdentificationType : addl.additionalTradeItemIdentificationType
             }
           })
         }
@@ -95,23 +98,23 @@ module.exports = {
       if (tiInfo) {
 
         if (tiInfo.informationProviderOfTradeItem) {
-          result.informationProvider = tiInfo.informationProviderOfTradeItem.nameOfInformationProvider
+          result.informationProviderOfTradeItem = tiInfo.informationProviderOfTradeItem.nameOfInformationProvider
         }
 
         var tiDesc             = tiInfo.tradeItemDescriptionInformation
         if (tiDesc) {
-          result.brandName             = tiDesc.brandName
-          result.productName           = self.getTextForLang(tiDesc.tradeItemDescription, lang)
-          result.additionalDescription = self.getTextForLang(tiDesc.additionalTradeItemDescription, lang)
-          result.shortDescription      = self.getTextForLang(tiDesc.descriptionShort && tiDesc.descriptionShort.description, lang)
-          result.functionalName        = self.getTextForLang(tiDesc.functionalName && tiDesc.functionalName.description, lang)
+          result.brandName                      = tiDesc.brandName
+          result.tradeItemDescription           = self.getTextForLang(tiDesc.tradeItemDescription, lang)
+          result.additionalTradeItemDescription = self.getTextForLang(tiDesc.additionalTradeItemDescription, lang)
+          result.descriptionShort               = self.getTextForLang(tiDesc.descriptionShort && tiDesc.descriptionShort.description, lang)
+          result.functionalName                 = self.getTextForLang(tiDesc.functionalName && tiDesc.functionalName.description, lang)
 
           var tiExtInfo = tiDesc.tradeItemExternalInformation
           if (tiExtInfo) {
             result.images = tiExtInfo.map(function (e) {
               return {
-                url: e.uniformResourceIdentifier
-                , type: e.typeOfInformation
+                uniformResourceIdentifier: e.uniformResourceIdentifier
+                , typeOfInformation      : e.typeOfInformation
               }
             })
           }
@@ -119,24 +122,39 @@ module.exports = {
         
         var tiNeutral              = tiInfo.tradingPartnerNeutralTradeItemInformation
         if (tiNeutral) {
+          if (tiNeutral.tradeItemUnitIndicator) {
+            result.isTradeItemABaseUnit     = tiNeutral.tradeItemUnitIndicator.isTradeItemABaseUnit
+            result.isTradeItemAVariableUnit = tiNeutral.tradeItemUnitIndicator.isTradeItemAVariableUnit
+          }
           if (tiNeutral.tradeItemCountryOfOrigin) {
-            result.countryOfOrigin = tiNeutral.tradeItemCountryOfOrigin.map(function (e) { return e.countryISOCode })
+            result.tradeItemCountryOfOrigin = tiNeutral.tradeItemCountryOfOrigin.map(function (e) { return e.countryISOCode })
           }
           if (tiNeutral.brandOwnerOfTradeItem) {
-            result.brandOwner = tiNeutral.brandOwnerOfTradeItem.nameOfBrandOwner
+            result.nameOfBrandOwner = tiNeutral.brandOwnerOfTradeItem.nameOfBrandOwner
           }
           if (tiNeutral.manufacturerOfTradeItem) {
-            result.manufacturer = tiNeutral.manufacturerOfTradeItem.map(function (e) { return e.nameOfManufacturer })
+            result.nameOfManufacturer = tiNeutral.manufacturerOfTradeItem.map(function (e) { return e.nameOfManufacturer })
+          }
+          if (tiNeutral.packagingMarking) {
+            result.isPackagingMarkedReturnable = tiNeutral.packagingMarking.isPackagingMarkedReturnable
+          }
+          if (tiNeutral.tradeItemDateInformation) {
+            result.effectiveDate = tiNeutral.tradeItemDateInformation.effectiveDate
           }
           var tradeItemHandlingInformation = tiNeutral.tradeItemHandlingInformation
           if (tradeItemHandlingInformation) {
             if (tradeItemHandlingInformation.minimumTradeItemLifespanFromTimeOfProduction) {
-              result.ShelfLifefromProduction = tradeItemHandlingInformation.minimumTradeItemLifespanFromTimeOfProduction
+              result.minimumTradeItemLifespanFromTimeOfProduction = tradeItemHandlingInformation.minimumTradeItemLifespanFromTimeOfProduction
             }
             var consumerUsageStorageInstructions = tradeItemHandlingInformation.consumerUsageStorageInstructions
             if (consumerUsageStorageInstructions) {
               result.consumerUsageStorageInstructions = self.getTextForLang(consumerUsageStorageInstructions, lang)
             }
+          }
+
+          var tradeItemMarking = tiNeutral.tradeItemMarking
+          if (tradeItemMarking) {
+            result.isTradeItemMarkedAsRecyclable = tradeItemMarking.isTradeItemMarkedAsRecyclable
           }
 
           var tiMeasure = tiNeutral.tradeItemMeasurements
@@ -151,12 +169,12 @@ module.exports = {
           var tempInfo = tiNeutral.tradeItemTemperatureInformation
           if (tempInfo) {
             result.temperatureInformation = {}
-            result.temperatureInformation.StorageTempMin = self.getMeasurement(tempInfo, 'storageHandlingTemperatureMinimum')
-            result.temperatureInformation.StorageTempMax = self.getMeasurement(tempInfo, 'storageHandlingTemperatureMaximum')
+            result.temperatureInformation.storageHandlingTemperatureMinimum = self.getMeasurement(tempInfo, 'storageHandlingTemperatureMinimum')
+            result.temperatureInformation.storageHandlingTemperatureMaximum = self.getMeasurement(tempInfo, 'storageHandlingTemperatureMaximum')
           }
 
           if (tiNeutral.marketingInformation) {
-            result.marketingMessage = self.getTextForLang(tiNeutral.marketingInformation.tradeItemMarketingMessage, lang)
+            result.tradeItemMarketingMessage = self.getTextForLang(tiNeutral.marketingInformation.tradeItemMarketingMessage, lang)
           }
 
         } // end tiNeutral
@@ -169,8 +187,8 @@ module.exports = {
         if (!result.images) result.images = []
         var foodUrls = extInfo.map(function (e) {
           return {
-            url: e.uniformResourceIdentifier
-            , type: e.typeOfInformation
+            uniformResourceIdentifier: e.uniformResourceIdentifier
+            , typeOfInformation      : e.typeOfInformation
           }
         })
         result.images = result.images.concat(foodUrls)
@@ -189,26 +207,26 @@ module.exports = {
         result.foodAndBeverageInformation = fbInfoList.map(function (fbInfo) {
 
           var food = {}
-          food.productVariant = self.getTextForLang(fbInfo.productionVariantDescription, lang)
+          food.productionVariantDescription = self.getTextForLang(fbInfo.productionVariantDescription, lang)
 
           var aInfo = fbInfo.foodAndBeverageAllergyRelatedInformation
           if (aInfo) {
-            var may_contain = {levelOfContainment: 'MayContain', allergenList: []}
-            var contains    = {levelOfContainment: 'Contains', allergenList: []}
-            var free_from   = {levelOfContainment: 'FreeFrom', allergenList: []}
+            var may_contain = {levelOfContainment: 'MayContain', allergenTypeCode: []}
+            var contains    = {levelOfContainment: 'Contains', allergenTypeCode: []}
+            var free_from   = {levelOfContainment: 'FreeFrom', allergenTypeCode: []}
 
             food.allergens = [contains, may_contain, free_from]
 
             var allergens = aInfo.foodAndBeverageAllergen
             allergens.forEach(function (allergen) {
               if (allergen.levelOfContainment == 'MAY_CONTAIN') {
-                may_contain.allergenList.push(allergen.allergenTypeCode)
+                may_contain.allergenTypeCode.push(allergen.allergenTypeCode)
               }
               else if (allergen.levelOfContainment == 'CONTAINS') {
-                contains.allergenList.push(allergen.allergenTypeCode)
+                contains.allergenTypeCode.push(allergen.allergenTypeCode)
               }
               else if (allergen.levelOfContainment == 'FREE_FROM') {
-                free_from.allergenList.push(allergen.allergenTypeCode)
+                free_from.allergenTypeCode.push(allergen.allergenTypeCode)
               }
             })
           }
@@ -217,8 +235,8 @@ module.exports = {
           if (dietCodes) {
             dietCodes.forEach(function (e) {
               if (e.foodAndBeverageDietTypeInformation) {
-                if (!food.diet) food.diet = []
-                food.diet.push(e.foodAndBeverageDietTypeInformation.dietTypeCode)
+                if (!food.dietTypeCode) food.dietTypeCode = []
+                food.dietTypeCode.push(e.foodAndBeverageDietTypeInformation.dietTypeCode)
               }
             })
           }
@@ -276,7 +294,7 @@ module.exports = {
           var servingInfo = fbInfo.foodAndBeverageServingInformation
           if (servingInfo && servingInfo.numberOfServingsPerPackage) {
             food.servingInformation = {
-              servingsPerPackage: servingInfo.numberOfServingsPerPackage
+              numberOfServingsPerPackage: servingInfo.numberOfServingsPerPackage
             }
           }
 

@@ -1,12 +1,16 @@
 module.exports = function (config) {
   
+  var _          = require('underscore')
+  var async      = require('async')
+
   var api = {}
 
   var log  = require('../lib/Logger')('rt_items', {debug: true})
 
   var item_utils = require('../lib/item_utils.js')(config)
   var xml_digest = require('../lib/xml_to_json.js')(config)
-  var Parallel   = require('../lib/async').Parallel
+
+  var cheerio = require('cheerio')
 
   api.list_trade_items = function (req, res, next) {
     log.debug('list_items')
@@ -84,11 +88,29 @@ module.exports = function (config) {
       }
       log.debug('Accept header: ' + req.headers['accept'])
 
+      var client_config = config.user_config[req.user] || { client_name: 'Default Client' }
+
       res.format({
 
         xml: function () { // send just first item as 'Content-Type: application/xml'
+
           var item = items && items[0]
+
           if (item) {
+
+            if (client_config.xml_mappings && item.xml) {
+              info('applying server profile xpath mappings for client ' + req.user + ' to item GTIN ' + item.gtin)
+              try {
+                //log.debug('applying xpath to xml: ' + item.xml)
+                item.tradeItem = config.gdsn.getCustomTradeItemInfo(item.xml, client_config.xml_mappings)
+                //log.debug(JSON.stringify(item.tradeItem))
+              }
+              catch (e) {
+                log.error('Error applying server profile xpath mappings to item: ' + e)
+              }
+            }
+            //else info('SKIPPING server profile xpath mappings for client ' + req.user + ' to item GTIN ' + item.gtin)
+
             res.set('Content-Type', 'application/xml;charset=utf-8')
             if (req.param('download')) {
               res.set('Content-Disposition', 'attachment; filename="item_' + item.gtin + '.xml"')
@@ -102,8 +124,6 @@ module.exports = function (config) {
         },
 
         json: function () { // serve item list as 'Content-Type: application/json'
-
-          var client_config = config.user_config[req.user] || { client_name: 'Default Client' }
 
           items = items.map(function (item) {
 
@@ -158,7 +178,7 @@ module.exports = function (config) {
     var content = ''
     req.setEncoding('utf8')
     req.on('data', function (chunk) {
-      log.debug('archive_post_chunk.length: ' + chunk.length)
+      log.debug('post_trade_items.length: ' + chunk.length)
       if (content.length < 10 * 1000 * 1000) content += chunk // 10 MB limit for persisting raw message
     })
     req.on('end', function () {
@@ -170,8 +190,9 @@ module.exports = function (config) {
       })
     })
 
-    var parallel = new Parallel()
-
+    // call saveTradeItem for each item in parallel (after stream read is complete)
+    // how to submit while still streaming? maybe with async.queue
+    var tasks = []
     config.gdsn.items.getEachTradeItemFromStream(req, function (err, item) {
       if (err) return next(err)
 
@@ -181,21 +202,88 @@ module.exports = function (config) {
         var itemDigest = xml_digest.digest(item.xml)
         item.tradeItem = itemDigest.tradeItem
 
-        var fn = config.database.saveTradeItem.bind(config.database, item)
-        parallel.push(function (data, cb) {
-          fn(cb)
+        tasks.push(function (callback) {
+          config.database.saveTradeItem(item, callback)
         })
       }
       else { // null item is passed when there are no more items in the stream
         log.debug('no more items from getEachTradeItemFromStream callback')
-        parallel.start({ name: 'parallel_start_data' }, function (err, result) {
+        async.parallel(tasks, function (err, results) {
           log.debug('parallel err: ' + JSON.stringify(err))
-          log.debug('parallel results: ' + JSON.stringify(result))
+          log.debug('parallel results: ' + JSON.stringify(results))
+          if (err) return next(err)
+
+          results = _.flatten(results) // async.parallel returns an array of results arrays
+
+          if (results && results.length) {
+            res.jsonp({
+              msg: 'Created ' + results.length + ' items with GTINs: ' + results.join(', ')
+              , gtins: results
+            }) 
+          }
+          else {
+            res.jsonp({msg: 'No items were created'})
+          }
         })
       }
 
     })
 
+  }
+
+  api.post_log_item = function (req, res, next) {
+    log.debug('post_log_item handler called')
+
+    var content = ''
+    req.setEncoding('utf8')
+    req.on('data', function (chunk) {
+      log.debug('post_log_item.length: ' + chunk.length + ' / ' + content.length)
+      //log.debug(chunk)
+      content += chunk 
+      if (content.length > 10 * 1000 * 1000) next(Error('10 MB limit for persisting raw message'))
+    })
+    req.on('end', function () {
+      log.info('Received POST msg content of length ' + (content && content.length || '0'))
+
+      // cheerio testing
+      var $ = cheerio.load(content, { 
+        _:0
+        , normalizeWhitespace: true
+        , xmlMode: true
+      })
+
+
+      var item_count = 0
+      console.log('recipient: ' + $('dataRecipient').first().text())
+      console.log('version: ' + $('sh\\:HeaderVersion').text())
+
+      $('tradeItem tradeItemIdentification').each(function () {
+        console.log('args: ' + Array.prototype.join.call(arguments, ', '))
+        item_count++
+        console.log('trade item: ' )
+
+        console.log('gtin: ' + $('gtin', this).text())
+        console.log('tiid: ' + $(this).text())
+        console.log('tiid: ' + $(this).html())
+
+        $('tradeItemIdentification additionalTradeItemIdentification', this).each(function () {
+          var el = $(this)
+          console.log('item addl id: %s (type: %s)'
+            , el.find('additionalTradeItemIdentificationValue').text()
+            , el.find('additionalTradeItemIdentificationType').text()
+          )
+        })
+      })
+
+      $('tradeItem').each(function () {
+        var en_name = $('functionalName description', this).filter(function () {
+          return $('language languageISOCode', this).text() === 'en'
+        }).find('shortText').text()
+        console.log('english functional name: ' + en_name)
+      })
+
+      res.jsonp({msg: 'found item count ' + item_count})
+    })
   }
 
   api.migrate_trade_items = function (req, res, next) {
@@ -218,27 +306,23 @@ module.exports = function (config) {
           return res.end()
         }
 
-        var parallel = new Parallel()
-
+        var tasks = []
         items.forEach(function (item) {
           log.debug('migrating tradeitem with gtin ' + item.gtin)
 
           var itemDigest = xml_digest.digest(item.xml)
           item.tradeItem = itemDigest.tradeItem
 
-          var fn = config.database.saveTradeItem.bind(config.database, item)
-          parallel.push(function (data, cb) {
-            fn(cb)
+          tasks.push(function (callback) {
+            config.database.saveTradeItem(item, callback)
           })
         })
-
-        parallel.start({ name: 'migrate_parallel_start_data' }, function (err, result) {
+        async.parallel(tasks, function (err, results) {
           log.debug('parallel err: ' + JSON.stringify(err))
-          log.debug('parallel results: ' + JSON.stringify(result))
+          log.debug('parallel results: ' + JSON.stringify(results))
           if (err) return next(err)
-
-          result.shift()
-          gtinsMigrated = gtinsMigrated.concat(result)
+          results = _.flatten(results) // async.parallel returns an array of results arrays
+          gtinsMigrated = gtinsMigrated.concat(results)
         })
 
       })
