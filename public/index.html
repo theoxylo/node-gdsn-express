@@ -245,6 +245,7 @@
         <span>Recipient GLN <input type="text" ng-model="input_item_recipient" size="15" placeholder="0625199000015"></input></span>
         <span>TM Country    <input type="text" ng-model="input_item_tm" size="3" placeholder="840"></input></span>
         <span>TM Sub        <input type="text" ng-model="input_item_tm_sub" size="5" placeholder="US-CA"></input></span>
+        <span>Include total count (slow) <input type="checkbox" ng-model="input_include_total_count"></input></span>
         <p/>
         <span>XML Regex     <input type="text" ng-model="input_item_xml_text" size="30" placeholder="foodAndBev"></input></span>
         <span>Msg ID Regex  <input type="text" ng-model="input_item_msg_id_text" size="30" placeholder="CIN_IN_"></input></span>
@@ -270,6 +271,7 @@
             <button ng-if="page > 0" ng-click="list_items(-1)">Prev</button>
             <button ng-if="more_items" ng-click="list_items(1)">Next</button><span ng-if="!(more_items)">No more items to display</span>
             <div>Page:<span>{{ page + 1 }}</span></div>
+            <div ng-if="total_item_count">Total number of matching items <span>{{ total_item_count }}</span></div>
           </p>
           <table width="100%">
             <tr>
@@ -565,6 +567,7 @@
         , pub_url     : app.api + '/publicationList'
         , msg_url     : app.api + '/msg'
         , item_url    : app.api + '/items'
+        , items_list_url : app.api + '/items-list'
         , party_url   : app.api + '/party'
         , parties_url : app.api + '/parties'
       }
@@ -853,6 +856,7 @@
         delete $scope.input_item_unit_descriptor
         delete $scope.items
         delete $scope.page
+        delete $scope.total_item_count
       }
 
       $scope.list_items = function (pageIncrement) {
@@ -863,11 +867,14 @@
           $scope.page = 0
         }
 
+        console.log('include total count checkbox: ' + $scope.input_include_total_count)
+
         showBusy('Fetching item list...')
-        $http.get(thx_util.item_url, { 
+        $http.get(thx_util.items_list_url, { 
           params: { 
               page        : $scope.page 
             , per_page    : $scope.input_per_page
+            , include_total_count : $scope.input_include_total_count
             , gtin        : $scope.input_item_gtin
             , provider    : $scope.input_item_provider
             , recipient   : $scope.input_item_recipient
@@ -884,14 +891,16 @@
           try {
             items = data.collection.items || []
           }
-          catch (e) {}
+          catch (e) {console.log(e)}
+
+          if (data.collection.total_item_count) $scope.total_item_count = data.collection.total_item_count
 
           $scope.selectedItem = null
 
           $scope.items = _.map(items, function (item) {
             item.created_ts   = (new Date(item.created_ts)).toLocaleString()
             item.modified_ts  = (new Date(item.modified_ts)).toLocaleString()
-            item.extension    = !!(item.tradeItem.extension)
+            item.extension    = !!(item.tradeItem && item.tradeItem.extension)
             item.food_and_bev = item.extension && !!(item.tradeItem.extension.foodAndBeverageTradeItemExtension)
             return item
           })

@@ -12,29 +12,59 @@ module.exports = function (config) {
 
   var cheerio = require('cheerio')
 
+  // retrieve list view of items including total count but NOT including xml
   api.list_trade_items = function (req, res, next) {
     log.debug('list_items')
 
+    var exclude_trade_item = req.param('exclude_trade_item') == 'true'
+    log.debug('exclude_trade_item: ' + exclude_trade_item)
+
+    var include_total_count = req.param('include_total_count') == 'true'
+    log.debug('include_total_count: ' + include_total_count)
+
     var page = parseInt(req.param('page'))
-    log.info('page ' + page)
+    log.debug('page: ' + page)
     if (!page || page < 0) page = 0
 
     var per_page = parseInt(req.param('per_page'))
-    log.info('per_page ' + per_page)
-    if (!per_page || per_page < 0 || per_page > 100) per_page = config.per_page_count
+    log.debug('per_page: ' + per_page)
+    //if (!per_page || per_page < 0 || per_page > 100) per_page = config.per_page_count
+    if (!per_page || per_page < 0 || per_page > 1000) per_page = config.per_page_count // increase max to 1000
 
     log.info('req params: ' + JSON.stringify(req.query))
     var query = item_utils.get_query(req)
 
-    config.database.getTradeItems(query, page, per_page, false, function (err, items) {
+    var start = Date.now()
+    var include_xml = true
+    var tasks = []
+    tasks.push(function (callback) {
+      config.database.getTradeItems(query, page, per_page, !include_xml, callback)
+    })
+    if (include_total_count) tasks.push(function (callback) {
+      config.database.getTradeItems(query, page, per_page, !include_xml, callback, include_total_count)
+    })
+    //async.series(tasks, function (err, results) { // I thought maybe db caching might make series faster, but no
+    async.parallel(tasks, function (err, results) {
       if (err) return next(err)
-      log.info('list_trade_items getTradeItems return item count: ' + items.length)
+      var items = results[0]
+      var total_item_count = results[1]
+      log.info('list_trade_items getTradeItems (with total item count ' + total_item_count + ') returned ' + items.length + ' items in ' + (Date.now() - start) + 'ms')
+      var item_count = (page * per_page) + 1
       items = items.map(function (item) {
         item.href = item_utils.get_item_href(item)
+        item.item_count_num = item_count++
+        if (exclude_trade_item) delete item.tradeItem
         return item
       })
       var href = config.base_url + req.url
       var result = item_utils.get_collection_json(items, href)
+
+      result.collection.page             = page
+      result.collection.per_page         = per_page
+      result.collection.item_range_start = (page * per_page) + 1
+      result.collection.item_range_end   = (page * per_page) + items.length
+      if (include_total_count) result.collection.total_item_count = total_item_count
+
       result.collection.links = [
           {rel: 'next', href: href + '[?|&]page=+1'}
         , {rel: 'prev', href: href + '[?|&]page=-1'}
@@ -54,7 +84,7 @@ module.exports = function (config) {
           {prompt: 'Item GTIN (required)', name: 'gtin', value: '/[0-9]{14}/'},
         ]
       }
-      res.json(result)
+      if (!res.finished) res.jsonp(result)
     })
   }
 
@@ -69,16 +99,18 @@ module.exports = function (config) {
     var query = item_utils.get_query(req)
 
     var page = parseInt(req.param('page'))
-    log.info('page ' + page)
+    log.debug('page ' + page)
     if (!page || page < 0) page = 0
 
     var per_page = parseInt(req.param('per_page'))
-    log.info('per_page ' + per_page)
+    log.debug('per_page ' + per_page)
     if (!per_page || per_page < 0 || per_page > 100) per_page = config.per_page_count
 
-    config.database.getTradeItems(query, page, per_page, true, function (err, items) {
+    var start = Date.now()
+    var include_xml = true
+    config.database.getTradeItems(query, page, per_page, include_xml, function (err, items) {
       if (err) return next(err)
-      log.info('find_trade_items getTradeItems return item count: ' + items.length)
+      log.info('find_trade_items getTradeItems found ' + items.length + ' items in ' + (Date.now() - start) + 'ms')
 
       if (req.param('callback') || req.param('json')) { // json override
         req.headers.accept = 'application/json'
@@ -150,16 +182,18 @@ module.exports = function (config) {
 
           var result = item_utils.get_collection_json(items, config.base_url + req.url)
 
-          if (req.query.download) {
-            res.set('Content-Disposition', 'attachment; filename="items_' + Date.now() + '.json"')
-            res.json(result)
-          }
-          else if (req.query.pp) {
-            res.setHeader('Content-Type', 'text/html')
-            res.render('item_pretty_print', {result: result, test: 'hello'})
-          }
-          else {
-            res.jsonp(result)
+          if (!res.finished) {
+            if (req.query.download) {
+              res.set('Content-Disposition', 'attachment; filename="items_' + Date.now() + '.json"')
+              res.json(result)
+            }
+            else if (req.query.pp) {
+              res.setHeader('Content-Type', 'text/html')
+              res.render('item_pretty_print', {result: result, test: 'hello'})
+            }
+            else {
+              res.jsonp(result)
+            }
           }
         },
 
@@ -215,14 +249,16 @@ module.exports = function (config) {
 
           results = _.flatten(results) // async.parallel returns an array of results arrays
 
-          if (results && results.length) {
-            res.jsonp({
-              msg: 'Created ' + results.length + ' items with GTINs: ' + results.join(', ')
-              , gtins: results
-            }) 
-          }
-          else {
-            res.jsonp({msg: 'No items were created'})
+          if (!res.finished) {
+            if (results && results.length) {
+              res.jsonp({
+                msg: 'Created ' + results.length + ' items with GTINs: ' + results.join(', ')
+                , gtins: results
+              }) 
+            }
+            else {
+              res.jsonp({msg: 'No items were created'})
+            }
           }
         })
       }
@@ -282,7 +318,7 @@ module.exports = function (config) {
         console.log('english functional name: ' + en_name)
       })
 
-      res.jsonp({msg: 'found item count ' + item_count})
+      if (!res.finished) res.jsonp({msg: 'found item count ' + item_count})
     })
   }
 
@@ -296,7 +332,8 @@ module.exports = function (config) {
     var gtinsMigrated = []
 
     var intervalId = setInterval(function () {
-      config.database.getTradeItems(query, 0, 10, true, function (err, items) {
+      var include_xml = true
+      config.database.getTradeItems(query, 0, 10, include_xml, function (err, items) {
         if (err) return next(err)
         log.info('migrate_trade_items getTradeItems return item count: ' + items.length)
 

@@ -23,8 +23,9 @@ var config = {
   , gpc_file        : __dirname + '/data/gpc/GS1_Combined_Published_as_at_01062014.xml'
   , per_page_count  : 10
   , base_url        : '/cs_api/1.0'
-  , slow_warn_ms    : 800
-  , enable_query_req_id: false
+  , slow_warn_ms          : 800
+  , total_item_count_limit: 600
+  , enable_query_req_id   : false
 }
 
 for (var prop in local_config) {
