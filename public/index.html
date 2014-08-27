@@ -16,6 +16,9 @@
     .selected {
       border: #ccf solid 1px; 
     }
+    .centered {
+      text-align: center;
+    }
     td {
       text-align: center;
     }
@@ -43,6 +46,11 @@
   <script src="js/underscore-1.5.2.js"></script>
   <script src="js/angular-1.2.2.js"></script>
   <script src="js/file/angular-file-upload.js"></script>
+  <script src="js/bp_cs_client.js"></script>
+
+  <script src="js/three.min.js"></script>
+  <script src="js/three_item_view.js"></script>
+
   
 </head>
 <body ng-app="thx_app">
@@ -184,6 +192,7 @@
       <div>Search Trading Parties</div>
       <div>
         <br/>
+        <button ng-if="!parties" ng-click="list_parties()">Load Parties</button>
         <button ng-if="page > 0" ng-click="list_parties(-1)">Prev</button>
         <button ng-if="parties && parties.length == 10" ng-click="list_parties(1)">Next</button>
         <div ng-if="parties" style="border-style:solid;border-width:1px;border-color:green">
@@ -207,7 +216,6 @@
             </tr>
           </table>
         </div>
-        <button ng-if="!parties" ng-click="list_parties()">Load Parties</button>
       </div>
 
       <div>Trading Party Details</div>
@@ -245,7 +253,8 @@
         <span>Recipient GLN <input type="text" ng-model="input_item_recipient" size="15" placeholder="0625199000015"></input></span>
         <span>TM Country    <input type="text" ng-model="input_item_tm" size="3" placeholder="840"></input></span>
         <span>TM Sub        <input type="text" ng-model="input_item_tm_sub" size="5" placeholder="US-CA"></input></span>
-        <span>Include total count (slow) <input type="checkbox" ng-model="input_include_total_count"></input></span>
+        <span>Include total count <input type="checkbox" ng-model="input_include_total_count"></input></span>
+        <span>Per page      <input ng-model="input_per_page" size="3"></input></span>
         <p/>
         <span>XML Regex     <input type="text" ng-model="input_item_xml_text" size="30" placeholder="foodAndBev"></input></span>
         <span>Msg ID Regex  <input type="text" ng-model="input_item_msg_id_text" size="30" placeholder="CIN_IN_"></input></span>
@@ -263,16 +272,11 @@
             <option value="SETPACK">Setpack</option>
             <option value="TRANSPORT_LOAD">Transport Load</option>
           </select>
+        </span>
         <button ng-click="list_items(0)">Search</button>
         <button ng-click="reset_search()">Reset</button>
         <p/>
         <div ng-if="items">
-          <p>
-            <button ng-if="page > 0" ng-click="list_items(-1)">Prev</button>
-            <button ng-if="more_items" ng-click="list_items(1)">Next</button><span ng-if="!(more_items)">No more items to display</span>
-            <div>Page:<span>{{ page + 1 }}</span></div>
-            <div ng-if="total_item_count">Total number of matching items <span>{{ total_item_count }}</span></div>
-          </p>
           <table width="100%">
             <tr>
               <th>GTIN</th>
@@ -298,30 +302,59 @@
             </tr>
           </table>
           <p/>
-          <div ng-if="selectedItem" class="box">
-          <table width="100%">
-            <tr>
-              <th>
-                <p>Selected GTIN: {{selectedItem.gtin}}</p>
-                <p>Functional name: {{selectedItem.tradeItem.tradeItemInformation.tradeItemDescriptionInformation.functionalName.description[0].shortText}}</p>
-                <p>Brand: {{selectedItem.brand}}</p>
-                <p>GPC Brick Code: {{selectedItem.gpc}}</p>
-                <p>Child GTINs: {{selectedItem.child_gtins.join(' ')}}</p>
-              </th>
-              <th>
-                <p>Some extension: {{selectedItem.extension}}</p>
-                <p>Food extension: {{selectedItem.food_and_bev}}</p>
-                <p>Unit type: {{selectedItem.unit_type}}</p>
-                <p>Source DP: {{selectedItem.source_dp}}</p>
-                <p>XML: <a ng-href="{{selectedItem.href}}?" target="_blank">View</a> <a ng-href="{{selectedItem.href}}?download=true">Download</a></p>
-                <p>JSON: <a ng-href="{{selectedItem.href}}?json=true" target="_blank">View</a> <a ng-href="{{selectedItem.href}}?json=true&download=true">Download</a></p>
-                <p><a href="#" ng-click="prettyPrintItem(selectedItem)">PrettyPrint Item</a></p>
-              </th>
-            </tr>
-          </table>
+          <p class="centered">
+            <button ng-if="page > 1" ng-click="list_items(-page)">First</button>
+            <button ng-if="page > 0" ng-click="list_items(-1)">Prev</button>
+            <span>Page:<span>{{ page + 1 }}</span>
+            <button ng-if="more_items" ng-click="list_items(1)">Next</button>
+            <button ng-if="total_item_count && more_items" ng-click="list_items((total_item_count / per_page) - page)">Last</button>
+            <div class="centered"></span>Displaying items <span>{{ item_range_start }}</span> to {{ item_range_end }}</div>
+            <div class="centered" ng-if="!(more_items)">No more items to display</div>
+            <div class="centered" ng-if="total_item_count && input_include_total_count">Total number of matching items <span>{{ total_item_count }}</span></div>
+          </p>
+
+          <div ng-if="previousSearches" class="box">
+            <p>Previous searches:</p>
+            <p class="clickable" ng-repeat="search in previousSearches" ng-click="redoPreviousItemSearch(search)">{{ search }}</p>
           </div>
+
+          <div ng-if="selectedItem" class="box">
+            <div>
+              <table width="100%">
+                <tr>
+                  <th border="1">
+                    <p>GTIN: {{selectedItem.gtin}}</p>
+                    <p>Name: {{selectedItem.tradeItem.tradeItemInformation.tradeItemDescriptionInformation.functionalName.description[0].shortText}}</p>
+                    <p>Brand: {{selectedItem.brand}}</p>
+                    <p>Short Description: {{selectedItem.tradeItem.tradeItemInformation.tradeItemDescriptionInformation.descriptionShort.description[0].shortText}}</p>
+                    <p>Description: {{selectedItem.tradeItem.tradeItemInformation.tradeItemDescriptionInformation.tradeItemDescription[0].text}}</p>
+                    <p>Additional Description: {{selectedItem.tradeItem.tradeItemInformation.tradeItemDescriptionInformation.additionalTradeItemDescription[0].text}}</p>
+                    <p>GPC Brick Code: {{selectedItem.gpc}}</p>
+                    <p>Child GTINs: {{selectedItem.child_gtins.join(' ')}}</p>
+                  </th>
+                  <th>
+                    <div ng-if="selectedItem.has_extension"><p>Some extension: <span>{{selectedItem.has_extension}}</span></p>
+                        <div ng-if="selectedItem.has_food_and_bev"><p>Food extension: {{selectedItem.has_food_and_bev}}</p>
+                            <div ng-if="selectedItem.has_nutrient_info"><p>Nutritient info: {{selectedItem.has_nutrient_info}}</p>
+                                <div ng-if="selectedItem.preparationStates && selectedItem.preparationStates.length">
+                                  <p>Preparation states: <span ng-repeat="state in selectedItem.preparationStates"> {{ state }} </span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p>Unit type: {{selectedItem.unit_type}}</p>
+                    <p>Source DP: {{selectedItem.source_dp}}</p>
+                    <p>XML: <a ng-href="{{selectedItem.href}}?" target="_blank">View</a> <a ng-href="{{selectedItem.href}}?download=true">Download</a></p>
+                    <p>JSON: <a ng-href="{{selectedItem.href}}?json=true&include_trade_item=true" target="_blank">View</a> <a ng-href="{{selectedItem.href}}?json=true&include_trade_item=true&download=true">Download</a></p>
+                    <p><a href="#" ng-click="prettyPrintItem(selectedItem)">PrettyPrint Item</a></p>
+                    <p><a href="#" ng-click="showItemHierarchy(selectedItem)">Hierarchy</a></p>
+                  </th>
+                </tr>
+              </table>
+            </div>
+            <div class="blue_box" width="100%" id="three_item_view">...</div>
+          </div> <!-- end if selectedItem -->
         </div> <!-- end if items -->
-        <!--<div>Results per page: <input ng-model="input_per_page" size="3"></input></div>-->
       </div>
 
       <div>Catalog Item Details</div>
@@ -440,7 +473,6 @@
           </div>
         </div>
 
-        <script src="js/bp_cs_client.js"></script>
       </div> <!-- end sub_client -->
 
       <div>Search Subscriptions</div>
@@ -455,14 +487,79 @@
 
 </div><!-- end tabs -->
 
-<div id="debug_tab">
-  <div>Model values:</div>
-  <div>Subscriber: {{subscriber}}</div>
-  <div>Publisher: {{publisher}}</div>
-  <div>View Message ID: {{view_msg_id}}</div>
-  <div>Message post content: <textarea disabled>{{msg_content_post}}</textarea></div>
-  <div id="snoop">Loading...</div>
-</div>
+
+
+<div id="debug_tab" ng-controller='thx_debug_controller'>
+  <div id="debug_accordion">
+  	<div>Already existing...</div>
+  	<div>
+	  <div>Model values:</div>
+	  <div>Subscriber: {{subscriber}}</div>
+	  <div>Publisher: {{publisher}}</div>
+	  <div>View Message ID: {{view_msg_id}}</div>
+	  <div>Message post content: <textarea disabled>{{msg_content_post}}</textarea></div>
+	  <div id="snoop">Loading...</div>
+	</div>
+	
+  	<div>MongoDB Logging...</div>
+  	<div>
+        <span>GTIN          <input type="text" ng-model="input_log_gtin" size="16" placeholder="99999999999999"></input></span>
+        <span>Provider GLN  <input type="text" ng-model="input_log_provider" size="15" placeholder="1100001011292"></input></span>
+        <span>Recipient GLN <input type="text" ng-model="input_log_recipient" size="15" placeholder="0625199000015"></input></span>
+        <span>Include total count <input type="checkbox" ng-model="input_include_total_count"></input></span>
+        <span>Per page      <input ng-model="input_per_page" size="3"></input></span>
+        <p/>
+        <span>Field Regex     <input type="text" ng-model="input_log_regex" size="30" placeholder="req_id"></input></span>
+        <span>Log Level
+          <select ng-model="input_log_level">
+            <option value="debug">debug</option>
+            <option value="info">info</option>
+            <option value="warn">warn</option>
+            <option value="error">error</option>
+          </select>
+        </span>
+        <span>Action Type
+          <select ng-model="input_action_type">
+            <option value="subscribed">subscribed</option>
+            <option value="Subscription">Subscription</option>
+            <option value="Publication">Publication</option>
+            <option value="ItemLoad">Item Load</option>
+          </select>
+        </span>
+        <button ng-click="list_fileLogs()">Search</button>
+        <button ng-click="reset_log_search()">Reset</button>
+
+        <!-- button ng-if="!fileLogs" ng-click="list_fileLogs()">Load FileLogs</button -->
+        <div ng-if="fileLogs" style="border-style:solid;border-width:1px;border-color:green">
+          <table>
+            <tr>
+              <th>Timestamp</th>
+              <th>Level</th>
+              <th>Message</th>
+              <th>Meta</th>
+              <th>Id</th>
+            </tr>
+            <tr class="clickable" ng-repeat="fileLog in fileLogs">
+              <td>{{fileLog.timestamp}}</td>
+              <td>{{fileLog.level}}</td>
+              <td>{{fileLog.message}}</td>
+              <td>{{fileLog.meta}}</td>
+              <td>{{fileLog._id}}</td>
+              <!-- Raw Data: '{{fileLog}}' -->
+            </tr>
+          </table>
+        </div>
+        
+        <p class="centered">
+	        <button ng-if="page > 0" ng-click="list_fileLogs(-1)">Prev</button>
+	        <button ng-if="fileLogs && fileLogs.length == 10" ng-click="list_fileLogs(1)">Next</button>
+	    </p>
+        
+	</div>
+  </div>   <!-- end debug_accordion -->
+</div>  <!-- end debug_tab -->
+
+
 
 <div id="footer_area">
   <p>Copyright &copy; 2014</p>
@@ -516,6 +613,12 @@
         collapsible: true
     })
 
+    var $debug_accordion = $('#debug_accordion')
+    $debug_accordion.accordion({
+        heightStyle: 'content',
+        collapsible: true
+    })
+
     var $msg_accordion = $('#msg_accordion')
     $msg_accordion.accordion({
         heightStyle: 'content',
@@ -546,7 +649,7 @@
       , width: 700
       , modal: true
     })
-    
+
     function showBusy(title) {
       log('busy 2: ' + title)
       $progress_dialog.dialog('option', 'title', title)
@@ -563,13 +666,15 @@
 
     thx_app.factory('thx_util', function () {
       return {
-          sub_url     : app.api + '/subscriptionList'
-        , pub_url     : app.api + '/publicationList'
-        , msg_url     : app.api + '/msg'
-        , item_url    : app.api + '/items'
-        , items_list_url : app.api + '/items-list'
-        , party_url   : app.api + '/party'
-        , parties_url : app.api + '/parties'
+          sub_url         : app.api + '/subscriptionList'
+        , pub_url         : app.api + '/publicationList'
+        , msg_url         : app.api + '/msg'
+        , item_url        : app.api + '/items'
+        , items_list_url  : app.api + '/items-list'
+        , item_detail_url : app.api + '/item'
+        , party_url       : app.api + '/party'
+        , parties_url     : app.api + '/parties'
+        , logs_url        : app.api + '/logs'
       }
     })
 
@@ -590,12 +695,12 @@
             file: file,
           })
           .progress(function(evt) {
-            log('percent: ' + parseInt(100.0 * evt.loaded / evt.total));
+            log('percent: ' + parseInt(100.0 * evt.loaded / evt.total))
           })
           .success(function(data, status, headers, config) {
             // file is uploaded successfully
             log('ajax upload file succeeded')
-            log(data);
+            log(data)
             alert('File uploaded successfully (' + data.msg + ')')
           })
           .error(function(msg) {
@@ -671,11 +776,11 @@
         //$http.get('/err', {
         $http.get(url, {
           params: { 
-			  gtin: gtin
-			, provider: provider
-			, tm: tm
-			, tm_sub: tm_sub
-        	, children: children
+              gtin: gtin
+            , provider: provider
+            , tm: tm
+            , tm_sub: tm_sub
+            , children: children
             , parents: parents
             , multi: multi
             , transform: transform
@@ -830,14 +935,55 @@
     thx_app.controller('thx_item_controller', function($scope, $http, thx_util) {
 
       $scope.page = 0
-      $scope.input_per_page = 10
+      $scope.per_page = 10
       $scope.more_items = true
 
       $scope.showItemDetail = function (item) {
         log('showItemDetail called for gtin ' + item.gtin)
-        //$result_dialog.html(prettyPrint(item)).dialog('open')
         $scope.selectedItem = item
-        //$scope.input_item_gtin = item.gtin
+      }
+
+      $scope.redoPreviousItemSearch = function (params) {
+        log('redoPreviousItemSearch with params: ' + JSON.stringify(params))
+        $scope.executeItemSearch(params)
+      }
+
+      $scope.showItemHierarchy = function (item) {
+        log('showItemHierarchy start for item ' + item.gtin)
+
+        showBusy('Fetching item details...')
+
+        var params = {
+            req_id   : 'hier_' + Date.now() + '_' + item.gtin
+          , children : true
+          , include_trade_item: true
+        }
+
+        console.log('item.href: ', item.href)
+
+        $http.get(item.href, { params: params }).success(function (data) {
+          var items = []
+          try {
+            items = data.collection.items || []
+          }
+          catch (e) {console.log(e)}
+
+          items.forEach(function (item) {
+            console.log('item.images: ', item.images && item.images.join(' '))
+          })
+
+          if (init_three_view) init_three_view($('#three_item_view'), items)
+
+          $scope.hierarchy_items = items
+
+          hideBusy()
+
+          console.log('showItemHierarchy done')
+        })
+        .error(function () {
+          hideBusy()
+          $error_dialog.html('An error occurred -- please try again').dialog('open')
+        })
       }
 
       $scope.prettyPrintItem = function (item) {
@@ -854,38 +1000,65 @@
         delete $scope.input_item_xml_text
         delete $scope.input_item_msg_id_text
         delete $scope.input_item_unit_descriptor
+        delete $scope.input_include_total_count
+        delete $scope.total_item_count
         delete $scope.items
         delete $scope.page
-        delete $scope.total_item_count
+        delete $scope.more_items
+        delete $scope.search_params
+
+        delete $scope.previousSearches
+        //delete $scope.input_per_page
       }
 
       $scope.list_items = function (pageIncrement) {
+        pageIncrement = Math.floor(pageIncrement)
+        console.log('list_items pageIncrement ' + pageIncrement)
+
+        $scope.search_params = $scope.search_params || {} // create new if needed
+        $scope.input_per_page = $scope.input_per_page || 10
+        
         if (pageIncrement) {
-          $scope.page += pageIncrement
+          $scope.page += pageIncrement              // note that we don't allow per_page to be changed when paging
+          $scope.search_params.page = $scope.page
+          $scope.search_params.include_total_count = false // don't recount when paging
         }
-        else {
+        else { // only reread search params from form and reset counts if not paging
           $scope.page = 0
+          $scope.total_item_count = 0
+          $scope.per_page = $scope.input_per_page || 10
+          $scope.search_params = {
+              page                : $scope.page 
+            , per_page            : $scope.per_page
+            , include_total_count : $scope.input_include_total_count
+            , gtin                : $scope.input_item_gtin
+            , provider            : $scope.input_item_provider
+            , recipient           : $scope.input_item_recipient
+            , tm                  : $scope.input_item_tm
+            , tm_sub              : $scope.input_item_tm_sub
+            , xml_text            : $scope.input_item_xml_text
+            , msg_id_text         : $scope.input_item_msg_id_text
+            , unit_type           : $scope.input_item_unit_descriptor
+            , req_ts              : Date.now()
+            , exclude_trade_item  : false
+            , include_trade_item  : true
+          }
+          $scope.previousSearches = $scope.previousSearches || []
+          $scope.previousSearches.unshift($scope.search_params)
         }
+
+        $scope.executeItemSearch($scope.search_params)
+      }
+
+      $scope.executeItemSearch = function (search_params) {
 
         console.log('include total count checkbox: ' + $scope.input_include_total_count)
+        console.log('page num to request: ' + $scope.page)
 
         showBusy('Fetching item list...')
-        $http.get(thx_util.items_list_url, { 
-          params: { 
-              page        : $scope.page 
-            , per_page    : $scope.input_per_page
-            , include_total_count : $scope.input_include_total_count
-            , gtin        : $scope.input_item_gtin
-            , provider    : $scope.input_item_provider
-            , recipient   : $scope.input_item_recipient
-            , tm          : $scope.input_item_tm
-            , tm_sub      : $scope.input_item_tm_sub
-            , xml_text    : $scope.input_item_xml_text
-            , msg_id_text : $scope.input_item_msg_id_text
-            , unit_type   : $scope.input_item_unit_descriptor
-            , req_ts      : Date.now()
-          }
-        })
+
+        //$http.get(thx_util.items_list_url, {params: $scope.search_params})
+        $http.get(thx_util.items_list_url, {params: search_params})
         .success(function (data) {
           var items = []
           try {
@@ -894,19 +1067,39 @@
           catch (e) {console.log(e)}
 
           if (data.collection.total_item_count) $scope.total_item_count = data.collection.total_item_count
+          if (data.collection.item_range_start) $scope.item_range_start = data.collection.item_range_start 
+          if (data.collection.item_range_end)   $scope.item_range_end   = data.collection.item_range_end   
 
           $scope.selectedItem = null
 
-          $scope.items = _.map(items, function (item) {
-            item.created_ts   = (new Date(item.created_ts)).toLocaleString()
-            item.modified_ts  = (new Date(item.modified_ts)).toLocaleString()
-            item.extension    = !!(item.tradeItem && item.tradeItem.extension)
-            item.food_and_bev = item.extension && !!(item.tradeItem.extension.foodAndBeverageTradeItemExtension)
-            return item
-          })
-
           if (items.length) {
-            $scope.more_items = (items.length === $scope.input_per_page)
+            $scope.items = _.map(items, function (item) {
+              item.created_ts        = (new Date(item.created_ts)).toLocaleString()
+              item.modified_ts       = (new Date(item.modified_ts)).toLocaleString()
+              item.has_extension     = !!(item.tradeItem && item.tradeItem.extension)
+              item.has_food_and_bev  = item.has_extension && !!(item.tradeItem.extension.foodAndBeverageTradeItemExtension)
+              
+              item.has_nutrient_info = item.has_food_and_bev
+                && !!(item.tradeItem.extension.foodAndBeverageTradeItemExtension.foodAndBeverageInformation)
+                && !!(item.tradeItem.extension.foodAndBeverageTradeItemExtension.foodAndBeverageInformation[0])
+                && !!(item.tradeItem.extension.foodAndBeverageTradeItemExtension.foodAndBeverageInformation[0].foodAndBeverageNutrientInformation)
+
+              if (item.has_nutrient_info) {
+                item.preparationStates = item.tradeItem.extension.foodAndBeverageTradeItemExtension.foodAndBeverageInformation.map(function (fbi) {
+                  return fbi.foodAndBeverageNutrientInformation.map(function (elem) {
+                    return (elem.preparationState && elem.preparationState.length) ? elem.preparationState : false
+                  })
+                })
+                item.preparationStates = _.compact(_.flatten(item.preparationStates))
+              }
+              console.log(item.gtin + ' preparationStates: ' + JSON.stringify(item.preparationStates))
+
+              return item
+            })
+            console.log('Found ', items.length, ' items')
+            console.log('Per page ', $scope.per_page, ' items')
+
+            $scope.more_items = (items.length == $scope.per_page)
           }
           else {
             if ($scope.page > 0) $scope.page--
@@ -998,6 +1191,87 @@
 
     })
 
+
+
+    thx_app.controller('thx_debug_controller', function($scope, $http, thx_util) {
+      $scope.page = 0
+      $scope.per_page = 10
+
+      $scope.reset_log_search = function () {
+        delete $scope.input_log_gtin
+        delete $scope.input_log_provider
+        delete $scope.input_log_recipient
+        delete $scope.input_log_regex
+        delete $scope.input_log_level
+        delete $scope.input_include_total_count
+        delete $scope.input_action_type
+        delete $scope.input_per_page
+      }
+      
+      $scope.list_fileLogs = function (pageIncrement) {
+        log('list_fileLogs called with page increment ' + pageIncrement)
+        if (pageIncrement) {
+          $scope.page += pageIncrement
+        }
+        else {
+          $scope.page = 0
+        }
+        
+        // use these for http params also?
+        $scope.search_params = {
+            page                : $scope.page 
+          , per_page            : $scope.per_page
+          , include_total_count : $scope.input_include_total_count
+          , gtin                : $scope.input_log_gtin
+          , provider            : $scope.input_log_provider
+          , recipient           : $scope.input_logm_recipient
+          , regex               : $scope.input_log_regex
+          , level               : $scope.input_log_level
+        }
+
+        log('logs url=' + thx_util.logs_url+ ", $scope.search_params=" +JSON.stringify($scope.search_params) )
+        //console.log($scope.search_params)
+        
+        showBusy('Fetching fileLogs list...')
+
+        $http.get(thx_util.logs_url, { 
+          params: { 
+          	page   : $scope.page,
+          	level  : $scope.input_log_level,
+          	regex  : $scope.input_log_regex
+			}
+        })
+        .success(function (fileLogs) {
+          $scope.fileLogs = _.map(fileLogs, function (fileLog) {
+            return fileLog
+          })
+          log('found ' + $scope.fileLogs.length + ' rows')
+          hideBusy()
+        })
+        .error(function () {
+          hideBusy()
+          $error_dialog.html('An error occurred -- please try again').dialog('open')
+        })
+
+/*
+        $scope.fileLogs = [
+{"level":"info","message":"logs2","timestamp":"2014-08-20T20:28:09.027Z"},
+{"level":"notice","message":"logs2","timestamp":"2014-08-20T20:28:09.028Z"},
+{"meta":"This is metadata","meta2":"This is metadata2","level":"warning","message":"logs2","timestamp":"2014-08-20T20:28:09.028Z"},
+{"level":"error","message":"logs2","timestamp":"2014-08-20T20:28:09.028Z"},
+{"meta":"This is metadata","meta2":"This is metadata2","level":"info","message":"logs2db","timestamp":"2014-08-20T20:28:09.028Z"}
+]
+log('found ' + $scope.fileLogs.length + ' fileLogs')
+log('found ' + $scope.fileLogs[0])
+hideBusy()
+*/
+
+      }
+      
+    })
+
+
+
     thx_app.directive('gdsnSubscriptions', function (thx_util) {
       log('directive gdsnSubscriptions')
       return {
@@ -1038,7 +1312,7 @@
     if (app.debug) {
       $('#debug_tab').append('<div>Timestamp: ' + app.ts + '</div>')
       $('#tabs ul').append('<li><a href="#debug_tab">Debug</a></li>')
-      $('#snoop').load('snoop')
+      //$('#snoop').load('snoop')
     }
 
     $('#tabs').tabs() //{ collapsible: true, active: false })

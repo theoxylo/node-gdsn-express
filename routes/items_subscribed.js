@@ -4,7 +4,7 @@ module.exports = function (config) {
   var async      = require('async')
   var log        = require('../lib/Logger')('rt_subscr', {debug: true})
   var item_utils = require('../lib/item_utils.js')(config)
-
+  var logw       = (require('../lib/log_utils.js')(config)).log
 
   function get_item_href(item) {
     var href = config.base_url 
@@ -90,8 +90,6 @@ module.exports = function (config) {
         log.debug(req_id + ' fetching all items for gtin ' + gtin + ' at time ' + start)
 
         var include_xml = false // for db projection
-
-        var self = this
 
         config.database.getTradeItems(query, 0, 100, include_xml, function process_found_items(err, items) {
           if (err) return next(err)
@@ -240,6 +238,7 @@ info('starting async for task count: ' + tasks.length)
                 var result = item_utils.get_collection_json(items, config.base_url + req.url)
                 if (!res.finished) res.jsonp(result)
               }
+              logw.info(req.url, {user: req.user, duration: (Date.now() - start)} )
             } // end async.parallel callback
           ) // end async.parallel invocation
         }) // end db getTradeItems callback and invocation

@@ -2,6 +2,7 @@ module.exports = function (config) {
   
   var _          = require('underscore')
   var async      = require('async')
+  var logw       = (require('../lib/log_utils.js')(config)).log
 
   var api = {}
 
@@ -11,6 +12,124 @@ module.exports = function (config) {
   var xml_digest = require('../lib/xml_to_json.js')(config)
 
   var cheerio = require('cheerio')
+
+  function populateItemImageUrls(item) {
+    console.log('populateItemImageUrls with item ' + JSON.stringify(item))
+    var urls = []
+    log.debug('5555555555555 urls: ' + urls.join(' '))
+    try {
+      //tradeItem/tradeItemInformation/tradeItemDescriptionInformation/tradeItemExternalInformation[1]/uniformResourceIdentifier
+      var dUrls = item.tradeItem.tradeItemInformation.tradeItemDescriptionInformation.tradeItemExternalInformation.map(function (extInfo) {
+        console.log('dUrl: ' + extInfo.uniformResourceIdentifier)
+        return extInfo.uniformResourceIdentifier
+      })
+      console.log('-------------------- dUrls: ' + JSON.stringify(dUrls))
+      if (dUrls && dUrls.length) {
+          dUrls.unshift(0)
+          dUrls.unshift(dUrls.length -1)
+
+          Array.prototype.splice.apply(urls, dUrls)
+
+          console.log('dUrls urls: ', urls.join(' '))
+      }
+    }
+    catch (e) {console.log(e)}
+
+    log.debug('6666666666666 urls: ' + urls.join(' '))
+
+    try {
+      //tradeItem/extension/food:foodAndBeverageTradeItemExtension/tradeItemExternalInformation[1]/uniformResourceIdentifier
+      var fUrls = item.tradeItem.extension.foodAndBeverageTradeItemExtension.tradeItemExternalInformation.map(function (extInfo) {
+        return extInfo.uniformResourceIdentifier
+      })
+      if (fUrls && fUrls.length) {
+          fUrls.unshift(0)
+          fUrls.unshift(fUrls.length -1)
+
+          Array.prototype.splice.apply(urls, fUrls)
+
+          console.log('fUrls urls: ', urls.join(' '))
+      }
+    }
+    catch (e) {console.log(e)}
+
+    log.debug('7777777777777 urls: ' + urls.join(' '))
+    item.images = urls
+    log.debug('item ' + item.gtin + ' images: ', urls.join('\n'))
+  }
+
+  function serveCollectionRes(res, items, include_trade_item, href) {
+
+    var item_count = 1
+    items = items.map(function (item) {
+      item.href = item_utils.get_item_href(item)
+      item.item_count_num = item_count++
+      populateItemImageUrls(item)
+      if (!include_trade_item) delete item.tradeItem
+      return item
+    })
+
+    var result = item_utils.get_collection_json(items, href)
+
+    result.collection.page             = 0
+    result.collection.per_page         = 100
+    result.collection.item_range_start = 1
+    result.collection.item_range_end   = items.length
+    result.collection.total_item_count = items.length
+
+    if (!res.finished) res.jsonp(result)
+  }
+
+  // retrieve single trade item, and conditionally its children
+  api.get_trade_item = function (req, res, next) {
+    log.debug('get_trade_item ')
+
+    var req_id = req.param('req_id')
+    log.debug('using req_id ' + req_id)
+    if (!req_id) req_id = item_utils.get_auto_req_id()
+
+    var info = item_utils.get_info_logger(log, req_id)
+    info('get_trade_item req.path: ' + req.url)
+    info('req query params: ' + JSON.stringify(req.query))
+
+    var children = (req.param('children') == 'true')
+    info('include children ' + children)
+
+    var include_trade_item = (req.param('include_trade_item') == 'true')
+    info('include_trade_item  ' + include_trade_item)
+
+    var db_query = item_utils.get_query(req)
+    info('db query: ' + JSON.stringify(db_query))
+
+    var start = Date.now()
+    config.database.getTradeItem(db_query, function (err, items) {
+      if (err) return next(err)
+
+      info('found ' + items.length + ' total items for gtin ' + db_query.gtin + ' in ' + (Date.now() - start) + 'ms')
+
+      items.forEach(function (item) {
+        item.fetch_type = 'match'
+      })
+
+      start = Date.now(); // reset time
+      var href = config.base_url + req.url
+
+      if (children && items.length == 1) { // only get children for first item match
+        var item = items[0]
+        item_utils.fetch_all_children(item, req_id, function(err, items) {
+          if (err) return next(err)
+          items.unshift(item)
+          info('found ' + items.length + ' total items for gtin ' + item.gtin + ' (with children) in ' + (Date.now() - start) + 'ms')
+          serveCollectionRes(res, items, include_trade_item, href)
+        })
+      }
+      else {
+        info('skipping children for ' + items.length + ' item search results')
+        serveCollectionRes(res, items, include_trade_item, href)
+      }
+      logw.info(req.url, {user: req.user, duration: (Date.now() - start)} )
+    }) // end config.database.getTradeItem
+  }
 
   // retrieve list view of items including total count but NOT including xml
   api.list_trade_items = function (req, res, next) {
@@ -28,8 +147,10 @@ module.exports = function (config) {
 
     var per_page = parseInt(req.param('per_page'))
     log.debug('per_page: ' + per_page)
-    //if (!per_page || per_page < 0 || per_page > 100) per_page = config.per_page_count
-    if (!per_page || per_page < 0 || per_page > 1000) per_page = config.per_page_count // increase max to 1000
+    //if (!per_page || per_page < 0) per_page = config.per_page_count                    // NO per_page LIMIT!
+    //if (!per_page || per_page < 0 || per_page > 100) per_page = config.per_page_count  //      set max per_page to 100
+    //if (!per_page || per_page < 0 || per_page > 1000) per_page = config.per_page_count // increase max per_page to 1000
+    if (!per_page || per_page < 0 || per_page > 10000) per_page = config.per_page_count  // increase max per_page to 10000
 
     log.info('req params: ' + JSON.stringify(req.query))
     var query = item_utils.get_query(req)
@@ -53,6 +174,7 @@ module.exports = function (config) {
       items = items.map(function (item) {
         item.href = item_utils.get_item_href(item)
         item.item_count_num = item_count++
+        populateItemImageUrls(item)
         if (exclude_trade_item) delete item.tradeItem
         return item
       })
@@ -85,6 +207,7 @@ module.exports = function (config) {
         ]
       }
       if (!res.finished) res.jsonp(result)
+      logw.info(req.url, {user: req.user, duration: (Date.now() - start)} )
     })
   }
 
@@ -202,7 +325,7 @@ module.exports = function (config) {
         }
 
       }) // end res.format
-
+      logw.info(req.url, {user: req.user, duration: (Date.now() - start)} )
     }) // end getTradeItems callback
   }
 
@@ -363,7 +486,7 @@ module.exports = function (config) {
         })
 
       })
-    }, 1000)
+    }, 100)
   }
 
   return api

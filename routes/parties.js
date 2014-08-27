@@ -1,5 +1,7 @@
 module.exports = function (config) {
   
+  var logw       = (require('../lib/log_utils.js')(config)).log
+  
   var api = {}
 
   var log  = require('../lib/Logger')('rt_parties', {debug: true})
@@ -8,9 +10,11 @@ module.exports = function (config) {
   api.find_parties = function(req, res, next) {
     log.debug('find_parties')
     var gln = req.params.gln
+    var start = Date.now()
     config.database.findParty(gln, function (err, results) {
       if (err) return next(err)
       res.json(results);
+      logw.info(req.url, {user: req.user, duration: (Date.now() - start)} )
     })
   }
 
@@ -19,9 +23,11 @@ module.exports = function (config) {
     var page = parseInt(req.param('page'))
     log.info('page ' + page)
     if (!page || page < 0) page = 0
+    var start = Date.now()
     config.database.listParties(page, config.per_page_count, function (err, results) {
       if (err) return next(err)
       res.json(results);
+      logw.info(req.url, {user: req.user, duration: (Date.now() - start)} )
     })
   }
 
