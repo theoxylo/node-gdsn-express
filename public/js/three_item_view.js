@@ -25,7 +25,8 @@ function init_three_view($div, items) {
 
     //var renderer = new THREE.WebGLRenderer()
     var renderer = new THREE.CanvasRenderer()
-    renderer.setClearColor(0xffffee)
+    //renderer.setClearColor(0xffffee)
+    renderer.setClearColor(0xffffff)
     
     //renderer.setSize(window.innerWidth, window.innerHeight)
     renderer.setSize(800, 600)
@@ -33,8 +34,9 @@ function init_three_view($div, items) {
     $div.append($(renderer.domElement))
     //document.body.appendChild(renderer.domElement)
 
-    var sphere = new THREE.Mesh(new THREE.SphereGeometry(.05,10,10), new THREE.MeshNormalMaterial())
-    sphere.position.set(0, 0, 0)
+    var sphere = new THREE.Mesh(new THREE.SphereGeometry(.1,10,10), new THREE.MeshNormalMaterial())
+    //sphere.position.set(-0.05, -0.05, -0.05)
+    console.log('sphere pos ' + sphere.position)
     scene.add(sphere)
 
     var cubes = items.map(function (item) {
@@ -72,11 +74,15 @@ function init_three_view($div, items) {
     }
 
     render()
+
+    return {
+      // api goes here
+    }
 }
 
 function addCubesToScene(item, scene, renderer) {
 
-  var cubes_per_item = 2
+  var cubes_per_item = 1
 
   var images = ['']
   if (item.images && item.images.length) {

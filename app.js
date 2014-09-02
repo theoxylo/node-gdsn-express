@@ -43,6 +43,7 @@ var routes_login    = require(config.routes_dir + '/login')
 //var routes_nutrient = require(config.routes_dir + '/lookup_nutrient')
 var routes_archive  = require(config.routes_dir + '/msg_archive')(config)
 var routes_parties  = require(config.routes_dir + '/parties')(config)
+var routes_logs     = require(config.routes_dir + '/logs')(config)
 var routes_item     = require(config.routes_dir + '/trade_item')(config)
 var routes_profile  = require(config.routes_dir + '/profile')(config)
 
@@ -57,6 +58,21 @@ app.locals({test: true})
 app.use(express.favicon(__dirname + '/public/favicon.ico'))
 app.use(express.logger())
 
+// redirect to home page start
+app.use('/', function (req, res, next) {
+
+  log.info(
+    'user ' 
+    + req.user ? req.user : 'n/a'
+    + ' passed profile loading and checking for req ' 
+    + req.query && req.query.req_id ? req.query.req_id : 'n/a'
+  )
+
+  if (req.path == '/') return res.redirect('/index.html#start')
+  next()
+
+})
+
 app.get(config.base_url + '/login',           routes_login.getRequestHandler(config))
 
 app.use(config.base_url, express.basicAuth(function (user, pass) {
@@ -67,12 +83,6 @@ app.use(config.base_url, express.basicAuth(function (user, pass) {
   }
   return false
 }))
-
-app.use('/', function (req, res, next) {
-  log.info('user ' + req.user + ' passed profile loading and checking for req ' + req.query.req_id)
-  if (req.path != '/') return next()
-  res.redirect('/index.html')
-})
 
 //app.use(express.urlencoded())
 
@@ -110,7 +120,7 @@ app.get( '/subscribed', function (req, res, next) { res.render('subscribed_api_d
 
 app.get( '/items-list',                                   routes_item.list_trade_items)
 app.get( '/items/migrate',                                routes_item.migrate_trade_items)
-app.get( '/items/:recipient/:gtin/:provider/:tm/:tm_sub', routes_item.find_trade_items)
+app.get( '/items/:recipient/:gtin/:provider/:tm/:tm_sub', routes_item.get_trade_item) // return exact item with optional children
 app.get( '/items/:recipient/:gtin/:provider/:tm',         routes_item.find_trade_items)
 app.get( '/items/:recipient/:gtin/:provider',             routes_item.find_trade_items)
 app.get( '/items/:recipient/:gtin',                       routes_item.find_trade_items)
@@ -122,6 +132,8 @@ app.get( '/party/:gln',                                   routes_parties.find_pa
 app.get( '/parties/:gln',                                 routes_parties.find_parties)
 app.get( '/parties',                                      routes_parties.list_parties)
 app.post('/parties',                                      routes_parties.post_parties)
+
+app.get( '/logs',                                         routes_logs.list_logs)
 
 process.on('SIGINT', function () {
   console.log('Application shutting down...')

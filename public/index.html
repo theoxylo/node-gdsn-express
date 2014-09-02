@@ -48,8 +48,11 @@
   <script src="js/file/angular-file-upload.js"></script>
   <script src="js/bp_cs_client.js"></script>
 
-  <script src="js/three.min.js"></script>
-  <script src="js/three_item_view.js"></script>
+  <script src="three_view/build/three.js"></script>
+  <script src="three_view/js/controls/OrbitControls.js"></script>
+  <script src="three_view/js/Detector.js"></script>
+  <script src="three_view/js/stats.js"></script>
+  <script src="three_view/three_item_view.js"></script>
 
   
 </head>
@@ -279,6 +282,7 @@
         <div ng-if="items">
           <table width="100%">
             <tr>
+              <th>Photo</th>
               <th>GTIN</th>
               <th>Provider</th>
               <th>TM Country</th>
@@ -290,6 +294,7 @@
               <th>CIN Message</th>
             </tr>
             <tr class="clickable" ng-repeat="item in items" ng-click="showItemDetail(item)">
+              <td><img height="50" width="50" ng-if="item.images && item.images.length" src="{{item.images[0] || './icon_camera.png'}}"/></td>
               <td>{{item.gtin}}</td>
               <td>{{item.provider}}</td>
               <td>{{item.tm}}</td>
@@ -313,15 +318,17 @@
             <div class="centered" ng-if="total_item_count && input_include_total_count">Total number of matching items <span>{{ total_item_count }}</span></div>
           </p>
 
-          <div ng-if="previousSearches" class="box">
-            <p>Previous searches:</p>
-            <p class="clickable" ng-repeat="search in previousSearches" ng-click="redoPreviousItemSearch(search)">{{ search }}</p>
-          </div>
-
-          <div ng-if="selectedItem" class="box">
+          <div ng-if="selectedItem" id="selectedItem" class="blue_box">
             <div>
               <table width="100%">
                 <tr>
+                  <th width="40%">
+                    <div ng-if="selectedItem.images && selectedItem.images.length">
+                      <p><img ng-repeat="url in selectedItem.images" ng-src="{{ url }}" ng-mouseover="selectImage(url)" height="50" width="50"></img></p>
+                      <p><img ng-src="{{selectedImage}}" height="200" width="200"></img></p>
+                      <p><a ng-href="{{selectedImage}}" target="_blank">{{selectedImage}}</a></p>
+                    </div>
+                  </th>
                   <th border="1">
                     <p>GTIN: {{selectedItem.gtin}}</p>
                     <p>Name: {{selectedItem.tradeItem.tradeItemInformation.tradeItemDescriptionInformation.functionalName.description[0].shortText}}</p>
@@ -346,15 +353,23 @@
                     <p>Source DP: {{selectedItem.source_dp}}</p>
                     <p>XML: <a ng-href="{{selectedItem.href}}?" target="_blank">View</a> <a ng-href="{{selectedItem.href}}?download=true">Download</a></p>
                     <p>JSON: <a ng-href="{{selectedItem.href}}?json=true&include_trade_item=true" target="_blank">View</a> <a ng-href="{{selectedItem.href}}?json=true&include_trade_item=true&download=true">Download</a></p>
-                    <p><a href="#" ng-click="prettyPrintItem(selectedItem)">PrettyPrint Item</a></p>
-                    <p><a href="#" ng-click="showItemHierarchy(selectedItem)">Hierarchy</a></p>
+                    <p><a class="clickable" ng-click="prettyPrintItem(selectedItem)">PrettyPrint Item</a></p>
+                    <p><a class="clickable" ng-click="showItemHierarchy(selectedItem)">Hierarchy</a></p>
                   </th>
                 </tr>
               </table>
             </div>
-            <div class="blue_box" width="100%" id="three_item_view">...</div>
+
+            <div width="100%" id="three_item_view"></div>
+
           </div> <!-- end if selectedItem -->
         </div> <!-- end if items -->
+
+        <div ng-if="previousSearches" class="blue_box">
+          <p>Search History:</p>
+          <p class="clickable" ng-repeat="search in previousSearches" ng-click="redoPreviousItemSearch(search)">{{ search }}</p>
+        </div>
+
       </div>
 
       <div>Catalog Item Details</div>
@@ -491,25 +506,10 @@
 
 <div id="debug_tab" ng-controller='thx_debug_controller'>
   <div id="debug_accordion">
-  	<div>Already existing...</div>
+  	<div>MongoDB Logging</div>
   	<div>
-	  <div>Model values:</div>
-	  <div>Subscriber: {{subscriber}}</div>
-	  <div>Publisher: {{publisher}}</div>
-	  <div>View Message ID: {{view_msg_id}}</div>
-	  <div>Message post content: <textarea disabled>{{msg_content_post}}</textarea></div>
-	  <div id="snoop">Loading...</div>
-	</div>
-	
-  	<div>MongoDB Logging...</div>
-  	<div>
-        <span>GTIN          <input type="text" ng-model="input_log_gtin" size="16" placeholder="99999999999999"></input></span>
-        <span>Provider GLN  <input type="text" ng-model="input_log_provider" size="15" placeholder="1100001011292"></input></span>
-        <span>Recipient GLN <input type="text" ng-model="input_log_recipient" size="15" placeholder="0625199000015"></input></span>
-        <span>Include total count <input type="checkbox" ng-model="input_include_total_count"></input></span>
-        <span>Per page      <input ng-model="input_per_page" size="3"></input></span>
         <p/>
-        <span>Field Regex     <input type="text" ng-model="input_log_regex" size="30" placeholder="req_id"></input></span>
+        <span>Message Regex     <input type="text" ng-model="input_log_regex" size="30" placeholder="req_id"></input></span>
         <span>Log Level
           <select ng-model="input_log_level">
             <option value="debug">debug</option>
@@ -526,10 +526,11 @@
             <option value="ItemLoad">Item Load</option>
           </select>
         </span>
-        <button ng-click="list_fileLogs()">Search</button>
+        <span>Include total count <input type="checkbox" ng-model="input_include_total_count"></input></span>
+        <span>Per page      <input ng-model="input_per_page" size="3"></input></span>
+        <button ng-click="list_fileLogs(0)">Search</button>
         <button ng-click="reset_log_search()">Reset</button>
 
-        <!-- button ng-if="!fileLogs" ng-click="list_fileLogs()">Load FileLogs</button -->
         <div ng-if="fileLogs" style="border-style:solid;border-width:1px;border-color:green">
           <table>
             <tr>
@@ -551,11 +552,28 @@
         </div>
         
         <p class="centered">
-	        <button ng-if="page > 0" ng-click="list_fileLogs(-1)">Prev</button>
-	        <button ng-if="fileLogs && fileLogs.length == 10" ng-click="list_fileLogs(1)">Next</button>
+            <button ng-if="page > 1" ng-click="list_fileLogs(-page)">First</button>
+            <button ng-if="page > 0" ng-click="list_fileLogs(-1)">Prev</button>
+            <span>Page:<span>{{ page + 1 }}</span>
+            <button ng-if="more_items" ng-click="list_fileLogs(1)">Next</button>
+            <button ng-if="total_item_count && more_items" ng-click="list_fileLogs((total_item_count / per_page) - page)">Last</button>
+            <div class="centered"></span>Displaying items <span>{{ item_range_start }}</span> to {{ item_range_end }}</div>
+            <div class="centered" ng-if="!(more_items)">No more items to display</div>
+            <div class="centered" ng-if="total_item_count && input_include_total_count">Total number of matching items <span>{{ total_item_count }}</span></div>
 	    </p>
         
 	</div>
+
+  	<div>Already existing...</div>
+  	<div>
+	  <div>Model values:</div>
+	  <div>Subscriber: {{subscriber}}</div>
+	  <div>Publisher: {{publisher}}</div>
+	  <div>View Message ID: {{view_msg_id}}</div>
+	  <div>Message post content: <textarea disabled>{{msg_content_post}}</textarea></div>
+	  <div id="snoop">Loading...</div>
+	</div>
+	
   </div>   <!-- end debug_accordion -->
 </div>  <!-- end debug_tab -->
 
@@ -941,6 +959,9 @@
       $scope.showItemDetail = function (item) {
         log('showItemDetail called for gtin ' + item.gtin)
         $scope.selectedItem = item
+        if (item.images && item.images.length) $scope.selectImage(item.images[0])
+
+        $('#three_item_view').empty()
       }
 
       $scope.redoPreviousItemSearch = function (params) {
@@ -968,9 +989,7 @@
           }
           catch (e) {console.log(e)}
 
-          items.forEach(function (item) {
-            console.log('item.images: ', item.images && item.images.join(' '))
-          })
+          console.log('found ' + (items && items.length) + ' items (including children) for item ' + item.gtin)
 
           if (init_three_view) init_three_view($('#three_item_view'), items)
 
@@ -984,6 +1003,11 @@
           hideBusy()
           $error_dialog.html('An error occurred -- please try again').dialog('open')
         })
+      }
+
+      $scope.selectImage = function (url) {
+        //log('selectImage  called with url ' + url)
+        $scope.selectedImage = url
       }
 
       $scope.prettyPrintItem = function (item) {
@@ -1060,6 +1084,7 @@
         //$http.get(thx_util.items_list_url, {params: $scope.search_params})
         $http.get(thx_util.items_list_url, {params: search_params})
         .success(function (data) {
+        console.log( JSON.stringify(data) )
           var items = []
           try {
             items = data.collection.items || []
@@ -1133,6 +1158,8 @@
 
     })
 
+
+
     thx_app.controller('thx_party_controller', function($scope, $http, thx_util) {
 
       $scope.page = 0
@@ -1196,78 +1223,95 @@
     thx_app.controller('thx_debug_controller', function($scope, $http, thx_util) {
       $scope.page = 0
       $scope.per_page = 10
+      $scope.more_items = false
+      $scope.total_item_count = 0
+      $scope.item_range_start = 0 
+      $scope.item_range_end   = 0   
 
       $scope.reset_log_search = function () {
-        delete $scope.input_log_gtin
-        delete $scope.input_log_provider
-        delete $scope.input_log_recipient
         delete $scope.input_log_regex
         delete $scope.input_log_level
         delete $scope.input_include_total_count
         delete $scope.input_action_type
+        
+        delete $scope.fileLogs
+        delete $scope.total_item_count
         delete $scope.input_per_page
+        delete $scope.page
+        delete $scope.more_items
+        delete $scope.total_item_count
+        delete $scope.item_range_start 
+        delete $scope.item_range_end   
       }
       
       $scope.list_fileLogs = function (pageIncrement) {
-        log('list_fileLogs called with page increment ' + pageIncrement)
+        pageIncrement = Math.floor(pageIncrement)
+        console.log('list_fileLogs pageIncrement=' + pageIncrement)
+
+        $scope.search_params = $scope.search_params || {} // create new if needed
+        $scope.input_per_page = $scope.input_per_page || 10
+
+
         if (pageIncrement) {
-          $scope.page += pageIncrement
+          $scope.page += pageIncrement              // note that we don't allow per_page to be changed when paging
+          $scope.search_params.page = $scope.page
+          $scope.search_params.include_total_count = false // don't recount when paging
         }
-        else {
+        else { // only reread search params from form and reset counts if not paging
           $scope.page = 0
+          $scope.total_item_count = 0
+          $scope.per_page = $scope.input_per_page || 10
+          $scope.search_params = {
+              page                : $scope.page 
+            , per_page            : $scope.per_page
+            , include_total_count : $scope.input_include_total_count
+
+            , regex               : $scope.input_log_regex
+            , level               : $scope.input_log_level
+          }
         }
         
-        // use these for http params also?
-        $scope.search_params = {
-            page                : $scope.page 
-          , per_page            : $scope.per_page
-          , include_total_count : $scope.input_include_total_count
-          , gtin                : $scope.input_log_gtin
-          , provider            : $scope.input_log_provider
-          , recipient           : $scope.input_logm_recipient
-          , regex               : $scope.input_log_regex
-          , level               : $scope.input_log_level
-        }
-
-        log('logs url=' + thx_util.logs_url+ ", $scope.search_params=" +JSON.stringify($scope.search_params) )
-        //console.log($scope.search_params)
+        console.log('logs url=' + thx_util.logs_url+ ", $scope.search_params=" +JSON.stringify($scope.search_params) )
         
         showBusy('Fetching fileLogs list...')
 
         $http.get(thx_util.logs_url, { 
-          params: { 
-          	page   : $scope.page,
-          	level  : $scope.input_log_level,
-          	regex  : $scope.input_log_regex
-			}
+          params: $scope.search_params
         })
         .success(function (fileLogs) {
-          $scope.fileLogs = _.map(fileLogs, function (fileLog) {
-            return fileLog
-          })
-          log('found ' + $scope.fileLogs.length + ' rows')
+          console.log( JSON.stringify(fileLogs) )
+
+          //$scope.page = 4
+          if (fileLogs.collection.total_item_count) $scope.total_item_count = fileLogs.collection.total_item_count
+          if (fileLogs.collection.item_range_start) $scope.item_range_start = fileLogs.collection.item_range_start 
+          if (fileLogs.collection.item_range_end)   $scope.item_range_end   = fileLogs.collection.item_range_end   
+
+          if (fileLogs.collection.item_count) {
+	          $scope.fileLogs = _.map(fileLogs.collection.items, function (fileLog) {
+	            return fileLog
+	          })
+	          console.log('found ' + $scope.fileLogs.length + ' rows')
+	          console.log('Per page ', $scope.per_page, ' rows')
+	          console.log('page ', $scope.page)
+	          $scope.more_items = ($scope.fileLogs.length == $scope.per_page)
+//	          $scope.more_items = (fileLogs.length == $scope.per_page)
+          } else {
+            if ($scope.page > 0) $scope.page--
+            $scope.more_items = false
+            delete $scope.fileLogs
+            delete $scope.total_item_count
+            delete $scope.input_per_page
+//            delete $scope.page
+            delete $scope.more_items
+          }
           hideBusy()
         })
         .error(function () {
           hideBusy()
           $error_dialog.html('An error occurred -- please try again').dialog('open')
         })
-
-/*
-        $scope.fileLogs = [
-{"level":"info","message":"logs2","timestamp":"2014-08-20T20:28:09.027Z"},
-{"level":"notice","message":"logs2","timestamp":"2014-08-20T20:28:09.028Z"},
-{"meta":"This is metadata","meta2":"This is metadata2","level":"warning","message":"logs2","timestamp":"2014-08-20T20:28:09.028Z"},
-{"level":"error","message":"logs2","timestamp":"2014-08-20T20:28:09.028Z"},
-{"meta":"This is metadata","meta2":"This is metadata2","level":"info","message":"logs2db","timestamp":"2014-08-20T20:28:09.028Z"}
-]
-log('found ' + $scope.fileLogs.length + ' fileLogs')
-log('found ' + $scope.fileLogs[0])
-hideBusy()
-*/
-
       }
-      
+
     })
 
 

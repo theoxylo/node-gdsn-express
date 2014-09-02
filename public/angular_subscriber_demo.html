@@ -20,6 +20,8 @@
       console.log('thx_util')
       return {
         sub_url: 'api/subscriptionList'
+
+        , url: 'http://sc-gdsn01.itradenetwork.com:8080/gdsn-server/api/subscriptionList' // ?subscriber=1100001011292'
       }
     })
 
@@ -43,7 +45,9 @@
         //$scope.subscriber = subGln
 
         if (/\d{13}/.test($scope.subscriber)) {
-          $http.get(thx_util.sub_url, { 
+          //$http.get(thx_util.sub_url, { 
+          //$http.get(thx_util.url, { 
+          $http.jsonp(thx_util.url, { 
             params: { subscriber: $scope.subscriber }
           })
           .success(function (data) {
@@ -108,8 +112,8 @@
   <h2>Subscription List</h2>
 
   <div ng-controller="thx_controller">
-    <input type="text" ng-model="subscriber"></input>
-    <input type="button" ng-click="getSubscriptions(subscriber)" value="Get Subscriptions"></input>
+    <input type="text" placeholder="Subscriber GLN" ng-model="subscriber"></input>
+    <input type="button" ng-click="getSubscriptions(subscriber)" value="List Current Subscriptions"></input>
     <gdsn default-subscriber="1100001011292"/>
   </div>
 

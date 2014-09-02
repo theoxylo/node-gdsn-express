@@ -19,7 +19,7 @@
       angular.module('thx_app', [])
         .controller('thx_controller', function($scope, $http) {
 
-          $http.get('api/1.0/archive')
+          $http.get('/cs_api/1.0/msg')
             .success(function (data) {
               $scope.messages = data
             })
