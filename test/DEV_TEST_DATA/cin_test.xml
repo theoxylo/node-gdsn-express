@@ -79,7 +79,17 @@
                                                     </language>
                                                     <shortText>Spanish Fn Name (up to 35 chars)</shortText>
                                                 </description>
+                                                <description>
+                                                    <language>
+                                                        <languageISOCode>fr</languageISOCode>
+                                                    </language>
+                                                    <shortText>French Fn Name (up to 35 chars)</shortText>
+                                                </description>
                                             </functionalName>
+                                            <tradeItemExternalInformation>
+                                                <uniformResourceIdentifier>https://res.cloudinary.com/gs1/image/upload/w_400,h_400/90062488461202p.jpg</uniformResourceIdentifier>
+                                                <typeOfInformation>PRODUCT_IMAGE</typeOfInformation>
+                                            </tradeItemExternalInformation>
                                         </tradeItemDescriptionInformation>
                                         <tradingPartnerNeutralTradeItemInformation>
                                             <tradeItemUnitIndicator>
