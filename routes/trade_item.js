@@ -2,7 +2,6 @@ module.exports = function (config) {
   
   var _          = require('underscore')
   var async      = require('async')
-  var logw       = (require('../lib/log_utils.js')(config)).log
 
   var api = {}
 
@@ -127,7 +126,7 @@ module.exports = function (config) {
         info('skipping children for ' + items.length + ' item search results')
         serveCollectionRes(res, items, include_trade_item, href)
       }
-      logw.info(req.url, {user: req.user, duration: (Date.now() - start)} )
+      log.info(req.url, {user: req.user, duration: (Date.now() - start)} )
     }) // end config.database.getTradeItem
   }
 
@@ -207,7 +206,7 @@ module.exports = function (config) {
         ]
       }
       if (!res.finished) res.jsonp(result)
-      logw.info(req.url, {user: req.user, duration: (Date.now() - start)} )
+      log.info(req.url, {user: req.user, duration: (Date.now() - start)} )
     })
   }
 
@@ -325,7 +324,7 @@ module.exports = function (config) {
         }
 
       }) // end res.format
-      logw.info(req.url, {user: req.user, duration: (Date.now() - start)} )
+      log.info(req.url, {user: req.user, duration: (Date.now() - start)} )
     }) // end getTradeItems callback
   }
 
