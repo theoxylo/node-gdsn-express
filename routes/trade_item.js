@@ -390,13 +390,13 @@ module.exports = function (config) {
 
   }
 
-  api.post_log_item = function (req, res, next) {
-    log.debug('post_log_item handler called')
+  api.get_item_info = function (req, res, next) {
+    log.debug('get_item_info handler called')
 
     var content = ''
     req.setEncoding('utf8')
     req.on('data', function (chunk) {
-      log.debug('post_log_item.length: ' + chunk.length + ' / ' + content.length)
+      log.debug('get_item_info.length: ' + chunk.length + ' / ' + content.length)
       //log.debug(chunk)
       content += chunk 
       if (content.length > 10 * 1000 * 1000) next(Error('10 MB limit for persisting raw message'))

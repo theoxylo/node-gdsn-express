@@ -48,11 +48,13 @@
   <script src="js/file/angular-file-upload.js"></script>
   <script src="js/bp_cs_client.js"></script>
 
-  <script src="three_view/build/three.js"></script>
+  <script src="three_view/js/three_r68.js"></script>
   <script src="three_view/js/controls/OrbitControls.js"></script>
+  <!--
   <script src="three_view/js/Detector.js"></script>
   <script src="three_view/js/stats.js"></script>
-  <script src="three_view/three_item_view.js"></script>
+  -->
+  <script src="three_view/js/three_item_view.js"></script>
 
   
 </head>
@@ -81,6 +83,7 @@
   <div>
     <h2>Catalog Services Dashboard</h2>
     <!-- Version $URL: http://svn.instill.com/repos/instill_dev/Catalog_Services/node-api-server/trunk/public/index.html $ -->
+    <span id="google_link"><a ng-href="/auth/google">Login with Google</a></span>
   </div>
 
   <ul>
@@ -294,7 +297,7 @@
               <th>CIN Message</th>
             </tr>
             <tr class="clickable" ng-repeat="item in items" ng-click="showItemDetail(item)">
-              <td><img height="50" width="50" ng-if="item.images && item.images.length" src="{{item.images[0] || './icon_camera.png'}}"/></td>
+              <td><img height="30" ng-src="{{ item.thumbnail }}"/></td>
               <td>{{item.gtin}}</td>
               <td>{{item.provider}}</td>
               <td>{{item.tm}}</td>
@@ -324,9 +327,12 @@
                 <tr>
                   <th width="40%">
                     <div ng-if="selectedItem.images && selectedItem.images.length">
-                      <p><img ng-repeat="url in selectedItem.images" ng-src="{{ url }}" ng-mouseover="selectImage(url)" height="50" width="50"></img></p>
-                      <p><img ng-src="{{selectedImage}}" height="200" width="200"></img></p>
-                      <p><a ng-href="{{selectedImage}}" target="_blank">{{selectedImage}}</a></p>
+                      <p><img ng-repeat="url in selectedItem.images" ng-src="{{ url }}" ng-mouseover="selectImage(url)" height="50"></img></p>
+                      <p>
+                        <a ng-href="{{selectedImage}}" target="_blank">
+                        <img ng-src="{{selectedImage}}" width="200"></img>
+                        <br/>{{selectedImage}}</a>
+                      </p>
                     </div>
                   </th>
                   <th border="1">
@@ -510,6 +516,10 @@
   	<div>
         <p/>
         <span>Message Regex     <input type="text" ng-model="input_log_regex" size="30" placeholder="req_id"></input></span>
+        <span>Start Date     <input type="text" size="10" ng-model="input_startdate" placeholder="8/21/2014" ></input></span>
+        <span>End Date     <input type="text" size="10" ng-model="input_enddate" placeholder="8/29/2014" ></input></span>
+        <span>Username     <input type="text" size="15" ng-model="input_username" placeholder="per" ></input></span>
+        <span>Duration (ms)     <input type="text" size="8" ng-model="input_duration" placeholder="200" ></input></span>
         <span>Log Level
           <select ng-model="input_log_level">
             <option value="debug">debug</option>
@@ -518,7 +528,8 @@
             <option value="error">error</option>
           </select>
         </span>
-        <span>Action Type
+<!--    
+		<span>Action Type
           <select ng-model="input_action_type">
             <option value="subscribed">subscribed</option>
             <option value="Subscription">Subscription</option>
@@ -526,8 +537,9 @@
             <option value="ItemLoad">Item Load</option>
           </select>
         </span>
+ -->
         <span>Include total count <input type="checkbox" ng-model="input_include_total_count"></input></span>
-        <span>Per page      <input ng-model="input_per_page" size="3"></input></span>
+        <span>Rows/page      <input ng-model="input_per_page" size="3"></input></span>
         <button ng-click="list_fileLogs(0)">Search</button>
         <button ng-click="reset_log_search()">Reset</button>
 
@@ -537,14 +549,16 @@
               <th>Timestamp</th>
               <th>Level</th>
               <th>Message</th>
-              <th>Meta</th>
+              <th>Username</th>
+              <th>Duration<br />(ms)</th>
               <th>Id</th>
             </tr>
             <tr class="clickable" ng-repeat="fileLog in fileLogs">
               <td>{{fileLog.timestamp}}</td>
               <td>{{fileLog.level}}</td>
               <td>{{fileLog.message}}</td>
-              <td>{{fileLog.meta}}</td>
+              <td>{{fileLog.username}}</td>
+              <td>{{fileLog.duration}}</td>
               <td>{{fileLog._id}}</td>
               <!-- Raw Data: '{{fileLog}}' -->
             </tr>
@@ -1119,6 +1133,8 @@
               }
               console.log(item.gtin + ' preparationStates: ' + JSON.stringify(item.preparationStates))
 
+              item.thumbnail = item.images && item.images.length ? item.images[0] : './icon_camera.png'
+
               return item
             })
             console.log('Found ', items.length, ' items')
@@ -1233,6 +1249,10 @@
         delete $scope.input_log_level
         delete $scope.input_include_total_count
         delete $scope.input_action_type
+        delete $scope.input_startdate
+        delete $scope.input_enddate
+        delete $scope.input_username
+        delete $scope.input_duration
         
         delete $scope.fileLogs
         delete $scope.total_item_count
@@ -1268,6 +1288,10 @@
 
             , regex               : $scope.input_log_regex
             , level               : $scope.input_log_level
+            , date_start          : $scope.input_startdate
+            , date_end            : $scope.input_enddate
+            , username            : $scope.input_username
+            , duration            : $scope.input_duration
           }
         }
         
@@ -1288,6 +1312,7 @@
 
           if (fileLogs.collection.item_count) {
 	          $scope.fileLogs = _.map(fileLogs.collection.items, function (fileLog) {
+	            fileLog.timestamp = (new Date(fileLog.timestamp)).toLocaleString()
 	            return fileLog
 	          })
 	          console.log('found ' + $scope.fileLogs.length + ' rows')
@@ -1382,6 +1407,12 @@
     }
 
   })()
+
+$(function() {
+	$( "#log_datepicker_start" ).datepicker();
+	$( "#log_datepicker_end" ).datepicker();
+});
+
 </script>
 <!--<script src="js/ticker.js"></script>-->
 </body>

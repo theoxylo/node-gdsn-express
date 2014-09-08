@@ -22,13 +22,15 @@ var express = require('express')
 var fs      = require('fs')
 var https   = require('https')
 
-var log = require('./lib/Logger')('gdsnApp', config)
+var logger = require('./lib/Logger')
+
+var log = logger('gdsnApp', config)
 log.debug('DEBUG logging enabled')
 log.info('INFO logging enabled')
 
 log.debug('config: ' + JSON.stringify(config))
 
-var Gdsn = require('./lib/gdsn')
+var Gdsn = require('gdsn')
 config.gdsn = new Gdsn(config)
 
 var Database = require('./lib/Database')
@@ -36,16 +38,13 @@ config.database = new Database(config)
 
 //var routes          = require(config.routes_dir + '/index')
 //var routes_cin      = require(config.routes_dir + '/cin_form')(config)
-var routes_subscr   = require(config.routes_dir + '/items_subscribed')(config)
-var routes_login    = require(config.routes_dir + '/login')
-//var routes_allergen = require(config.routes_dir + '/lookup_allergen')
-//var routes_country  = require(config.routes_dir + '/lookup_country')
-//var routes_nutrient = require(config.routes_dir + '/lookup_nutrient')
-var routes_archive  = require(config.routes_dir + '/msg_archive')(config)
-var routes_parties  = require(config.routes_dir + '/parties')(config)
-var routes_logs     = require(config.routes_dir + '/logs')(config)
-var routes_item     = require(config.routes_dir + '/trade_item')(config)
-var routes_profile  = require(config.routes_dir + '/profile')(config)
+var routes_subscr    = require(config.routes_dir + '/items_subscribed')(config)
+var routes_login     = require(config.routes_dir + '/login')
+var routes_archive   = require(config.routes_dir + '/msg_archive')(config)
+var routes_parties   = require(config.routes_dir + '/parties')(config)
+var routes_logs      = require(config.routes_dir + '/logs')(config)
+var routes_item      = require(config.routes_dir + '/trade_item')(config)
+var routes_profile   = require(config.routes_dir + '/profile')(config)
 
 var app = express()
 
@@ -75,6 +74,19 @@ app.use('/', function (req, res, next) {
 
 app.get(config.base_url + '/login',           routes_login.getRequestHandler(config))
 
+
+
+//app.use(express.cookieParser('cookie secret 12345'))
+//app.use(express.cookieParser())
+//app.use(express.bodyParser)
+//app.use(express.session({ secret: 'keyboard cat' }))
+
+app.use(express.urlencoded())
+app.use(express.cookieParser('cookie secret 12345'))
+app.use(express.session({secret:'cs_api 20140908'}))
+
+app.use(config.base_url, app.router)
+
 app.use(config.base_url, express.basicAuth(function (user, pass) {
   log.info('_CHECKING AUTH INFO_ for user: ' + user)
   if ('admin' == user & 'devadmin' == pass) return true
@@ -83,10 +95,6 @@ app.use(config.base_url, express.basicAuth(function (user, pass) {
   }
   return false
 }))
-
-//app.use(express.urlencoded())
-
-//app.use(express.cookieParser('secret cookie salt 12345'))
 
 app.use(config.base_url, routes_profile.profileLoader)
 
@@ -105,7 +113,6 @@ app.use(express.static(__dirname + '/public'))
 //app.use(express.directory(__dirname + '/public'))
 
 // documented 1.0 api endpoints
-app.use(config.base_url, app.router)
 
 app.get( '/msg/:instance_id',                             routes_archive.find_archive)
 app.get( '/msg',                                          routes_archive.list_archive)
@@ -133,8 +140,21 @@ app.get( '/parties/:gln',                                 routes_parties.find_pa
 app.get( '/parties',                                      routes_parties.list_parties)
 app.post('/parties',                                      routes_parties.post_parties)
 
+app.get( '/info',                                         routes_item.get_item_info)
+
 app.get( '/logs',                                         routes_logs.list_logs)
 
+// lookup services
+app.get('/lookup_allergens', require(config.routes_dir + '/lookup_allergens').getRequestHandler(config))
+app.get('/lookup_countries', require(config.routes_dir + '/lookup_countries').getRequestHandler(config))
+app.get('/lookup_nutrients', require(config.routes_dir + '/lookup_nutrients').getRequestHandler(config))
+
+// Passport auth: 
+//log.info('Loading ITN Passport...')
+//var passport = require('./lib/passport')
+//passport.init(app, logger('pp_log', config))
+
+// shutdown processing
 process.on('SIGINT', function () {
   console.log('Application shutting down...')
   setTimeout(function () {
