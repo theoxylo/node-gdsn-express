@@ -3,6 +3,7 @@ module.exports = function (config) {
   var api = {}
 
   var log = require('../lib/Logger')('routes_form', {debug: true})
+  var msg_archiveDb = require('../lib/msg_archiveDb.js')(config)
 
   api.view_cin_from_other_dp_upload_form = function(req, res, next) {
     res.render('cin_confirm', {
@@ -68,7 +69,7 @@ module.exports = function (config) {
       info.xml = xml
       info.process_ts = Date() // long date and time stamp
 
-      config.database.saveMessage(info, function (err, id) {
+      msg_archiveDb.saveMessage(info, function (err, id) {
         if (err) return cb(err)
         log.info('Saved CIN submission to db with instance_id: ' + id)
 
@@ -91,7 +92,7 @@ module.exports = function (config) {
             var info = config.gdsn.getMessageInfoForDom($dom)
             info.xml = respXml
             info.process_ts = Date()
-            config.database.saveMessage(info, function (err, id) {
+            msg_archiveDb.saveMessage(info, function (err, id) {
               if (err) return cb(err)
               log.info('Saved CIN response to db with instance_id: ' + id)
               done()
@@ -120,7 +121,7 @@ module.exports = function (config) {
             var info = config.gdsn.getMessageInfoForDom($dom)
             info.xml = cinOutXml
             info.process_ts = Date()
-            config.database.saveMessage(info, function (err, id) {
+            msg_archiveDb.saveMessage(info, function (err, id) {
               if (err) return cb(err)
               log.info('Saved CIN forward to db with instance_id: ' + id)
               done()

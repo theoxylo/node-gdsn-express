@@ -1,20 +1,19 @@
 module.exports = function (config) {
   
-  var logw       = (require('../lib/log_utils.js')(config)).log
-  
   var api = {}
 
-  var log  = require('../lib/Logger')('rt_parties', {debug: true})
-  var digester = require("xml-digester").XmlDigester({});
+  var log           = require('../lib/Logger')('rt_parties', {debug: true}, config)
+  var digester      = require("xml-digester").XmlDigester({});
+  var trade_partyDb = require('../lib/trade_partyDb.js')(config)
 
   api.find_parties = function(req, res, next) {
     log.debug('find_parties')
     var gln = req.params.gln
     var start = Date.now()
-    config.database.findParty(gln, function (err, results) {
+    trade_partyDb.findParty(gln, function (err, results) {
       if (err) return next(err)
       res.json(results);
-      logw.info(req.url, {user: req.user, duration: (Date.now() - start)} )
+      log.db(req.url, req.user, (Date.now() - start) )
     })
   }
 
@@ -24,10 +23,10 @@ module.exports = function (config) {
     log.info('page ' + page)
     if (!page || page < 0) page = 0
     var start = Date.now()
-    config.database.listParties(page, config.per_page_count, function (err, results) {
+    trade_partyDb.listParties(page, config.per_page_count, function (err, results) {
       if (err) return next(err)
       res.json(results);
-      logw.info(req.url, {user: req.user, duration: (Date.now() - start)} )
+      log.db(req.url, req.user, (Date.now() - start) )
     })
   }
 
@@ -44,7 +43,7 @@ module.exports = function (config) {
           if (err) return next(err)
           party.json = json
 
-          config.database.saveParty(party, function (err, gln) {
+          trade_partyDb.saveParty(party, function (err, gln) {
             if (err) return next(err)
             parties.push(gln)
           })

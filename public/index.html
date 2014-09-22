@@ -107,9 +107,9 @@
       <p><a href="/cs_api/1.0/login"           target="_blank">Login Endpoint Docs</a></p>
       <p><a href="/cs_api/1.0/items"           target="_blank">Items Endpoint Docs</a></p>
       <p><a href="/cs_api/1.0/subscribed"      target="_blank">Subscriber Endpoint Docs</a></p>
-      <p><a href="/cs_api/1.0/lookup_allergen" target="_blank">Allergen Code Lookup Endpoint Docs</a></p>
-      <p><a href="/cs_api/1.0/lookup_country"  target="_blank">Country Code Lookup Endpoint Docs</a></p>
-      <p><a href="/cs_api/1.0/lookup_nutrient" target="_blank">Nutrient Code Lookup Endpoint Docs</a></p>
+      <p><a href="/cs_api/1.0/lookup_allergens" target="_blank">Allergen Code Lookup Endpoint Docs</a></p>
+      <p><a href="/cs_api/1.0/lookup_countries" target="_blank">Country Code Lookup Endpoint Docs</a></p>
+      <p><a href="/cs_api/1.0/lookup_nutrients" target="_blank">Nutrient Code Lookup Endpoint Docs</a></p>
 
       <h4>Examples</h4>
       <p>(Login: test / testAdmin)</p>
@@ -122,12 +122,12 @@
       <p><a href="/cs_api/1.0/items?unit_type=CASE&json=true"      target="_blank">Items Endpoint Example: Case Items, Most Recently Modified, 1 - 10</a></p>
       <p><a href="/cs_api/1.0/subscribed/00038000105234"           target="_blank">Subscriber Endpoint Example: GTIN 00038000105234</a></p>
       <p><a href="/cs_api/1.0/subscribed/00067000004650?transform=server&lang=fr" target="_blank">Subscriber Endpoint Example: bp_cps fr item</a></p>
-      <p><a href="/cs_api/1.0/lookup_allergen?lang=es"           target="_blank">Allergen Code Lookup Endpoint Example: List by lang</a></p>
-      <p><a href="/cs_api/1.0/lookup_allergen?lang=en&code=AC"   target="_blank">Allergen Code Lookup Endpoint Example: AC/en</a></p>
-      <p><a href="/cs_api/1.0/lookup_country?lang=en"            target="_blank">Country Code Lookup Endpoint Example: List by lang</a></p>
-      <p><a href="/cs_api/1.0/lookup_country?lang=es&code=840"   target="_blank">Country Code Lookup Endpoint Example: 840/es</a></p>
-      <p><a href="/cs_api/1.0/lookup_nutrient?lang=en"           target="_blank">Nutrient Code Lookup Endpoint Example: List by lang</a></p>
-      <p><a href="/cs_api/1.0/lookup_nutrient?lang=en&code=VITC" target="_blank">Nutrient Code Lookup Endpoint Example: VITC/en</a></p>
+      <p><a href="/cs_api/1.0/lookup_allergens?lang=es"            target="_blank">Allergen Code Lookup Endpoint Example: List by lang</a></p>
+      <p><a href="/cs_api/1.0/lookup_allergens?lang=en&code=AC"    target="_blank">Allergen Code Lookup Endpoint Example: AC/en</a></p>
+      <p><a href="/cs_api/1.0/lookup_countries?lang=en"            target="_blank">Country Code Lookup Endpoint Example: List by lang</a></p>
+      <p><a href="/cs_api/1.0/lookup_countries?lang=es&code=840"   target="_blank">Country Code Lookup Endpoint Example: 840/es</a></p>
+      <p><a href="/cs_api/1.0/lookup_nutrients?lang=en"            target="_blank">Nutrient Code Lookup Endpoint Example: List by lang</a></p>
+      <p><a href="/cs_api/1.0/lookup_nutrients?lang=en&code=VITC"  target="_blank">Nutrient Code Lookup Endpoint Example: VITC/en</a></p>
     </div>
     <div id="welcome">[Loading welcome.html]</div>
   </div>
@@ -570,7 +570,7 @@
             <button ng-if="page > 0" ng-click="list_fileLogs(-1)">Prev</button>
             <span>Page:<span>{{ page + 1 }}</span>
             <button ng-if="more_items" ng-click="list_fileLogs(1)">Next</button>
-            <button ng-if="total_item_count && more_items" ng-click="list_fileLogs((total_item_count / per_page) - page)">Last</button>
+            <button ng-if="total_item_count && more_items" ng-click="list_fileLogs( ((total_item_count % per_page) != 0) ? (total_item_count / per_page) : ((total_item_count / per_page)-1) - page)">Last</button>
             <div class="centered"></span>Displaying items <span>{{ item_range_start }}</span> to {{ item_range_end }}</div>
             <div class="centered" ng-if="!(more_items)">No more items to display</div>
             <div class="centered" ng-if="total_item_count && input_include_total_count">Total number of matching items <span>{{ total_item_count }}</span></div>
@@ -1140,6 +1140,7 @@
             console.log('Found ', items.length, ' items')
             console.log('Per page ', $scope.per_page, ' items')
 
+			// doesn't work for last row/page
             $scope.more_items = (items.length == $scope.per_page)
           }
           else {
@@ -1238,7 +1239,7 @@
 
     thx_app.controller('thx_debug_controller', function($scope, $http, thx_util) {
       $scope.page = 0
-      $scope.per_page = 10
+      $scope.input_per_page = 10
       $scope.more_items = false
       $scope.total_item_count = 0
       $scope.item_range_start = 0 
@@ -1256,8 +1257,10 @@
         
         delete $scope.fileLogs
         delete $scope.total_item_count
-        delete $scope.input_per_page
-        delete $scope.page
+	    $scope.page = 0
+	    $scope.input_per_page = 10
+        //delete $scope.input_per_page
+        //delete $scope.page
         delete $scope.more_items
         delete $scope.total_item_count
         delete $scope.item_range_start 
@@ -1325,9 +1328,9 @@
             $scope.more_items = false
             delete $scope.fileLogs
             delete $scope.total_item_count
-            delete $scope.input_per_page
-//            delete $scope.page
-            delete $scope.more_items
+            //delete $scope.input_per_page
+			//delete $scope.page
+            //delete $scope.more_items
           }
           hideBusy()
         })

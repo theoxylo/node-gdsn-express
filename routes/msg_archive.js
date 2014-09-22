@@ -2,6 +2,7 @@ module.exports = function (config) {
 
   var api = {}
   var log  = require('../lib/Logger')('routes_archive', {debug: true})
+  var msg_archiveDb = require('../lib/msg_archiveDb.js')(config)
 
   api.post_archive = function(req, res, next) {
     console.log('post_archive  handler called')
@@ -15,7 +16,7 @@ module.exports = function (config) {
     })
     req.on('end', function () {
       log.info('Received POST msg content of length ' + (content && content.length || '0'))
-      config.database.saveMessageString(content, function (err, id) {
+      msg_archiveDb.saveMessageString(content, function (err, id) {
         if (err) return done(err)
         log.info('Message saved to archive with instance_id: ' + id)
         res.end('post content archive with ts ' + id)
@@ -28,7 +29,7 @@ module.exports = function (config) {
     var page = parseInt(req.param('page'))
     log.info('page ' + page)
     if (!page || page < 0) page = 0
-    config.database.listMessages(page, config.per_page_count, function (err, results) {
+    msg_archiveDb.listMessages(page, config.per_page_count, function (err, results) {
       if (err) return next(err)
       res.json(results)
     })
@@ -38,7 +39,7 @@ module.exports = function (config) {
     log.debug('find_archive params ' + req.params) 
     var instance_id = req.params.instance_id
     log.debug('find_message called with instance_id ' + instance_id)
-    config.database.findMessage(instance_id, function (err, results) {
+    msg_archiveDb.findMessage(instance_id, function (err, results) {
       if (err) return next(err)
       var item = results && results[0]
 

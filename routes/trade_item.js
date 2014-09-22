@@ -1,17 +1,16 @@
 module.exports = function (config) {
   
-  var _          = require('underscore')
-  var async      = require('async')
-  var logw       = (require('../lib/log_utils.js')(config)).log
+  var _             = require('underscore')
+  var async         = require('async')
+  var cheerio       = require('cheerio')
+
+  var log           = require('../lib/Logger')('rt_items', {debug: true}, config)
+  var item_utils    = require('../lib/item_utils.js')(config)
+  var xml_digest    = require('../lib/xml_to_json.js')(config)
+  var trade_itemDb  = require('../lib/trade_itemDb.js')(config)
+  var msg_archiveDb = require('../lib/msg_archiveDb.js')(config)
 
   var api = {}
-
-  var log  = require('../lib/Logger')('rt_items', {debug: true})
-
-  var item_utils = require('../lib/item_utils.js')(config)
-  var xml_digest = require('../lib/xml_to_json.js')(config)
-
-  var cheerio = require('cheerio')
 
   function populateItemImageUrls(item) {
     console.log('populateItemImageUrls with item ' + JSON.stringify(item))
@@ -102,7 +101,7 @@ module.exports = function (config) {
     info('db query: ' + JSON.stringify(db_query))
 
     var start = Date.now()
-    config.database.getTradeItem(db_query, function (err, items) {
+    trade_itemDb.getTradeItem(db_query, function (err, items) {
       if (err) return next(err)
 
       info('found ' + items.length + ' total items for gtin ' + db_query.gtin + ' in ' + (Date.now() - start) + 'ms')
@@ -127,7 +126,7 @@ module.exports = function (config) {
         info('skipping children for ' + items.length + ' item search results')
         serveCollectionRes(res, items, include_trade_item, href)
       }
-      logw.info(req.url, {user: req.user, duration: (Date.now() - start)} )
+      log.db(req.url, req.user, (Date.now() - start) )
     }) // end config.database.getTradeItem
   }
 
@@ -159,10 +158,10 @@ module.exports = function (config) {
     var include_xml = true
     var tasks = []
     tasks.push(function (callback) {
-      config.database.getTradeItems(query, page, per_page, !include_xml, callback)
+      trade_itemDb.getTradeItems(query, page, per_page, !include_xml, callback)
     })
     if (include_total_count) tasks.push(function (callback) {
-      config.database.getTradeItems(query, page, per_page, !include_xml, callback, include_total_count)
+      trade_itemDb.getTradeItems(query, page, per_page, !include_xml, callback, include_total_count)
     })
     //async.series(tasks, function (err, results) { // I thought maybe db caching might make series faster, but no
     async.parallel(tasks, function (err, results) {
@@ -207,7 +206,7 @@ module.exports = function (config) {
         ]
       }
       if (!res.finished) res.jsonp(result)
-      logw.info(req.url, {user: req.user, duration: (Date.now() - start)} )
+      log.db(req.url, req.user, (Date.now() - start) )
     })
   }
 
@@ -231,7 +230,7 @@ module.exports = function (config) {
 
     var start = Date.now()
     var include_xml = true
-    config.database.getTradeItems(query, page, per_page, include_xml, function (err, items) {
+    trade_itemDb.getTradeItems(query, page, per_page, include_xml, function (err, items) {
       if (err) return next(err)
       log.info('find_trade_items getTradeItems found ' + items.length + ' items in ' + (Date.now() - start) + 'ms')
 
@@ -325,7 +324,7 @@ module.exports = function (config) {
         }
 
       }) // end res.format
-      logw.info(req.url, {user: req.user, duration: (Date.now() - start)} )
+      log.db(req.url, req.user, (Date.now() - start) )
     }) // end getTradeItems callback
   }
 
@@ -340,7 +339,7 @@ module.exports = function (config) {
     })
     req.on('end', function () {
       log.info('Received POST msg content of length ' + (content && content.length || '0'))
-      config.database.saveMessageString(content, function (err, id) {
+      msg_archiveDb.saveMessageString(content, function (err, id) {
         if (err) return done(err)
         log.info('Message saved to archive with instance_id: ' + id)
         //res.end('post content archive with ts ' + id)
@@ -360,7 +359,7 @@ module.exports = function (config) {
         item.tradeItem = itemDigest.tradeItem
 
         tasks.push(function (callback) {
-          config.database.saveTradeItem(item, callback)
+          trade_itemDb.saveTradeItem(item, callback)
         })
       }
       else { // null item is passed when there are no more items in the stream
@@ -456,7 +455,7 @@ module.exports = function (config) {
 
     var intervalId = setInterval(function () {
       var include_xml = true
-      config.database.getTradeItems(query, 0, 10, include_xml, function (err, items) {
+      trade_itemDb.getTradeItems(query, 0, 10, include_xml, function (err, items) {
         if (err) return next(err)
         log.info('migrate_trade_items getTradeItems return item count: ' + items.length)
 
@@ -474,7 +473,7 @@ module.exports = function (config) {
           item.tradeItem = itemDigest.tradeItem
 
           tasks.push(function (callback) {
-            config.database.saveTradeItem(item, callback)
+            trade_itemDb.saveTradeItem(item, callback)
           })
         })
         async.parallel(tasks, function (err, results) {

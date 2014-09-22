@@ -3,6 +3,7 @@ module.exports = function (config) {
   var async      = require('async')
   var log        = require('../lib/Logger')('rt_logs', {debug: true})
   var item_utils = require('../lib/item_utils.js')(config)
+  var logDb      = require('../lib/logDb.js')(config)
 
   var api = {}
 
@@ -18,25 +19,19 @@ module.exports = function (config) {
 
     var query = get_query(req)
     log.debug('list_logs() query= ' + JSON.stringify(query))
-/*
-    config.database.listLogs(query, page, per_page, function (err, results) {
-      if (err) return next(err)
-      res.json(results);
-    })
-*/
     var start = Date.now()
     var tasks = []
     tasks.push(function (callback) {
-      config.database.listLogs(query, page, per_page, callback)
+        logDb.listLogs(query, page, per_page, callback)
     })
     if (include_total_count) tasks.push(function (callback) {
-        config.database.listLogs(query, page, per_page, callback, include_total_count)
+        logDb.listLogs(query, page, per_page, callback, include_total_count)
     })
     async.parallel(tasks, function (err, results) {
       if (err) return next(err)
       var items = results[0]
       var total_item_count = results[1]
-      log.info('logs listLogs (with total item count ' + total_item_count + ') returned ' + items.length + ' items in ' + (Date.now() - start) + 'ms')
+      log.info('logs list_logs (with total item count ' + total_item_count + ') returned ' + items.length + ' items in ' + (Date.now() - start) + 'ms')
       var item_count = (page * per_page) + 1
       items = items.map(function (item) {
         item.item_count_num = item_count++
@@ -55,12 +50,11 @@ module.exports = function (config) {
     })
   }
 
-  get_query = function (req) {
+  function get_query(req) {
     var query = {}
 
     var message     = req.param('regex')
     if (message) {
-//      mongos> db.trade_items.find( {"message": { $regex: '2338'} } )
       query.message = {$regex: message}
     }
 

@@ -1,8 +1,7 @@
 
 var config = {
     shut_down_pw          : ''                         // for remote server shutdown
-  , http_port             : process.env.PORT           // listen port for *Public* UI and service API
-  //, http_port             : 8080                       // listen port for *Public* UI and service API
+  , http_port             : 8080                       // listen port for *Public* UI and service API
   //, https_port            : 8443                       // listen port for *Private* UI and service API
   , homeDataPoolGln       : '0000000000000'            // required for data pool workflow
   , debug                 : true                       // additional logging
@@ -23,7 +22,7 @@ var config = {
 
 var local_config = {}
 try {
-  var file = process.env['NODE_LOCAL_CONFIG'] || '/home/node/local_config.js'
+  var file = process.env['NODE_LOCAL_CONFIG'] || './config.js.STAGE'
   try {
     local_config = require(file)
     console.log('local_config loaded from file: ' + file)

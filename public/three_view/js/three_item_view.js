@@ -1,11 +1,17 @@
-function init_three_view($div) {
+function init_three_view($div, items) {
   console.log('init_three_view ', $div)
 
   //if (!Detector.webgl) return Detector.addGetWebGLMessage();
 
-  var camera, controls, scene, renderer, prevTime, sphere
+  var camera, controls, scene, renderer, sphere, cubes
+  var prevTime = Date.now()
 
   //var stats
+
+  init()
+
+  animate()
+
   
   function animate() {
 
@@ -13,22 +19,15 @@ function init_three_view($div) {
 
     controls.update()
 
-    sphere.rotation.y += .05
-    //console.log('sphere rot ' + JSON.stringify(sphere.rotation))
-
-    /*
     var deltaTime = Date.now() - prevTime
     prevTime += deltaTime
     deltaTime /= 1000
+    console.log('dt ', deltaTime)
     sphere.rotation.y += deltaTime * 5
-    */
 
-
-    /*
     cubes.forEach(function (cube) {
       cube.update(deltaTime)
     })
-    */
 
     renderer.render(scene, camera)
     //stats.update();
@@ -77,17 +76,39 @@ function init_three_view($div) {
     console.log('sphere rot ' + JSON.stringify(sphere.rotation))
     scene.add(sphere)
 
-    /*
-    var cubes = items.map(function (item) {
+
+    cubes = items.map(function (item) {
       console.log('items each ' + item.gtin)
-      return addCubesToScene(item, scene, renderer)
+      var material, size
+      var url = item && item.images && item.images[0]
+      console.log('cube url: ' + url)
+      if (url) {
+        var texture = THREE.ImageUtils.loadTexture(url)
+        texture.anisotropy = renderer.getMaxAnisotropy()
+        material = new THREE.MeshBasicMaterial( { map: texture } )
+        size = 0.5
+      }
+      else {
+        material = new THREE.MeshNormalMaterial()
+        size = 0.4
+      }
+      var cube = new Cube(item, size, material)
+      scene.add(cube.mesh)
+      return cube
     })
-    cubes = _.flatten(cubes)
-    console.log('flatten cubes ' + cubes)
-    */
+    console.log('cubes ', cubes)
+    cubes.forEach(function(cube) {
+      console.log('cubes each test init gtin ' + cube.item.gtin)
+    })
   }
 
-  init()
+  function Cube(item, size, material) {
+    this.mesh = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), material)
+    this.item = item
+  }
 
-  requestAnimationFrame(animate)
+  Cube.prototype.update = function (dt) {
+    this.mesh.rotation.y += dt * 4
+  }
+
 }
