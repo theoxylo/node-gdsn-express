@@ -1,0 +1,16 @@
+<cs_items>
+  <SenderId>1100001011292</SenderId>
+  <ReceiverId>1100001011285</ReceiverId>
+  <InstanceIdentifier>msg_12345</InstanceIdentifier>
+  <Type>CatalogueItemNotification</Type>
+  <CreationDateAndTime>2012-10-05T13:49:24.849-07:00</CreationDateAndTime>
+  <tradeItems>
+      <tradeItem>
+        <gtin>12345</gtin>
+        <provider>1100001011292</provider>
+        <tm>840</tm>
+      </tradeItem>
+      <dataRecipient>1100001011285</dataRecipient>
+      <sourceDataPool>1100001011292</sourceDataPool>
+  </tradeItems>
+</cs_items>

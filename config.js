@@ -1,4 +1,3 @@
-
 var config = {
     shut_down_pw          : ''                         // for remote server shutdown
   , http_port             : 8080                       // listen port for *Public* UI and service API
@@ -22,7 +21,8 @@ var config = {
 
 var local_config = {}
 try {
-  var file = process.env['NODE_LOCAL_CONFIG'] || './config.js.STAGE'
+  //var file = process.env['NODE_LOCAL_CONFIG'] || './config.js.STAGE'
+  var file = process.env['NODE_LOCAL_CONFIG'] || '/home/node/local_config.js'
   try {
     local_config = require(file)
     console.log('local_config loaded from file: ' + file)
