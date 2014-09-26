@@ -18,13 +18,14 @@
 console.log('start app.js')
 
 var config  = require('./config.js')
-config.user_config = {}
+config.user_config     = {}
+config.request_counter = 0
 
 var express         = require('express')
 var logger          = require('morgan')
-var basicAuth       = require('basic-auth-connect')
-var serve_static    = require('serve-static')
-var serve_directory = require('serve-index')
+var basic_auth      = require('basic-auth')
+var compression     = require('compression')
+var session         = require('cookie-session')
 
 var fs      = require('fs')
 var https   = require('https')
@@ -38,8 +39,7 @@ log.debug('config: ' + JSON.stringify(config))
 var Gdsn = require('gdsn')
 config.gdsn = new Gdsn(config)
 
-var Database = require('./lib/Database')
-config.database = new Database(config)
+require('./lib/db/Database')(config) // adds config.database
 
 //var routes          = require(config.routes_dir + '/index')
 //var routes_cin      = require(config.routes_dir + '/cin_form')(config)
@@ -56,9 +56,16 @@ var app = express()
 app.set('views', __dirname + '/views')
 app.set('view engine', 'ejs')
 
-app.use(serve_static(__dirname + '/public'))
-app.use(serve_directory(__dirname + '/public'))
 app.use(logger('combined'))
+app.use(express.static(__dirname + '/public'))
+
+app.use(compression())
+
+app.use(session({
+  keys: ['secret135', 'secret258']
+  , secureProxy: true
+}))
+
 
 // Passport auth: 
 log.info('Loading ITN Passport...')
@@ -68,16 +75,29 @@ passport.init(app, Logger('pp_log', config))
 var router = express.Router()
 app.use(config.base_url, router)
 
-console.log('setting up basicAuth')
-router.use(basicAuth(function (user, pass) {
-  log.info('_CHECKING AUTH INFO_ for user: ' + user)
-  if ('admin' == user & 'devadmin' == pass) return true
-  if (pass == user + 'Admin') {
-    return true
+console.log('setting up basic_auth')
+router.use(function (req, res, next) {
+  console.log('req.user: ' + JSON.stringify(req.user))
+
+  var credentials = basic_auth(req)
+  console.log('creds: ' + JSON.stringify(credentials))
+
+  if (req.user && req.user.google_token) {
+     req.user = 'ted'
+     return next()
   }
-  return false
-}))
-console.log('done setting up basicAuth')
+
+  if (!credentials || (credentials.name + 'Admin' !== credentials.pass)) {
+    res.writeHead(401, {
+      'WWW-Authenticate': 'Basic realm="Authorization Required"'
+    })
+    return res.end()
+  }
+  req.user = credentials.name
+  console.log('req.user: ' + JSON.stringify(req.user))
+  next()
+})
+console.log('done setting up basic_auth')
 
 console.log('setting up profile loader and checker')
 router.use(routes_profile.profileLoader)

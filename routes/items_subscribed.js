@@ -2,9 +2,9 @@ module.exports = function (config) {
   
   var _            = require('underscore')
   var async        = require('async')
-  var log          = require('../lib/Logger')('rt_subscr', {debug: true}, config)
+  var log          = require('../lib/Logger')('rt_subscr', config)
   var item_utils   = require('../lib/item_utils.js')(config)
-  var trade_itemDb = require('../lib/trade_itemDb.js')(config)
+  var trade_item_db = require('../lib/db/trade_item.js')(config)
 
   function get_item_href(item) {
     var href = config.base_url 
@@ -91,7 +91,7 @@ module.exports = function (config) {
 
         var include_xml = false // for db projection
 
-        trade_itemDb.getTradeItems(query, 0, 100, include_xml, function process_found_items(err, items) {
+        trade_item_db.getTradeItems(query, 0, 100, include_xml, function process_found_items(err, items) {
           if (err) return next(err)
 
           info('db found ' + (items && items.length) + ' items for gtin ' + gtin + ' in ' + (Date.now() - start) + 'ms')

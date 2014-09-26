@@ -4,11 +4,11 @@ module.exports = function (config) {
   var async         = require('async')
   var cheerio       = require('cheerio')
 
-  var log           = require('../lib/Logger')('rt_items', {debug: true}, config)
+  var log           = require('../lib/Logger')('rt_items', config)
   var item_utils    = require('../lib/item_utils.js')(config)
   var xml_digest    = require('../lib/xml_to_json.js')(config)
-  var trade_itemDb  = require('../lib/trade_itemDb.js')(config)
-  var msg_archiveDb = require('../lib/msg_archiveDb.js')(config)
+  var trade_item_db  = require('../lib/db/trade_item.js')(config)
+  var msg_archive_db = require('../lib/db/msg_archive.js')(config)
 
   var api = {}
 
@@ -101,7 +101,7 @@ module.exports = function (config) {
     info('db query: ' + JSON.stringify(db_query))
 
     var start = Date.now()
-    trade_itemDb.getTradeItem(db_query, function (err, items) {
+    trade_item_db.getTradeItem(db_query, function (err, items) {
       if (err) return next(err)
 
       info('found ' + items.length + ' total items for gtin ' + db_query.gtin + ' in ' + (Date.now() - start) + 'ms')
@@ -158,10 +158,10 @@ module.exports = function (config) {
     var include_xml = true
     var tasks = []
     tasks.push(function (callback) {
-      trade_itemDb.getTradeItems(query, page, per_page, !include_xml, callback)
+      trade_item_db.getTradeItems(query, page, per_page, !include_xml, callback)
     })
     if (include_total_count) tasks.push(function (callback) {
-      trade_itemDb.getTradeItems(query, page, per_page, !include_xml, callback, include_total_count)
+      trade_item_db.getTradeItems(query, page, per_page, !include_xml, callback, include_total_count)
     })
     //async.series(tasks, function (err, results) { // I thought maybe db caching might make series faster, but no
     async.parallel(tasks, function (err, results) {
@@ -230,7 +230,7 @@ module.exports = function (config) {
 
     var start = Date.now()
     var include_xml = true
-    trade_itemDb.getTradeItems(query, page, per_page, include_xml, function (err, items) {
+    trade_item_db.getTradeItems(query, page, per_page, include_xml, function (err, items) {
       if (err) return next(err)
       log.info('find_trade_items getTradeItems found ' + items.length + ' items in ' + (Date.now() - start) + 'ms')
 
@@ -331,6 +331,7 @@ module.exports = function (config) {
   api.post_trade_items = function (req, res, next) {
     log.debug('post_trade_items handler called')
 
+    /*
     var content = ''
     req.setEncoding('utf8')
     req.on('data', function (chunk) {
@@ -339,12 +340,13 @@ module.exports = function (config) {
     })
     req.on('end', function () {
       log.info('Received POST msg content of length ' + (content && content.length || '0'))
-      msg_archiveDb.saveMessageString(content, function (err, id) {
+      msg_archive_db.saveMessage(content, function (err, id) {
         if (err) return done(err)
         log.info('Message saved to archive with instance_id: ' + id)
-        //res.end('post content archive with ts ' + id)
+        res.send('post content archive with id ' + id)
       })
     })
+    */
 
     // call saveTradeItem for each item in parallel (after stream read is complete)
     // how to submit while still streaming? maybe with async.queue
@@ -359,7 +361,7 @@ module.exports = function (config) {
         item.tradeItem = itemDigest.tradeItem
 
         tasks.push(function (callback) {
-          trade_itemDb.saveTradeItem(item, callback)
+          trade_item_db.saveTradeItem(item, callback)
         })
       }
       else { // null item is passed when there are no more items in the stream
@@ -384,63 +386,26 @@ module.exports = function (config) {
           }
         })
       }
-
     })
-
   }
 
   api.get_item_info = function (req, res, next) {
     log.debug('get_item_info handler called')
 
-    var content = ''
+    var xml = ''
     req.setEncoding('utf8')
     req.on('data', function (chunk) {
-      log.debug('get_item_info.length: ' + chunk.length + ' / ' + content.length)
+      log.debug('get_item_info.length: ' + chunk.length + ' / ' + xml.length)
       //log.debug(chunk)
-      content += chunk 
-      if (content.length > 10 * 1000 * 1000) next(Error('10 MB limit for persisting raw message'))
+      xml += chunk 
+      if (xml.length > 10 * 1000 * 1000) next(Error('10 MB limit for persisting raw message'))
     })
     req.on('end', function () {
-      log.info('Received POST msg content of length ' + (content && content.length || '0'))
-
-      // cheerio testing
-      var $ = cheerio.load(content, { 
-        _:0
-        , normalizeWhitespace: true
-        , xmlMode: true
+      log.info('Received POST msg xml of length ' + (xml && xml.length || '0'))
+      config.gdsn.msg_string_to_msg_info(xml, function (err, msg_info) {
+        if (err) return next(err)
+        if (!res.finished) res.json(msg_info)
       })
-
-
-      var item_count = 0
-      console.log('recipient: ' + $('dataRecipient').first().text())
-      console.log('version: ' + $('sh\\:HeaderVersion').text())
-
-      $('tradeItem tradeItemIdentification').each(function () {
-        console.log('args: ' + Array.prototype.join.call(arguments, ', '))
-        item_count++
-        console.log('trade item: ' )
-
-        console.log('gtin: ' + $('gtin', this).text())
-        console.log('tiid: ' + $(this).text())
-        console.log('tiid: ' + $(this).html())
-
-        $('tradeItemIdentification additionalTradeItemIdentification', this).each(function () {
-          var el = $(this)
-          console.log('item addl id: %s (type: %s)'
-            , el.find('additionalTradeItemIdentificationValue').text()
-            , el.find('additionalTradeItemIdentificationType').text()
-          )
-        })
-      })
-
-      $('tradeItem').each(function () {
-        var en_name = $('functionalName description', this).filter(function () {
-          return $('language languageISOCode', this).text() === 'en'
-        }).find('shortText').text()
-        console.log('english functional name: ' + en_name)
-      })
-
-      if (!res.finished) res.jsonp({msg: 'found item count ' + item_count})
     })
   }
 
@@ -455,7 +420,7 @@ module.exports = function (config) {
 
     var intervalId = setInterval(function () {
       var include_xml = true
-      trade_itemDb.getTradeItems(query, 0, 10, include_xml, function (err, items) {
+      trade_item_db.getTradeItems(query, 0, 10, include_xml, function (err, items) {
         if (err) return next(err)
         log.info('migrate_trade_items getTradeItems return item count: ' + items.length)
 
@@ -473,7 +438,7 @@ module.exports = function (config) {
           item.tradeItem = itemDigest.tradeItem
 
           tasks.push(function (callback) {
-            trade_itemDb.saveTradeItem(item, callback)
+            trade_item_db.saveTradeItem(item, callback)
           })
         })
         async.parallel(tasks, function (err, results) {

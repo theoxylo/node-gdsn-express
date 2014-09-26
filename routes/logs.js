@@ -3,7 +3,7 @@ module.exports = function (config) {
   var async      = require('async')
   var log        = require('../lib/Logger')('rt_logs', {debug: true})
   var item_utils = require('../lib/item_utils.js')(config)
-  var logDb      = require('../lib/logDb.js')(config)
+  var logs     = require('../lib/db/logs.js')(config)
 
   var api = {}
 
@@ -22,10 +22,10 @@ module.exports = function (config) {
     var start = Date.now()
     var tasks = []
     tasks.push(function (callback) {
-        logDb.listLogs(query, page, per_page, callback)
+        logs.listLogs(query, page, per_page, callback)
     })
     if (include_total_count) tasks.push(function (callback) {
-        logDb.listLogs(query, page, per_page, callback, include_total_count)
+        logs.listLogs(query, page, per_page, callback, include_total_count)
     })
     async.parallel(tasks, function (err, results) {
       if (err) return next(err)

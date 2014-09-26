@@ -29,7 +29,7 @@ exports.getRequestHandler = function (config) {
     },
     "es": {
       'AC' : 'Crustacean'
-    , 'AE' : 'Huevo'
+    , 'AE' : 'Huevo2'
     , 'AF' : 'Fish'
     , 'AM' : 'Milk'
     , 'AN' : 'Nuts'

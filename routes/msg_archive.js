@@ -1,25 +1,48 @@
 module.exports = function (config) {
 
+  var log            = require('../lib/Logger')('rt_msg_arch', {debug: true})
+  var msg_archive_db = require('../lib/db/msg_archive.js')(config)
+  var xml_digest     = require('../lib/xml_to_json.js')(config)
+
   var api = {}
-  var log  = require('../lib/Logger')('routes_archive', {debug: true})
-  var msg_archiveDb = require('../lib/msg_archiveDb.js')(config)
 
   api.post_archive = function(req, res, next) {
     console.log('post_archive  handler called')
-
-    var content = ''
+    var xml = ''
     req.setEncoding('utf8')
     req.on('data', function (chunk) {
-      log.debug('archive_post_chunk: ' + chunk)
-      content += chunk
-      if (content.length > 10 * 1000 * 1000) return res.end('content too big - larger than 10 MB')
+      //log.debug('archive_post_chunk: ' + chunk)
+      xml += chunk
+      if (xml.length > 10 * 1000 * 1000) return res.end('msg xml too big - larger than 10 MB')
     })
     req.on('end', function () {
-      log.info('Received POST msg content of length ' + (content && content.length || '0'))
-      msg_archiveDb.saveMessageString(content, function (err, id) {
-        if (err) return done(err)
-        log.info('Message saved to archive with instance_id: ' + id)
-        res.end('post content archive with ts ' + id)
+      log.info('Received POST msg xml of length ' + (xml && xml.length || '0'))
+      msg_archive_db.saveMessage(xml, function (err, msg_info) {
+        if (err) return next(err)
+        //log.debug(JSON.stringify(msg_info))
+        log.info('Message saved to archive with instance_id: ' + msg_info.instance_id)
+
+        if (msg_info.trade_items && msg_info.trade_items.length) {
+          log.info('found item gtins: ' + msg_info.gtins.join(', '))
+          var tasks = []
+          msg_info.trade_items.forEach(function (item) {
+            log.debug('callback with gtin ' + item.gtin)
+
+            var itemDigest = xml_digest.digest(item.xml)
+            item.tradeItem = itemDigest.tradeItem
+
+            tasks.push(function (callback) {
+              trade_item_db.saveTradeItem(item, callback)
+            })
+          })
+          async.parallel(tasks, function (err, results) {
+            log.debug('parallel err: ' + JSON.stringify(err))
+            log.debug('parallel results: ' + JSON.stringify(results))
+            if (err) return next(err)
+            results = _.flatten(results) // async.parallel returns an array of results arrays
+          })
+        }
+        res.json(msg_info)
       })
     })
   }
@@ -29,7 +52,7 @@ module.exports = function (config) {
     var page = parseInt(req.param('page'))
     log.info('page ' + page)
     if (!page || page < 0) page = 0
-    msg_archiveDb.listMessages(page, config.per_page_count, function (err, results) {
+    msg_archive_db.listMessages(page, config.per_page_count, function (err, results) {
       if (err) return next(err)
       res.json(results)
     })
@@ -39,7 +62,7 @@ module.exports = function (config) {
     log.debug('find_archive params ' + req.params) 
     var instance_id = req.params.instance_id
     log.debug('find_message called with instance_id ' + instance_id)
-    msg_archiveDb.findMessage(instance_id, function (err, results) {
+    msg_archive_db.findMessage(instance_id, function (err, results) {
       if (err) return next(err)
       var item = results && results[0]
 

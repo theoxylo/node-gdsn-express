@@ -3,7 +3,7 @@ module.exports = function (config) {
   var api = {}
 
   var log = require('../lib/Logger')('routes_form', {debug: true})
-  var msg_archiveDb = require('../lib/msg_archiveDb.js')(config)
+  var msg_archive_db = require('../lib/db/msg_archive.js')(config)
 
   api.view_cin_from_other_dp_upload_form = function(req, res, next) {
     res.render('cin_confirm', {
@@ -64,14 +64,13 @@ module.exports = function (config) {
     config.gdsn.getXmlDomForString(xml, function(err, doc) {
       if (err) return cb(err)
 
-      // persist to mongodb INBOUND collection
-      var info = config.gdsn.getMessageInfoForDom(doc)
-      info.xml = xml
-      info.process_ts = Date() // long date and time stamp
+      var msg_info = config.gdsn.getMessageInfoForDom(doc)
+      msg_info.xml = xml
+      msg_info.process_ts = Date() // long date and time stamp
 
-      msg_archiveDb.saveMessage(info, function (err, id) {
+      msg_archive_db.saveMessageInfo(msg_info, function (err, saved_info) {
         if (err) return cb(err)
-        log.info('Saved CIN submission to db with instance_id: ' + id)
+        log.info('Saved CIN submission to db with instance_id: ' + saved_info.instance_id)
 
         config.gdsn.createCinResponse(doc, function(err, respXml) {
           if (err) return cb(err)
@@ -89,10 +88,10 @@ module.exports = function (config) {
           config.gdsn.getXmlDomForString(respXml, function(err, $dom) {
             if (err) return cb(err)
 
-            var info = config.gdsn.getMessageInfoForDom($dom)
-            info.xml = respXml
-            info.process_ts = Date()
-            msg_archiveDb.saveMessage(info, function (err, id) {
+            var resp_info = config.gdsn.getMessageInfoForDom($dom)
+            resp_info.xml = respXml
+            resp_info.process_ts = Date()
+            msg_archive_db.saveMessageInfo(resp_info, function (err, id) {
               if (err) return cb(err)
               log.info('Saved CIN response to db with instance_id: ' + id)
               done()
@@ -118,10 +117,10 @@ module.exports = function (config) {
           config.gdsn.getXmlDomForString(cinOutXml, function(err, $dom) {
             if (err) return cb(err)
 
-            var info = config.gdsn.getMessageInfoForDom($dom)
-            info.xml = cinOutXml
-            info.process_ts = Date()
-            msg_archiveDb.saveMessage(info, function (err, id) {
+            var cin_info = config.gdsn.getMessageInfoForDom($dom)
+            cin_info.xml = cinOutXml
+            cin_info.process_ts = Date()
+            msg_archive_db.saveMessage(cin_info, function (err, id) {
               if (err) return cb(err)
               log.info('Saved CIN forward to db with instance_id: ' + id)
               done()

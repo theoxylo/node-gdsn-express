@@ -25,8 +25,6 @@ Visit the admin console:
 
     http://localhost:8080
 
-    https://localhost:8443
-
 
 ## License
 

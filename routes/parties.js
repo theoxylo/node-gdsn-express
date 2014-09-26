@@ -2,15 +2,15 @@ module.exports = function (config) {
   
   var api = {}
 
-  var log           = require('../lib/Logger')('rt_parties', {debug: true}, config)
+  var log           = require('../lib/Logger')('rt_parties', config)
   var digester      = require("xml-digester").XmlDigester({});
-  var trade_partyDb = require('../lib/trade_partyDb.js')(config)
+  var party_db = require('../lib/db/trading_party.js')(config)
 
   api.find_parties = function(req, res, next) {
     log.debug('find_parties')
     var gln = req.params.gln
     var start = Date.now()
-    trade_partyDb.findParty(gln, function (err, results) {
+    party_db.findParty(gln, function (err, results) {
       if (err) return next(err)
       res.json(results);
       log.db(req.url, req.user, (Date.now() - start) )
@@ -23,7 +23,7 @@ module.exports = function (config) {
     log.info('page ' + page)
     if (!page || page < 0) page = 0
     var start = Date.now()
-    trade_partyDb.listParties(page, config.per_page_count, function (err, results) {
+    party_db.listParties(page, config.per_page_count, function (err, results) {
       if (err) return next(err)
       res.json(results);
       log.db(req.url, req.user, (Date.now() - start) )
@@ -43,7 +43,7 @@ module.exports = function (config) {
           if (err) return next(err)
           party.json = json
 
-          trade_partyDb.saveParty(party, function (err, gln) {
+          party_db.saveParty(party, function (err, gln) {
             if (err) return next(err)
             parties.push(gln)
           })
