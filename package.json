@@ -1,6 +1,6 @@
 {
   "name": "node-gdsn-express",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "An express server for GDSN",
   "main": "app.js",
   "engines": {
@@ -11,22 +11,20 @@
     "start": "node app"
   },
   "dependencies": {
-    "gdsn": "theoxylo/node-gdsn",
-    "mongojs": "0.13.1",
-    "underscore": "1.6.0",
-    "async": "0.9.0",
-    "cheerio": "0.17.0",
-    "xml-digester": "0.0.5",
-    "passport": "0.2.1",
-    "passport-google": "0.3.0",
-    "express": "4.9.4",
-    "ejs": "0.8.5",
-    "morgan": "1.3.1",
-    "serve-static": "1.6.2",
-    "serve-index": "1.3.0",
-    "cookie-session": "^1.0.2",
-    "compression": "^1.1.0",
-    "basic-auth": "^1.0.0"
+    "gdsn"            : "theoxylo/node-gdsn",
+    "mongojs"         : "0.13.1",
+    "underscore"      : "1.6.0",
+    "async"           : "0.9.0",
+    "cheerio"         : "0.17.0",
+    "xml-digester"    : "0.0.5",
+    "passport"        : "0.2.1",
+    "passport-google" : "0.3.0",
+    "express"         : "4.9.4",
+    "ejs"             : "0.8.5",
+    "morgan"          : "1.3.1",
+    "cookie-session"  : "1.0.2",
+    "compression"     : "1.1.0",
+    "basic-auth"      : "1.0.0"
   },
   "repository": {
     "type": "git",
