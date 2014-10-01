@@ -88,7 +88,7 @@ var prettyPrint = (function() {
 			}
 		},
 		shorten : function(a) {
-			var b = 40;
+			var b = 60;
 			a = a.replace(/^\s\s*|\s\s*$|\n/g, '');
 			return a.length > b ? (a.substring(0, b - 1) + '...') : a
 		},

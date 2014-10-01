@@ -1,60 +1,54 @@
 module.exports = function (config) {
   
-  var _             = require('underscore')
-  var async         = require('async')
-  var cheerio       = require('cheerio')
+  var _              = require('underscore')
+  var async          = require('async')
+  var cheerio        = require('cheerio')
 
-  var log           = require('../lib/Logger')('rt_items', config)
-  var item_utils    = require('../lib/item_utils.js')(config)
-  var xml_digest    = require('../lib/xml_to_json.js')(config)
+  var log            = require('../lib/Logger')('rt_items', config)
+  var item_utils     = require('../lib/item_utils.js')(config)
+  var xml_digest     = require('../lib/xml_to_json.js')(config)
   var trade_item_db  = require('../lib/db/trade_item.js')(config)
   var msg_archive_db = require('../lib/db/msg_archive.js')(config)
 
   var api = {}
 
   function populateItemImageUrls(item) {
-    console.log('populateItemImageUrls with item ' + JSON.stringify(item))
+    //log.debug('populateItemImageUrls with item ' + JSON.stringify(item))
     var urls = []
-    log.debug('5555555555555 urls: ' + urls.join(' '))
-    try {
-      //tradeItem/tradeItemInformation/tradeItemDescriptionInformation/tradeItemExternalInformation[1]/uniformResourceIdentifier
-      var dUrls = item.tradeItem.tradeItemInformation.tradeItemDescriptionInformation.tradeItemExternalInformation.map(function (extInfo) {
-        console.log('dUrl: ' + extInfo.uniformResourceIdentifier)
-        return extInfo.uniformResourceIdentifier
-      })
-      console.log('-------------------- dUrls: ' + JSON.stringify(dUrls))
-      if (dUrls && dUrls.length) {
+    if (item && item.tradeItem) {
+      try {
+        //tradeItem/tradeItemInformation/tradeItemDescriptionInformation/
+        //tradeItemExternalInformation[1]/uniformResourceIdentifier
+        var dUrls = item.tradeItem.tradeItemInformation.tradeItemDescriptionInformation.tradeItemExternalInformation.map(function (extInfo) {
+          console.log('external Url: ' + extInfo.uniformResourceIdentifier)
+          return extInfo.uniformResourceIdentifier
+        })
+        if (dUrls && dUrls.length) {
           dUrls.unshift(0)
           dUrls.unshift(dUrls.length -1)
-
           Array.prototype.splice.apply(urls, dUrls)
-
-          console.log('dUrls urls: ', urls.join(' '))
+        }
       }
-    }
-    catch (e) {console.log(e)}
+      catch (e) {console.log(e)}
 
-    log.debug('6666666666666 urls: ' + urls.join(' '))
+      log.debug('urls: ' + urls.join(' '))
 
-    try {
-      //tradeItem/extension/food:foodAndBeverageTradeItemExtension/tradeItemExternalInformation[1]/uniformResourceIdentifier
-      var fUrls = item.tradeItem.extension.foodAndBeverageTradeItemExtension.tradeItemExternalInformation.map(function (extInfo) {
-        return extInfo.uniformResourceIdentifier
-      })
-      if (fUrls && fUrls.length) {
+      try {
+        //tradeItem/extension/food:foodAndBeverageTradeItemExtension/
+        //tradeItemExternalInformation[1]/uniformResourceIdentifier
+        var fUrls = item.tradeItem.extension.foodAndBeverageTradeItemExtension.tradeItemExternalInformation.map(function (extInfo) {
+          return extInfo.uniformResourceIdentifier
+        })
+        if (fUrls && fUrls.length) {
           fUrls.unshift(0)
           fUrls.unshift(fUrls.length -1)
-
           Array.prototype.splice.apply(urls, fUrls)
-
-          console.log('fUrls urls: ', urls.join(' '))
+        }
       }
+      catch (e) {console.log(e)}
     }
-    catch (e) {console.log(e)}
-
-    log.debug('7777777777777 urls: ' + urls.join(' '))
+    log.debug('all item external file urls: ' + urls.join(' '))
     item.images = urls
-    log.debug('item ' + item.gtin + ' images: ', urls.join('\n'))
   }
 
   function serveCollectionRes(res, items, include_trade_item, href) {
@@ -205,7 +199,7 @@ module.exports = function (config) {
           {prompt: 'Item GTIN (required)', name: 'gtin', value: '/[0-9]{14}/'},
         ]
       }
-      if (!res.finished) res.jsonp(result)
+      if (!res.finished) res.json(result)
       log.db(req.url, req.user, (Date.now() - start) )
     })
   }
@@ -314,7 +308,7 @@ module.exports = function (config) {
               res.render('item_pretty_print', {result: result, test: 'hello'})
             }
             else {
-              res.jsonp(result)
+              res.json(result)
             }
           }
         },
@@ -329,27 +323,25 @@ module.exports = function (config) {
   }
 
   api.post_trade_items = function (req, res, next) {
-    log.debug('post_trade_items handler called')
+    log.debug('))))))))))))))))))))))) post_trade_items handler called')
 
     /*
-    var content = ''
+    var xml = ''
     req.setEncoding('utf8')
     req.on('data', function (chunk) {
-      log.debug('post_trade_items.length: ' + chunk.length)
-      if (content.length < 10 * 1000 * 1000) content += chunk // 10 MB limit for persisting raw message
+      log.debug('post_trade_items chunk.length: ' + (chunk && chunk.length) || 0)
+      xml += chunk
+      if (xml.length > 10 * 1000 * 1000) return res.end('msg xml too big - larger than 10 MB')
     })
     req.on('end', function () {
-      log.info('Received POST msg content of length ' + (content && content.length || '0'))
-      msg_archive_db.saveMessage(content, function (err, id) {
-        if (err) return done(err)
-        log.info('Message saved to archive with instance_id: ' + id)
-        res.send('post content archive with id ' + id)
+      log.info('Received msg xml of length ' + (xml && xml.length || '0'))
+      msg_archive_db.saveMessage(xml, function (err, msg_info) {
+        if (err) return next(err)
+        log.info('Message saved to archive with instance_id: ' + msg_info.instance_id)
       })
     })
     */
 
-    // call saveTradeItem for each item in parallel (after stream read is complete)
-    // how to submit while still streaming? maybe with async.queue
     var tasks = []
     config.gdsn.items.getEachTradeItemFromStream(req, function (err, item) {
       if (err) return next(err)
@@ -366,6 +358,7 @@ module.exports = function (config) {
       }
       else { // null item is passed when there are no more items in the stream
         log.debug('no more items from getEachTradeItemFromStream callback')
+
         async.parallel(tasks, function (err, results) {
           log.debug('parallel err: ' + JSON.stringify(err))
           log.debug('parallel results: ' + JSON.stringify(results))
@@ -375,33 +368,33 @@ module.exports = function (config) {
 
           if (!res.finished) {
             if (results && results.length) {
-              res.jsonp({
+              res.json({
                 msg: 'Created ' + results.length + ' items with GTINs: ' + results.join(', ')
                 , gtins: results
               }) 
             }
             else {
-              res.jsonp({msg: 'No items were created'})
+              res.json({msg: 'No items were created'})
             }
           }
-        })
-      }
-    })
-  }
+        }) // end async.parallel
+      } // end else
+    }) // end getEachTradeItemFromStream
+  } // end api.post_trade_items
 
-  api.get_item_info = function (req, res, next) {
-    log.debug('get_item_info handler called')
+  api.post_get_item_info = function (req, res, next) {
+    log.debug('post_get_item_info handler called')
 
     var xml = ''
     req.setEncoding('utf8')
     req.on('data', function (chunk) {
-      log.debug('get_item_info.length: ' + chunk.length + ' / ' + xml.length)
+      log.debug('post_get_item_info chunk.length: ' + chunk.length + ' / ' + xml.length)
       //log.debug(chunk)
       xml += chunk 
       if (xml.length > 10 * 1000 * 1000) next(Error('10 MB limit for persisting raw message'))
     })
     req.on('end', function () {
-      log.info('Received POST msg xml of length ' + (xml && xml.length || '0'))
+      log.info('Received msg xml of length ' + (xml && xml.length || '0'))
       config.gdsn.msg_string_to_msg_info(xml, function (err, msg_info) {
         if (err) return next(err)
         if (!res.finished) res.json(msg_info)

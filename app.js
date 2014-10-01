@@ -114,9 +114,12 @@ app.get('/shut_down', function (req, res, next) {
 })
 console.log('done setting up shutdown')
 
+router.post('/msg',     routes_archive.post_archive)
+router.post('/items',   routes_item.post_trade_items)
+router.post('/parties', routes_parties.post_parties)
+
 router.get('/msg/:instance_id',                             routes_archive.find_archive)
 router.get('/msg',                                          routes_archive.list_archive)
-router.post('/msg',                                         routes_archive.post_archive)
 
 router.get('/subscribed/:gtin/:provider/:tm/:tm_sub',       routes_subscr.get_subscribed_item)
 router.get('/subscribed/:gtin/:provider/:tm',               routes_subscr.get_subscribed_item)
@@ -133,14 +136,12 @@ router.get('/items/:recipient/:gtin/:provider',             routes_item.find_tra
 router.get('/items/:recipient/:gtin',                       routes_item.find_trade_items)
 router.get('/items/:recipient',                             routes_item.find_trade_items)
 router.get('/items',                                        routes_item.find_trade_items)
-router.post('/items',                                       routes_item.post_trade_items)
 
 router.get('/party/:gln',                                   routes_parties.find_parties)
 router.get('/parties/:gln',                                 routes_parties.find_parties)
 router.get('/parties',                                      routes_parties.list_parties)
-router.post('/parties',                                     routes_parties.post_parties)
 
-router.get('/info',                                         routes_item.get_item_info)
+router.get('/info',                                         routes_item.post_get_item_info)
 router.get('/logs',                                         routes_logs.list_logs)
 
 router.get('/login',            require(config.routes_dir + '/login').getRequestHandler(config))

@@ -134,34 +134,74 @@
     <div id="welcome">[Loading welcome.html]</div>
   </div>
 
+
   <div id="msg_tab" ng-controller="thx_msg_controller">
     <div id="msg_accordion">
 
       <div>Search Messages</div>
       <div>
+        <p/>
+        <span>type
+          <select ng-model="input_msg_type">
+            <option value="catalogueItemPublication">CIP</option>
+            <option value="catalogueItemSubscription">CIS</option>
+            <option value="catalogueItemNotification">CIN</option>
+          </select>
+        </span>
+
+        <span>type         <input type="text" size="30" ng-model="input_msg_type_regex" placeholder="type"></input></span>
+        <span>instance_id  <input type="text" size="40" ng-model="input_instance_id"    placeholder="instance_id" ></input></span>
+        <span>Provider GLN <input type="text" size="15" ng-model="input_provider"       placeholder="1100001011292"></input></span>
+        <span>Recipient GLN<input type="text" size="15" ng-model="input_recipient"      placeholder="0625199000015"></input></span>
+        <!-- 
+        <span>created_ts   <input type="text" size="10" ng-model="input_enddate" placeholder="8/29/2014" ></input></span>
+        <span>modified_ts  <input type="text" size="10" ng-model="input_enddate" placeholder="8/29/2014" ></input></span>
+        -->
+        <br />
+        <span>Include total count <input type="checkbox" ng-model="input_include_total_count"></input></span>
+        <span>Rows/page      <input ng-model="input_per_page" placeholder="10" size="3"></input></span>
+        <button ng-click="list_messages()"   >Search</button>
+        <button ng-click="reset_search()"    >Reset</button>
+      
         <br/>
-        <button ng-if="page > 0" ng-click="list_messages(-1)">Prev</button>
-        <button ng-if="messages && messages.length == 10" ng-click="list_messages(1)">Next</button>
         <div ng-if="messages" style="border-style:solid;border-width:1px;border-color:green">
           <table>
             <tr>
-              <th>ID</th>
+              <!-- th>ID</th -->
+              <th>Instance Id</th>
+              <th>Type</th>
+              <th>SourceDP</th>
+              <th>Recipient</th>
               <th>Sender</th>
               <th>Receiver</th>
+              <th>Item Cnt</th>
               <th>Created</th>
               <th>Modified</th>
             </tr>
-            <tr class="clickable" ng-repeat="msg in messages" ng-click="showMessageDetail(msg)">
-              <td>{{msg.msg_id}}</td>
+            <tr class="clickable" ng-repeat="msg in messages"">
+              <!-- td>{{msg._id}}</td -->
+              <td ng-click="showMessageDetail(msg)">{{msg.instance_id}}</td>
+              <td ng-click="popup(msg)">{{msg.type}}</td>
+              <td>{{msg.source_cp}}</td>
+              <td>{{msg.recipient}}</td>
               <td>{{msg.sender}}</td>
               <td>{{msg.receiver}}</td>
+              <td>{{msg.item_count}}</td>
               <td>{{msg.created_ts}}</td>
               <td>{{msg.modified_ts}}</td>
               <!-- Raw Data: '{{msg}}' -->
             </tr>
           </table>
         </div><!-- end ng-if="messages" -->
-        <button ng-if="!messages" ng-click="list_messages()">Load Messages</button>
+        <p class="centered">
+	        <button ng-if="page > 1" ng-click="list_messages(-page)">First</button>
+	        <button ng-if="page > 0" ng-click="list_messages(-1)" >Prev</button>
+            <span>Page:{{ page + 1 }}</span>
+	        <button ng-if="messages && messages.length == 10" ng-click="list_messages(1)" >Next</button>
+            <div class="centered">Displaying items <span>{{ item_range_start }}</span> to {{ item_range_end }}</div>
+            <div class="centered" ng-if="!(more_items)">No more items to display</div>
+            <div class="centered" ng-if="total_item_count && input_include_total_count">Total number of matching items <span>{{ total_item_count }}</span></div>
+	    </p>
       </div>
 
       <div>View Message</div>
@@ -191,8 +231,9 @@
         <pre id="message_list"></pre>
       </div>
 
-    </div>
+    </div> <!-- end msg accordion -->
   </div> <!-- end msg_tab -->
+
 
   <div id="party_tab" ng-controller="thx_party_controller">
     <div id="party_accordion">
@@ -514,7 +555,8 @@
 
 <div id="debug_tab" ng-controller='thx_debug_controller'>
   <div id="debug_accordion">
-  	<div>MongoDB Logging</div>
+  
+  	<div>Search Logging</div>
   	<div>
         <p/>
         <span>Message Regex     <input type="text" ng-model="input_log_regex" size="30" placeholder="req_id"></input></span>
@@ -530,18 +572,9 @@
             <option value="error">error</option>
           </select>
         </span>
-<!--    
-		<span>Action Type
-          <select ng-model="input_action_type">
-            <option value="subscribed">subscribed</option>
-            <option value="Subscription">Subscription</option>
-            <option value="Publication">Publication</option>
-            <option value="ItemLoad">Item Load</option>
-          </select>
-        </span>
- -->
         <span>Include total count <input type="checkbox" ng-model="input_include_total_count"></input></span>
-        <span>Rows/page      <input ng-model="input_per_page" size="3"></input></span>
+        <span>Rows/page      <input ng-model="input_per_page" placeholder="10" size="3"></input></span>
+        <br />
         <button ng-click="list_fileLogs(0)">Search</button>
         <button ng-click="reset_log_search()">Reset</button>
 
@@ -577,7 +610,6 @@
             <div class="centered" ng-if="!(more_items)">No more items to display</div>
             <div class="centered" ng-if="total_item_count && input_include_total_count">Total number of matching items <span>{{ total_item_count }}</span></div>
 	    </p>
-        
 	</div>
 
   	<div>Already existing...</div>
@@ -911,8 +943,28 @@
     })
 
     thx_app.controller('thx_msg_controller', function($scope, $http, thx_util) {
-
       $scope.page = 0
+      $scope.input_per_page = 10
+      $scope.more_items = false
+      $scope.total_item_count = 0
+
+      $scope.reset_search = function () {
+          delete $scope.input_msg_type
+          delete $scope.input_msg_type_regex
+          delete $scope.input_instance_id
+          delete $scope.input_provider
+          delete $scope.input_recipient
+          delete $scope.input_include_total_count
+          
+          delete $scope.messages
+          delete $scope.total_item_count
+  	      $scope.page = 0
+  	      $scope.input_per_page = 10
+          delete $scope.more_items
+          delete $scope.total_item_count
+          delete $scope.item_range_start 
+          delete $scope.item_range_end
+        }
 
       $scope.list_messages = function (pageIncrement) {
         if (pageIncrement) {
@@ -925,10 +977,20 @@
 
         showBusy('Fetching message list...')
         $http.get(thx_util.msg_url, { 
-          params: { page: $scope.page }
+          params: { 
+        	  msg_type:            $scope.input_msg_type,
+        	  msg_type_regex:      $scope.input_msg_type_regex,
+        	  instance_id:         $scope.input_instance_id,
+        	  provider:            $scope.input_provider,
+        	  recipient:           $scope.input_recipient,
+        	  
+        	  page:                $scope.page,
+              per_page:            $scope.per_page,
+              include_total_count: $scope.input_include_total_count
+          }
         })
         .success(function (messages) {
-          $scope.messages = _.map(messages, function (msg) {
+        	$scope.messages = _.map(messages, function (msg) {
             msg.created_ts = (new Date(msg.created_ts)).toLocaleString()
             msg.modified_ts = (new Date(msg.modified_ts)).toLocaleString()
             return msg
@@ -942,7 +1004,7 @@
       }
 
       $scope.showMessageDetail = function (msg) {
-        log('showMessageDetail called for msg ' + msg.msg_id)
+        log('showMessageDetail called for msg ' + msg._id)
         $result_dialog.html(prettyPrint(msg)).dialog('open')
       }
 
@@ -962,6 +1024,11 @@
         .error(function () {
           log(arguments)
         })
+      }
+      
+      $scope.popup = function (msg) {
+          log('popup called for msg ' + msg._id)
+          winPopup(msg.xml)
       }
 
     })
@@ -1148,6 +1215,8 @@
           else {
             if ($scope.page > 0) $scope.page--
             $scope.more_items = false
+            delete $scope.total_item_count
+            delete $scope.items
           }
           hideBusy()
         })
@@ -1261,8 +1330,6 @@
         delete $scope.total_item_count
 	    $scope.page = 0
 	    $scope.input_per_page = 10
-        //delete $scope.input_per_page
-        //delete $scope.page
         delete $scope.more_items
         delete $scope.total_item_count
         delete $scope.item_range_start 
@@ -1417,6 +1484,12 @@ $(function() {
 	$( "#log_datepicker_start" ).datepicker();
 	$( "#log_datepicker_end" ).datepicker();
 });
+
+function winPopup(myXml) {
+	var myWindow = window.open('','','width=800,height=800');
+	myWindow.document.write("<textarea style='height:100%;width:100%' readonly>" +unescape(myXml)+ "</textarea>");
+	myWindow.focus();
+}
 
 </script>
 <!--<script src="js/ticker.js"></script>-->
