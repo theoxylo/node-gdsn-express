@@ -1,13 +1,19 @@
 module.exports = function (config) {
 
+  var _              = require('underscore')
+  var async          = require('async')
+
   var log            = require('../lib/Logger')('rt_msg_arch', {debug: true})
   var msg_archive_db = require('../lib/db/msg_archive.js')(config)
+  var trade_item_db  = require('../lib/db/trade_item.js')(config)
   var xml_digest     = require('../lib/xml_to_json.js')(config)
+  var utils          = require('../lib/utils.js')(config)
 
   var api = {}
 
   api.post_archive = function(req, res, next) {
     log.debug('>>>>>>>>>>>>>>>>>>>> post_archive  handler called')
+
     var xml = ''
     req.setEncoding('utf8')
     req.on('data', function (chunk) {
@@ -19,78 +25,54 @@ module.exports = function (config) {
       log.info('Received msg xml of length ' + (xml && xml.length || '0'))
       msg_archive_db.saveMessage(xml, function (err, msg_info) {
         if (err) return next(err)
-        log.info('Message saved to archive with instance_id: ' + msg_info.instance_id)
+        log.info('Message info saved to archive: ' + JSON.stringify(msg_info))
 
-        if (msg_info.type == 'catalogItemNotification') {
-
-          // call saveTradeItem for each item in parallel (after stream read is complete)
-          var tasks = []
-          config.gdsn.items.getEachTradeItemFromStream(req, function (err, item) {
-            if (err) return next(err)
-
-            if (item) {
-              log.debug('received item from getEachTradeItemFromStream callback with gtin ' + item.gtin)
-
-              var itemDigest = xml_digest.digest(item.xml)
-              item.tradeItem = itemDigest.tradeItem
-
-              tasks.push(function (callback) {
-                trade_item_db.saveTradeItem(item, callback)
-              })
-            }
-            else { // null item is passed when there are no more items in the stream
-              log.debug('no more items from getEachTradeItemFromStream callback')
-              async.parallel(tasks, function (err, results) {
-                log.debug('parallel err: ' + JSON.stringify(err))
-                log.debug('parallel results: ' + JSON.stringify(results))
-                if (err) return next(err)
-
-                results = _.flatten(results) // async.parallel returns an array of results arrays
-
-                if (!res.finished) {
-                  if (results && results.length) {
-                    res.jsonp({
-                      msg: 'Created ' + results.length + ' items with GTINs: ' + results.join(', ')
-                      , gtins: results
-                    }) 
-                  }
-                  else {
-                    res.jsonp({msg: 'No items were created'})
-                  }
-                }
-              })
-            }
-
-          })
-        } // end if (msg_info.type == 'catalogItemNotification') {
-        else { // other message types
-          /*
-          if (msg_info.trade_items && msg_info.trade_items.length) {
-            log.info('found item gtins: ' + msg_info.gtins.join(', '))
-            var tasks = []
-            msg_info.trade_items.forEach(function (item) {
-              log.debug('callback with gtin ' + item.gtin)
-
-              var itemDigest = xml_digest.digest(item.xml)
-              item.tradeItem = itemDigest.tradeItem
-
-              tasks.push(function (callback) {
-                trade_item_db.saveTradeItem(item, callback)
-              })
-            })
-            async.parallel(tasks, function (err, results) {
-              log.debug('parallel err: ' + JSON.stringify(err))
-              log.debug('parallel results: ' + JSON.stringify(results))
-              if (err) return next(err)
-              results = _.flatten(results) // async.parallel returns an array of results arrays
-            })
+        if (!res.finished) {
+          if (msg_info && msg_info.instance_id) {
+            res.json(msg_info)
           }
-          res.json(msg_info)
-          */
+          else {
+            res.json({msg: 'Message not saved'})
+          }
         }
       })
     })
 
+    var tasks = []
+    config.gdsn.items.getEachTradeItemFromStream(req, function (err, item) {
+      if (err) {
+        log.error('Error getting trade items from stream: ' + err)
+        return
+      }
+
+      if (item) {
+        log.debug('received item from getEachTradeItemFromStream callback with gtin ' + item.gtin)
+
+        var itemDigest = xml_digest.digest(item.xml)
+        item.tradeItem = itemDigest.tradeItem
+
+        tasks.push(function (callback) {
+          trade_item_db.saveTradeItem(item, callback)
+        })
+      }
+      else { // null item is passed when there are no more items in the stream
+        log.debug('no more items from getEachTradeItemFromStream callback')
+        async.parallel(tasks, function (err, results) {
+          log.debug('parallel err: ' + JSON.stringify(err))
+          log.debug('parallel results: ' + JSON.stringify(results))
+          if (err) {
+            error = true
+            log.error('Error saving trade items for message: ' + err)
+            return
+          }
+          else {
+            results = _.flatten(results) // async.parallel returns an array of results arrays
+            log.info('Saved trade item count: ' + results.length)
+          }
+        })
+      }
+
+    })
   }
 
   api.list_archive = function(req, res, next) {
@@ -101,17 +83,28 @@ module.exports = function (config) {
     var page = parseInt(req.param('page'))
     log.info('page ' + page)
     if (!page || page < 0) page = 0
-    msg_archive_db.listMessages(query, page, config.per_page_count, function (err, results) {
-      if (err) return next(err)
-      res.json(results)
+    var per_page = parseInt(req.param('per_page'))
+    if (!per_page || per_page < 0 || per_page > 10000) per_page = config.per_page_count  // increase max per_page to 10000
+    
+    msg_archive_db.listMessages(query, page, per_page, function (err, results) {
+    	if (err) return next(err)
+
+      var result = utils.get_collection_json(results, null)
+      
+      result.collection.page             = page
+      result.collection.per_page         = per_page
+      result.collection.item_range_start = (page * per_page) + 1
+      result.collection.item_range_end   = (page * per_page) + results.length
+
+      if (!res.finished) res.jsonp(result)
     })
   }
 
   api.find_archive = function(req, res, next) {
     log.debug('find_archive params=' + JSON.stringify(req.query))
     
-    var query = get_query(req)
-    log.debug('query= ' + JSON.stringify(query))
+    //var query = get_query(req)
+    //log.debug('query= ' + JSON.stringify(query))
     var instance_id = req.params.instance_id
     log.debug('find_message called with instance_id ' + instance_id)
     msg_archive_db.findMessage(instance_id, function (err, results) {
@@ -147,6 +140,47 @@ module.exports = function (config) {
     if (instance_id) {
       query.instance_id = {$regex: instance_id}
     }
+
+    var source_dp       = req.param('source_dp')
+    if (source_dp) {
+      query.source_dp = {$regex: source_dp}
+    }
+    var recipient       = req.param('recipient')
+    if (recipient) {
+      query.recipient = {$regex: recipient}
+    }
+    var provider       = req.param('provider')
+    if (provider) {
+      query.sender = {$regex: provider}
+    }
+    var receiver       = req.param('receiver')
+    if (receiver) {
+      query.receiver = {$regex: receiver}
+    }
+    
+    var created_st_date       = req.param('created_st_date')
+    var created_end_date       = req.param('created_end_date')
+    if (created_st_date || created_end_date) {
+    	query.created_ts = {}
+        if (created_st_date) {
+        	query.created_ts.$gt = utils.getDateTime(created_st_date)
+        }
+        if (created_end_date) {
+        	query.created_ts.$lt = utils.getDateTime(created_end_date) + utils.MILLIS_PER_DAY
+        }
+    }
+    var modified_st_date       = req.param('modified_st_date')
+    var modified_end_date       = req.param('modified_end_date')
+    if (modified_st_date || modified_end_date) {
+    	query.modified_ts = {}
+        if (modified_st_date) {
+        	query.modified_ts.$gt = utils.getDateTime(modified_st_date)
+        }
+        if (modified_end_date) {
+        	query.modified_ts.$lt = utils.getDateTime(modified_end_date) + utils.MILLIS_PER_DAY
+        }
+    }
+    
     return query
   }
 

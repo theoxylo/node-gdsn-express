@@ -2,8 +2,8 @@ module.exports = function (config) {
   
   var async      = require('async')
   var log        = require('../lib/Logger')('rt_logs', {debug: true})
-  var item_utils = require('../lib/item_utils.js')(config)
-  var logs     = require('../lib/db/logs.js')(config)
+  var utils      = require('../lib/utils.js')(config)
+  var logs       = require('../lib/db/logs.js')(config)
 
   var api = {}
 
@@ -38,7 +38,7 @@ module.exports = function (config) {
         return item
       })
       var href = config.base_url + req.url
-      var result = item_utils.get_collection_json(items, href)
+      var result = utils.get_collection_json(items, href)
 
       result.collection.page             = page
       result.collection.per_page         = per_page
@@ -80,24 +80,12 @@ module.exports = function (config) {
     if (date_start || date_end) {
     	query.timestamp = {}
         if (date_start) {
-        	var digitpattern = /\d+/g
-            var matches = date_start.match(digitpattern)
-            var month = matches[0] - 1
-        	var day   = matches[1]
-        	var year  = matches[2]
-        	log.info("date_start: month=" +month+ ", day=" +day+ ", year=" +year)
-            query.timestamp.$gt = (new Date(year, month, day)).getTime()
+        	query.timestamp.$gt = utils.getDateTime(date_start)
 //          mongos> db.logs.find( { "timestamp": {$gt: new Date(2014, 7, 1)} } )
 //          query.timestamp = { $gt: new Date(2014, 7, 22)}
         }
         if (date_end) {
-        	var digitpattern = /\d+/g
-            var matches = date_end.match(digitpattern)
-            var month = matches[0] - 1
-        	var day   = matches[1]
-        	var year  = matches[2]
-        	log.info("date_end: month=" +month+ ", day=" +day+ ", year=" +year)
-        	query.timestamp.$lt = (new Date(year, month, day)).getTime()
+        	query.timestamp.$lt = utils.getDateTime(date_end) + utils.MILLIS_PER_DAY
         }
     }
 

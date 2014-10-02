@@ -141,24 +141,26 @@
       <div>Search Messages</div>
       <div>
         <p/>
-        <span>type
+        <span>Instance_id  <input type="text" size="40" ng-model="input_instance_id"    placeholder="instance_id" ></input></span>
+        <span>Type
           <select ng-model="input_msg_type">
             <option value="catalogueItemPublication">CIP</option>
             <option value="catalogueItemSubscription">CIS</option>
             <option value="catalogueItemNotification">CIN</option>
           </select>
         </span>
-
-        <span>type         <input type="text" size="30" ng-model="input_msg_type_regex" placeholder="type"></input></span>
-        <span>instance_id  <input type="text" size="40" ng-model="input_instance_id"    placeholder="instance_id" ></input></span>
-        <span>Provider GLN <input type="text" size="15" ng-model="input_provider"       placeholder="1100001011292"></input></span>
-        <span>Recipient GLN<input type="text" size="15" ng-model="input_recipient"      placeholder="0625199000015"></input></span>
-        <!-- 
-        <span>created_ts   <input type="text" size="10" ng-model="input_enddate" placeholder="8/29/2014" ></input></span>
-        <span>modified_ts  <input type="text" size="10" ng-model="input_enddate" placeholder="8/29/2014" ></input></span>
-        -->
+        <span>Type         <input type="text" size="30" ng-model="input_msg_type_regex" placeholder="type"></input></span>
         <br />
-        <span>Include total count <input type="checkbox" ng-model="input_include_total_count"></input></span>
+        <span>SourceDP <input type="text" size="13" ng-model="input_source_dp"      placeholder="1100001011285"></input></span>
+        <span>Recipient<input type="text" size="13" ng-model="input_recipient"      placeholder="0625199000015"></input></span>
+        <span>Sender   <input type="text" size="13" ng-model="input_provider"       placeholder="1100001011292"></input></span>
+        <span>Receiver <input type="text" size="13" ng-model="input_receiver"       placeholder="0625199000015"></input></span>
+        <br />
+        <!-- span>Include total count <input type="checkbox" ng-model="input_include_total_count"></input></span -->
+        <span>Created Start Date <input type="text" size="10" ng-model="input_created_st_date"        placeholder="8/21/2014" datepicker></input></span>
+        <span>Created End Date   <input type="text" size="10" ng-model="input_created_end_date"       placeholder="8/24/2014" datepicker></input></span>
+        <span>Modified Start Date<input type="text" size="10" ng-model="input_modified_st_date"        placeholder="8/26/2014" datepicker></input></span>
+        <span>Modified End Date  <input type="text" size="10" ng-model="input_modified_end_date"       placeholder="8/28/2014" datepicker></input></span>
         <span>Rows/page      <input ng-model="input_per_page" placeholder="10" size="3"></input></span>
         <button ng-click="list_messages()"   >Search</button>
         <button ng-click="reset_search()"    >Reset</button>
@@ -167,7 +169,6 @@
         <div ng-if="messages" style="border-style:solid;border-width:1px;border-color:green">
           <table>
             <tr>
-              <!-- th>ID</th -->
               <th>Instance Id</th>
               <th>Type</th>
               <th>SourceDP</th>
@@ -178,26 +179,25 @@
               <th>Created</th>
               <th>Modified</th>
             </tr>
-            <tr class="clickable" ng-repeat="msg in messages"">
-              <!-- td>{{msg._id}}</td -->
+            <tr class="clickable" ng-repeat="msg in messages">
               <td ng-click="showMessageDetail(msg)">{{msg.instance_id}}</td>
               <td ng-click="popup(msg)">{{msg.type}}</td>
-              <td>{{msg.source_cp}}</td>
+              <td>{{msg.source_dp}}</td>
               <td>{{msg.recipient}}</td>
               <td>{{msg.sender}}</td>
               <td>{{msg.receiver}}</td>
               <td>{{msg.item_count}}</td>
               <td>{{msg.created_ts}}</td>
               <td>{{msg.modified_ts}}</td>
-              <!-- Raw Data: '{{msg}}' -->
             </tr>
           </table>
-        </div><!-- end ng-if="messages" -->
+        </div>
+        
         <p class="centered">
 	        <button ng-if="page > 1" ng-click="list_messages(-page)">First</button>
 	        <button ng-if="page > 0" ng-click="list_messages(-1)" >Prev</button>
             <span>Page:{{ page + 1 }}</span>
-	        <button ng-if="messages && messages.length == 10" ng-click="list_messages(1)" >Next</button>
+	        <button ng-if="messages && messages.length == per_page" ng-click="list_messages(1)" >Next</button>
             <div class="centered">Displaying items <span>{{ item_range_start }}</span> to {{ item_range_end }}</div>
             <div class="centered" ng-if="!(more_items)">No more items to display</div>
             <div class="centered" ng-if="total_item_count && input_include_total_count">Total number of matching items <span>{{ total_item_count }}</span></div>
@@ -233,6 +233,7 @@
 
     </div> <!-- end msg accordion -->
   </div> <!-- end msg_tab -->
+
 
 
   <div id="party_tab" ng-controller="thx_party_controller">
@@ -292,6 +293,8 @@
     </div>
   </div> <!-- end party_tab -->
 
+
+
   <div id="item_tab" ng-controller="thx_item_controller">
     <div id="item_accordion">
 
@@ -322,6 +325,11 @@
             <option value="TRANSPORT_LOAD">Transport Load</option>
           </select>
         </span>
+        <br />
+        <span>Created Start Date <input type="text" size="10" ng-model="input_created_st_date"        placeholder="8/21/2014" datepicker></input></span>
+        <span>Created End Date   <input type="text" size="10" ng-model="input_created_end_date"       placeholder="8/24/2014" datepicker></input></span>
+        <span>Modified Start Date<input type="text" size="10" ng-model="input_modified_st_date"        placeholder="8/26/2014" datepicker></input></span>
+        <span>Modified End Date  <input type="text" size="10" ng-model="input_modified_end_date"       placeholder="8/28/2014" datepicker></input></span>
         <button ng-click="list_items(0)">Search</button>
         <button ng-click="reset_search()">Reset</button>
         <p/>
@@ -559,11 +567,8 @@
   	<div>Search Logging</div>
   	<div>
         <p/>
-        <span>Message Regex     <input type="text" ng-model="input_log_regex" size="30" placeholder="req_id"></input></span>
-        <span>Start Date     <input type="text" size="10" ng-model="input_startdate" placeholder="8/21/2014" ></input></span>
-        <span>End Date     <input type="text" size="10" ng-model="input_enddate" placeholder="8/29/2014" ></input></span>
-        <span>Username     <input type="text" size="15" ng-model="input_username" placeholder="per" ></input></span>
-        <span>Duration (ms)     <input type="text" size="8" ng-model="input_duration" placeholder="200" ></input></span>
+        <span>Start Date     <input type="text" size="14" ng-model="input_startdate" placeholder="8/21/2014" datepicker></input></span> 
+        <span>End Date     <input type="text" size="10" ng-model="input_enddate" placeholder="8/29/2014" datepicker></input></span>
         <span>Log Level
           <select ng-model="input_log_level">
             <option value="debug">debug</option>
@@ -572,9 +577,12 @@
             <option value="error">error</option>
           </select>
         </span>
+        <span>Message Regex     <input type="text" ng-model="input_log_regex" size="30" placeholder="req_id"></input></span>
+        <span>Username     <input type="text" size="15" ng-model="input_username" placeholder="per" ></input></span>
+        <span>Min Duration (ms)     <input type="text" size="8" ng-model="input_duration" placeholder="200" ></input></span>
+        <br />
         <span>Include total count <input type="checkbox" ng-model="input_include_total_count"></input></span>
         <span>Rows/page      <input ng-model="input_per_page" placeholder="10" size="3"></input></span>
-        <br />
         <button ng-click="list_fileLogs(0)">Search</button>
         <button ng-click="reset_log_search()">Reset</button>
 
@@ -595,7 +603,6 @@
               <td>{{fileLog.username}}</td>
               <td>{{fileLog.duration}}</td>
               <td>{{fileLog._id}}</td>
-              <!-- Raw Data: '{{fileLog}}' -->
             </tr>
           </table>
         </div>
@@ -942,29 +949,40 @@
 
     })
 
+    
+    
     thx_app.controller('thx_msg_controller', function($scope, $http, thx_util) {
       $scope.page = 0
       $scope.input_per_page = 10
       $scope.more_items = false
       $scope.total_item_count = 0
+      $scope.item_range_start = 0 
+      $scope.item_range_end   = 0   
 
       $scope.reset_search = function () {
+          delete $scope.input_instance_id
           delete $scope.input_msg_type
           delete $scope.input_msg_type_regex
-          delete $scope.input_instance_id
-          delete $scope.input_provider
+          
+          delete $scope.input_source_dp
           delete $scope.input_recipient
+          delete $scope.input_provider
+          delete $scope.input_receiver
+
+          delete $scope.input_created_st_date
+          delete $scope.input_created_end_date
+          delete $scope.input_modified_st_date
+          delete $scope.input_modified_end_date
           delete $scope.input_include_total_count
           
           delete $scope.messages
           delete $scope.total_item_count
-  	      $scope.page = 0
-  	      $scope.input_per_page = 10
           delete $scope.more_items
-          delete $scope.total_item_count
           delete $scope.item_range_start 
           delete $scope.item_range_end
-        }
+  	      $scope.page = 0
+  	      $scope.input_per_page = 10
+      }
 
       $scope.list_messages = function (pageIncrement) {
         if (pageIncrement) {
@@ -972,29 +990,56 @@
         }
         else {
           $scope.page = 0
+          $scope.total_item_count = 0
+          $scope.per_page = $scope.input_per_page || 10
         }
         log('list_messages called with page increment ' + pageIncrement)
 
         showBusy('Fetching message list...')
         $http.get(thx_util.msg_url, { 
           params: { 
+        	  instance_id:         $scope.input_instance_id,
         	  msg_type:            $scope.input_msg_type,
         	  msg_type_regex:      $scope.input_msg_type_regex,
-        	  instance_id:         $scope.input_instance_id,
-        	  provider:            $scope.input_provider,
+        	  
+        	  source_dp:           $scope.input_source_dp,
         	  recipient:           $scope.input_recipient,
+        	  provider:            $scope.input_provider,
+        	  receiver:            $scope.input_receiver,
+        	  
+        	  created_st_date:     $scope.input_created_st_date,
+        	  created_end_date:    $scope.input_created_end_date,
+        	  modified_st_date:    $scope.input_modified_st_date,
+        	  modified_end_date:   $scope.input_modified_end_date,
         	  
         	  page:                $scope.page,
-              per_page:            $scope.per_page,
+              per_page:            $scope.input_per_page,
               include_total_count: $scope.input_include_total_count
           }
         })
         .success(function (messages) {
-        	$scope.messages = _.map(messages, function (msg) {
-            msg.created_ts = (new Date(msg.created_ts)).toLocaleString()
-            msg.modified_ts = (new Date(msg.modified_ts)).toLocaleString()
-            return msg
-          })
+          //console.log( JSON.stringify(messages) )
+          
+          if (messages.collection.item_count) {
+	          $scope.messages = _.map(messages.collection.items, function (msg) {
+	            msg.created_ts = (new Date(msg.created_ts)).toLocaleString()
+	            msg.modified_ts = (new Date(msg.modified_ts)).toLocaleString()
+	            return msg
+	          })
+	          console.log('found ' + $scope.messages.length + ' rows')
+	          console.log('Per page ', $scope.per_page, ' rows')
+	          console.log('page ', $scope.page)
+	          $scope.more_items = (messages.collection.item_count == messages.collection.per_page)
+          } else {
+              if ($scope.page > 0) $scope.page--
+              $scope.more_items = false
+              delete $scope.messages
+          }
+        
+          if (messages.collection.item_range_start) $scope.item_range_start = messages.collection.item_range_start 
+          if (messages.collection.item_range_end)   $scope.item_range_end   = messages.collection.item_range_end
+          
+
           hideBusy()
         })
         .error(function () {
@@ -1033,6 +1078,8 @@
 
     })
 
+    
+    
     thx_app.controller('thx_item_controller', function($scope, $http, thx_util) {
 
       $scope.page = 0
@@ -1107,6 +1154,10 @@
         delete $scope.input_item_xml_text
         delete $scope.input_item_msg_id_text
         delete $scope.input_item_unit_descriptor
+        delete $scope.input_created_st_date
+        delete $scope.input_created_end_date
+        delete $scope.input_modified_st_date
+        delete $scope.input_modified_end_date
         delete $scope.input_include_total_count
         delete $scope.total_item_count
         delete $scope.items
@@ -1146,6 +1197,10 @@
             , xml_text            : $scope.input_item_xml_text
             , msg_id_text         : $scope.input_item_msg_id_text
             , unit_type           : $scope.input_item_unit_descriptor
+      	    , created_st_date     : $scope.input_created_st_date
+    	    , created_end_date    : $scope.input_created_end_date
+    	    , modified_st_date    : $scope.input_modified_st_date
+    	    , modified_end_date   : $scope.input_modified_end_date
             , req_ts              : Date.now()
             , exclude_trade_item  : false
             , include_trade_item  : true
@@ -1314,8 +1369,8 @@
       $scope.more_items = false
       $scope.total_item_count = 0
       $scope.item_range_start = 0 
-      $scope.item_range_end   = 0   
-
+      $scope.item_range_end   = 0
+      
       $scope.reset_log_search = function () {
         delete $scope.input_log_regex
         delete $scope.input_log_level
@@ -1377,7 +1432,6 @@
         .success(function (fileLogs) {
           console.log( JSON.stringify(fileLogs) )
 
-          //$scope.page = 4
           if (fileLogs.collection.total_item_count) $scope.total_item_count = fileLogs.collection.total_item_count
           if (fileLogs.collection.item_range_start) $scope.item_range_start = fileLogs.collection.item_range_start 
           if (fileLogs.collection.item_range_end)   $scope.item_range_end   = fileLogs.collection.item_range_end   
@@ -1391,7 +1445,6 @@
 	          console.log('Per page ', $scope.per_page, ' rows')
 	          console.log('page ', $scope.page)
 	          $scope.more_items = ($scope.fileLogs.length == $scope.per_page)
-//	          $scope.more_items = (fileLogs.length == $scope.per_page)
           } else {
             if ($scope.page > 0) $scope.page--
             $scope.more_items = false
@@ -1411,7 +1464,27 @@
 
     })
 
-
+	thx_app.directive('datepicker', function () {
+	    return {
+	        require : 'ngModel',
+	        link : function (scope, element, attrs, ngModelCtrl) {
+	            $(function(){
+	                element.datepicker({
+	                    //showOn:"both",
+	                    //changeYear:true,
+	                    //changeMonth:true,
+	                    dateFormat:'m/d/yy',
+	                    //maxDate: new Date(),
+	                    //yearRange: '2014:2016',
+	                    onSelect:function (dateText, inst) {
+	                        ngModelCtrl.$setViewValue(dateText);
+	                        //scope.$apply();
+	                    }
+	                });
+	            });
+	        }
+	    }
+	});
 
     thx_app.directive('gdsnSubscriptions', function (thx_util) {
       log('directive gdsnSubscriptions')
@@ -1479,11 +1552,6 @@
     }
 
   })()
-
-$(function() {
-	$( "#log_datepicker_start" ).datepicker();
-	$( "#log_datepicker_end" ).datepicker();
-});
 
 function winPopup(myXml) {
 	var myWindow = window.open('','','width=800,height=800');

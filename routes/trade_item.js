@@ -2,9 +2,8 @@ module.exports = function (config) {
   
   var _              = require('underscore')
   var async          = require('async')
-  var cheerio        = require('cheerio')
-
   var log            = require('../lib/Logger')('rt_items', config)
+  var utils          = require('../lib/utils.js')(config)
   var item_utils     = require('../lib/item_utils.js')(config)
   var xml_digest     = require('../lib/xml_to_json.js')(config)
   var trade_item_db  = require('../lib/db/trade_item.js')(config)
@@ -62,7 +61,7 @@ module.exports = function (config) {
       return item
     })
 
-    var result = item_utils.get_collection_json(items, href)
+    var result = utils.get_collection_json(items, href)
 
     result.collection.page             = 0
     result.collection.per_page         = 100
@@ -172,7 +171,7 @@ module.exports = function (config) {
         return item
       })
       var href = config.base_url + req.url
-      var result = item_utils.get_collection_json(items, href)
+      var result = utils.get_collection_json(items, href)
 
       result.collection.page             = page
       result.collection.per_page         = per_page
@@ -296,7 +295,7 @@ module.exports = function (config) {
             return item
           })
 
-          var result = item_utils.get_collection_json(items, config.base_url + req.url)
+          var result = utils.get_collection_json(items, config.base_url + req.url)
 
           if (!res.finished) {
             if (req.query.download) {
@@ -325,7 +324,6 @@ module.exports = function (config) {
   api.post_trade_items = function (req, res, next) {
     log.debug('))))))))))))))))))))))) post_trade_items handler called')
 
-    /*
     var xml = ''
     req.setEncoding('utf8')
     req.on('data', function (chunk) {
@@ -337,10 +335,9 @@ module.exports = function (config) {
       log.info('Received msg xml of length ' + (xml && xml.length || '0'))
       msg_archive_db.saveMessage(xml, function (err, msg_info) {
         if (err) return next(err)
-        log.info('Message saved to archive with instance_id: ' + msg_info.instance_id)
+        log.info('Message info saved to archive: ' + JSON.stringify(msg_info))
       })
     })
-    */
 
     var tasks = []
     config.gdsn.items.getEachTradeItemFromStream(req, function (err, item) {
@@ -358,7 +355,6 @@ module.exports = function (config) {
       }
       else { // null item is passed when there are no more items in the stream
         log.debug('no more items from getEachTradeItemFromStream callback')
-
         async.parallel(tasks, function (err, results) {
           log.debug('parallel err: ' + JSON.stringify(err))
           log.debug('parallel results: ' + JSON.stringify(results))

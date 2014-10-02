@@ -3,6 +3,7 @@ module.exports = function (config) {
   var _            = require('underscore')
   var async        = require('async')
   var log          = require('../lib/Logger')('rt_subscr', config)
+  var utils        = require('../lib/utils.js')(config)
   var item_utils   = require('../lib/item_utils.js')(config)
   var trade_item_db = require('../lib/db/trade_item.js')(config)
 
@@ -38,7 +39,7 @@ module.exports = function (config) {
         var gtin = req.param('gtin')
         if (gtin) query.gtin = gtin
         else {
-          var result = item_utils.get_collection_json([], config.base_url + req.url)
+          var result = utils.get_collection_json([], config.base_url + req.url)
           result.collection.error = {
             title    : 'gtin parameter is required'
             , code   : '596'
@@ -99,7 +100,7 @@ module.exports = function (config) {
           items = item_utils.de_dupe_items(items)
 
           if (items.length == 0) {
-            var result = item_utils.get_collection_json([], config.base_url + req.url)
+            var result = utils.get_collection_json([], config.base_url + req.url)
             result.collection.error = {
               title    : 'Item not found'
               , code   : '598'
@@ -112,7 +113,7 @@ module.exports = function (config) {
           var allow_multiple = req_param['multi']
           if (items.length > 1 && !allow_multiple) {
             var href = config.base_url + req.url
-            var result = item_utils.get_collection_json([], href)
+            var result = utils.get_collection_json([], href)
             result.collection.error = {
               title    : 'Unique item not found'
               , code   : '597'
@@ -235,7 +236,7 @@ info('starting async for task count: ' + tasks.length)
                 res.json(items)
               }
               else {
-                var result = item_utils.get_collection_json(items, config.base_url + req.url)
+                var result = utils.get_collection_json(items, config.base_url + req.url)
                 if (!res.finished) res.jsonp(result)
               }
               log.db(req.url, req.user, (Date.now() - start))
