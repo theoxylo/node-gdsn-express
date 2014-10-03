@@ -28,7 +28,7 @@ module.exports = function (config) {
         log.info('Message info saved to archive: ' + JSON.stringify(msg_info))
 
         if (!res.finished) {
-          if (msg_info && msg_info.instance_id) {
+          if (msg_info) {
             res.json(msg_info)
           }
           else {
@@ -105,9 +105,9 @@ module.exports = function (config) {
     
     //var query = get_query(req)
     //log.debug('query= ' + JSON.stringify(query))
-    var instance_id = req.params.instance_id
-    log.debug('find_message called with instance_id ' + instance_id)
-    msg_archive_db.findMessage(instance_id, function (err, results) {
+    var msg_id = req.params.msg_id
+    log.debug('find_message called with msg_id ' + msg_id)
+    msg_archive_db.findMessage(msg_id, function (err, results) {
       if (err) return next(err)
       var item = results && results[0]
 
@@ -136,9 +136,9 @@ module.exports = function (config) {
       }
     }
 
-    var instance_id       = req.param('instance_id')
-    if (instance_id) {
-      query.instance_id = {$regex: instance_id}
+    var msg_id       = req.param('msg_id')
+    if (msg_id) {
+      query.msg_id = {$regex: msg_id}
     }
 
     var source_dp       = req.param('source_dp')
@@ -182,6 +182,60 @@ module.exports = function (config) {
     }
     
     return query
+  }
+
+  api.migrate_msg_archive = function (req, res, next) {
+    log.debug('migrate_msg_archive handler called')
+
+    var query = {
+      archived_ts : {$exists: false}
+      , msg_type: {$exists: false}
+      //, msg_type: {$exists:false}
+      //, modified_ts : {$lt: Date.now() - (24*60*60*3000)}
+      //, migrated_ts : {$exists:false}
+      //, $or: [{migrated_ts: {$lt: Date.now()}}, {migrated_ts:{$exists:false}}]
+    }
+
+    var msgsMigrated = []
+
+    function migrateMessageBatch() {
+      var include_xml = true
+      msg_archive_db.listMessages(query, 0, 1, function (err, messages) {
+        if (err) return next(err)
+        log.info('migrate_msg_archive listMessages return count: ' + messages.length)
+
+        if (!messages.length) {
+          res.json({msg: 'Migrated ' + msgsMigrated.length + ' messages: ' + msgsMigrated.join(', ')})
+          return res.end()
+        }
+
+        var tasks = []
+        messages.forEach(function (msg_info) {
+          log.debug('migrating msg ' + (msg_info.instance_id || msg_info.msg_id))
+
+          tasks.push(function (callback) {
+            msg_archive_db.saveMessage(msg_info.raw_xml, function (err, saved_msg_info) {
+              //if (err) return callback(err)
+              if (err) return callback(null, 'msg not save, no msg_id')
+              else callback(null, saved_msg_info.msg_id)
+            })
+          })
+        })
+        async.parallel(tasks, function (err, results) {
+          if (err) log.debug('parallel err: ' + JSON.stringify(err))
+          else log.debug('parallel results: ' + JSON.stringify(results))
+
+          if (err) return next(err)
+          results = _.flatten(results) // async.parallel returns an array of results arrays
+          msgsMigrated = msgsMigrated.concat(results)
+
+          // repeat after 0.1 seconds
+          setTimeout(migrateMessageBatch, 500)
+        })
+
+      }, include_xml)
+    }
+    migrateMessageBatch()
   }
 
   return api

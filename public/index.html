@@ -7,7 +7,8 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <link rel="stylesheet" href="css/styles_new.css" />
   <link rel="stylesheet" href="jqui/jquery-ui-1.10.4.custom.css" />
-
+  <link rel="stylesheet" href="http://angular-ui.github.com/ng-grid/css/ng-grid.css" />
+  
   <style type="text/css">
     .clickable { 
       cursor: pointer; 
@@ -23,7 +24,6 @@
       text-align: center;
     }
   </style>
-
   <style type="text/css">
     #progressbar .ui-progressbar-value {
       background-color:#ccf;
@@ -45,6 +45,7 @@
   <script src="jqui/jquery-ui-1.10.4.custom.js"></script>
   <script src="js/underscore-1.5.2.js"></script>
   <script src="js/angular-1.2.2.js"></script>
+  <script src="http://angular-ui.github.com/ng-grid/lib/ng-grid.js"></script>
   <script src="js/file/angular-file-upload.js"></script>
   <script src="js/bp_cs_client.js"></script>
 
@@ -141,7 +142,7 @@
       <div>Search Messages</div>
       <div>
         <p/>
-        <span>Instance_id  <input type="text" size="40" ng-model="input_instance_id"    placeholder="instance_id" ></input></span>
+        <span>Instance_id  <input type="text" size="40" ng-model="input_msg_id"    placeholder="msg_id" ></input></span>
         <span>Type
           <select ng-model="input_msg_type">
             <option value="catalogueItemPublication">CIP</option>
@@ -149,11 +150,11 @@
             <option value="catalogueItemNotification">CIN</option>
           </select>
         </span>
-        <span>Type         <input type="text" size="30" ng-model="input_msg_type_regex" placeholder="type"></input></span>
+        <span>Type     <input type="text" size="30" ng-model="input_msg_type_regex" placeholder="msg type regex"></input></span>
         <br />
         <span>SourceDP <input type="text" size="13" ng-model="input_source_dp"      placeholder="1100001011285"></input></span>
         <span>Recipient<input type="text" size="13" ng-model="input_recipient"      placeholder="0625199000015"></input></span>
-        <span>Sender   <input type="text" size="13" ng-model="input_provider"       placeholder="1100001011292"></input></span>
+        <span>Sender   <input type="text" size="13" ng-model="input_sender"         placeholder="1100001011292"></input></span>
         <span>Receiver <input type="text" size="13" ng-model="input_receiver"       placeholder="0625199000015"></input></span>
         <br />
         <!-- span>Include total count <input type="checkbox" ng-model="input_include_total_count"></input></span -->
@@ -166,42 +167,45 @@
         <button ng-click="reset_search()"    >Reset</button>
       
         <br/>
+        <!-- not used - because not able to autoformat column width
+        <div class="gridStyle" ng-grid="gridOptions"></div -->
         <div ng-if="messages" style="border-style:solid;border-width:1px;border-color:green">
+          Page Filter:<input ng-model="query" type="text" size="22" />
           <table>
             <tr>
-              <th>Instance Id</th>
-              <th>Type</th>
-              <th>SourceDP</th>
-              <th>Recipient</th>
-              <th>Sender</th>
-              <th>Receiver</th>
-              <th>Item Cnt</th>
-              <th>Created</th>
-              <th>Modified</th>
+              <th><a href="" ng-click="predicate = 'instance_id'; reverse=!reverse">Instance Id</a></th>
+              <th><a href="" ng-click="predicate = 'type';        reverse=!reverse">Type</a></th>
+              <th><a href="" ng-click="predicate = 'source_dp';   reverse=!reverse">SourceDP</a></th>
+              <th><a href="" ng-click="predicate = 'recipient';   reverse=!reverse">Recipient</a></th>
+              <th><a href="" ng-click="predicate = 'sender';      reverse=!reverse">Sender</a></th>
+              <th><a href="" ng-click="predicate = 'receiver';    reverse=!reverse">Receiver</a></th>
+              <th><a href="" ng-click="predicate = 'item_count';  reverse=!reverse">Item Cnt</a></th>
+              <th><a href="" ng-click="predicate = 'created_ts';  reverse=!reverse">Created</a></th>
+              <th><a href="" ng-click="predicate = 'modified_ts'; reverse=!reverse">Modified</a></th>
             </tr>
-            <tr class="clickable" ng-repeat="msg in messages">
-              <td ng-click="showMessageDetail(msg)">{{msg.instance_id}}</td>
-              <td ng-click="popup(msg)">{{msg.type}}</td>
+            <tr class="clickable" ng-repeat="msg in messages | orderBy:predicate:reverse  | filter:query">
+              <td ng-click="showMessageDetail(msg)">{{msg.msg_id}}</td>
+              <td ng-click="popup(msg)">{{msg.msg_type}}</td>
               <td>{{msg.source_dp}}</td>
               <td>{{msg.recipient}}</td>
               <td>{{msg.sender}}</td>
               <td>{{msg.receiver}}</td>
               <td>{{msg.item_count}}</td>
-              <td>{{msg.created_ts}}</td>
-              <td>{{msg.modified_ts}}</td>
+              <td>{{msg.created_ts2}}</td>
+              <td>{{msg.modified_ts2}}</td>
             </tr>
           </table>
         </div>
         
         <p class="centered">
-	        <button ng-if="page > 1" ng-click="list_messages(-page)">First</button>
-	        <button ng-if="page > 0" ng-click="list_messages(-1)" >Prev</button>
+          <button ng-if="page > 1" ng-click="list_messages(-page)">First</button>
+          <button ng-if="page > 0" ng-click="list_messages(-1)" >Prev</button>
             <span>Page:{{ page + 1 }}</span>
-	        <button ng-if="messages && messages.length == per_page" ng-click="list_messages(1)" >Next</button>
-            <div class="centered">Displaying items <span>{{ item_range_start }}</span> to {{ item_range_end }}</div>
-            <div class="centered" ng-if="!(more_items)">No more items to display</div>
-            <div class="centered" ng-if="total_item_count && input_include_total_count">Total number of matching items <span>{{ total_item_count }}</span></div>
-	    </p>
+          <button ng-if="messages && messages.length == per_page" ng-click="list_messages(1)" >Next</button>
+          <div class="centered">Displaying items <span>{{ item_range_start }}</span> to {{ item_range_end }}</div>
+          <div class="centered" ng-if="!(more_items)">No more items to display</div>
+          <div class="centered" ng-if="total_item_count && input_include_total_count">Total number of matching items <span>{{ total_item_count }}</span></div>
+        </p>
       </div>
 
       <div>View Message</div>
@@ -564,8 +568,8 @@
 <div id="debug_tab" ng-controller='thx_debug_controller'>
   <div id="debug_accordion">
   
-  	<div>Search Logging</div>
-  	<div>
+    <div>Search Logging</div>
+    <div>
         <p/>
         <span>Start Date     <input type="text" size="14" ng-model="input_startdate" placeholder="8/21/2014" datepicker></input></span> 
         <span>End Date     <input type="text" size="10" ng-model="input_enddate" placeholder="8/29/2014" datepicker></input></span>
@@ -616,19 +620,19 @@
             <div class="centered"></span>Displaying items <span>{{ item_range_start }}</span> to {{ item_range_end }}</div>
             <div class="centered" ng-if="!(more_items)">No more items to display</div>
             <div class="centered" ng-if="total_item_count && input_include_total_count">Total number of matching items <span>{{ total_item_count }}</span></div>
-	    </p>
-	</div>
+      </p>
+  </div>
 
-  	<div>Already existing...</div>
-  	<div>
-	  <div>Model values:</div>
-	  <div>Subscriber: {{subscriber}}</div>
-	  <div>Publisher: {{publisher}}</div>
-	  <div>View Message ID: {{view_msg_id}}</div>
-	  <div>Message post content: <textarea disabled>{{msg_content_post}}</textarea></div>
-	  <div id="snoop">Loading...</div>
-	</div>
-	
+    <div>Already existing...</div>
+    <div>
+    <div>Model values:</div>
+    <div>Subscriber: {{subscriber}}</div>
+    <div>Publisher: {{publisher}}</div>
+    <div>View Message ID: {{view_msg_id}}</div>
+    <div>Message post content: <textarea disabled>{{msg_content_post}}</textarea></div>
+    <div id="snoop">Loading...</div>
+  </div>
+  
   </div>   <!-- end debug_accordion -->
 </div>  <!-- end debug_tab -->
 
@@ -736,6 +740,7 @@
     }
 
     var thx_app = angular.module('thx_app', ['angularFileUpload'])
+    //var thx_app = angular.module('thx_app', ['angularFileUpload','ngGrid'])
 
     thx_app.factory('thx_util', function () {
       return {
@@ -957,16 +962,36 @@
       $scope.more_items = false
       $scope.total_item_count = 0
       $scope.item_range_start = 0 
-      $scope.item_range_end   = 0   
-
+      $scope.item_range_end   = 0
+/*
+      $scope.gridColumns = [
+	     {field:'instance_id',  displayName:'Instance Id'}, 
+	   	 {field:'type',         displayName:'Type'},
+	   	 {field:'source_dp',    displayName:'SourceDP'},
+	   	 {field:'recipient',    displayName:'Recipient'},
+	   	 {field:'sender',       displayName:'Sender'},
+	   	 {field:'receiver',     displayName:'Receiver'},
+	   	 {field:'item_count',   displayName:'Item Cnt'},
+	   	 {field:'created_ts',   displayName:'Created'},
+	   	 {field:'modified_ts',  displayName:'Modified'},
+	  ];
+		$scope.gridOptions = { 
+		  data: 'myData', 
+		  columnDefs: 'gridColumns',
+		  cellTemplate:'<div class="ngCellText" ng-class="col.colIndex()"><a ng-click="loadById(row)">{{row.getProperty(col.field)}}</a></div>' 
+		}
+		$scope.loadById = function(row) {  
+			   console.log(row.instance_id)
+		};
+*/
       $scope.reset_search = function () {
-          delete $scope.input_instance_id
+          delete $scope.input_msg_id
           delete $scope.input_msg_type
           delete $scope.input_msg_type_regex
           
           delete $scope.input_source_dp
           delete $scope.input_recipient
-          delete $scope.input_provider
+          delete $scope.input_sender
           delete $scope.input_receiver
 
           delete $scope.input_created_st_date
@@ -980,8 +1005,8 @@
           delete $scope.more_items
           delete $scope.item_range_start 
           delete $scope.item_range_end
-  	      $scope.page = 0
-  	      $scope.input_per_page = 10
+          $scope.page = 0
+          $scope.input_per_page = 10
       }
 
       $scope.list_messages = function (pageIncrement) {
@@ -998,38 +1023,38 @@
         showBusy('Fetching message list...')
         $http.get(thx_util.msg_url, { 
           params: { 
-        	  instance_id:         $scope.input_instance_id,
-        	  msg_type:            $scope.input_msg_type,
-        	  msg_type_regex:      $scope.input_msg_type_regex,
-        	  
-        	  source_dp:           $scope.input_source_dp,
-        	  recipient:           $scope.input_recipient,
-        	  provider:            $scope.input_provider,
-        	  receiver:            $scope.input_receiver,
-        	  
-        	  created_st_date:     $scope.input_created_st_date,
-        	  created_end_date:    $scope.input_created_end_date,
-        	  modified_st_date:    $scope.input_modified_st_date,
-        	  modified_end_date:   $scope.input_modified_end_date,
-        	  
-        	  page:                $scope.page,
-              per_page:            $scope.input_per_page,
-              include_total_count: $scope.input_include_total_count
+            msg_id:              $scope.input_msg_id,
+            msg_type:            $scope.input_msg_type,
+            msg_type_regex:      $scope.input_msg_type_regex,
+            
+            source_dp:           $scope.input_source_dp,
+            recipient:           $scope.input_recipient,
+            sender:              $scope.input_sender,
+            receiver:            $scope.input_receiver,
+            
+            created_st_date:     $scope.input_created_st_date,
+            created_end_date:    $scope.input_created_end_date,
+            modified_st_date:    $scope.input_modified_st_date,
+            modified_end_date:   $scope.input_modified_end_date,
+            
+            page:                $scope.page,
+            per_page:            $scope.input_per_page,
+            include_total_count: $scope.input_include_total_count
           }
         })
         .success(function (messages) {
           //console.log( JSON.stringify(messages) )
           
           if (messages.collection.item_count) {
-	          $scope.messages = _.map(messages.collection.items, function (msg) {
-	            msg.created_ts = (new Date(msg.created_ts)).toLocaleString()
-	            msg.modified_ts = (new Date(msg.modified_ts)).toLocaleString()
-	            return msg
-	          })
-	          console.log('found ' + $scope.messages.length + ' rows')
-	          console.log('Per page ', $scope.per_page, ' rows')
-	          console.log('page ', $scope.page)
-	          $scope.more_items = (messages.collection.item_count == messages.collection.per_page)
+            $scope.messages = _.map(messages.collection.items, function (msg) {
+              msg.created_ts2 = (new Date(msg.created_ts)).toLocaleString()
+              msg.modified_ts2 = (new Date(msg.modified_ts)).toLocaleString()
+              return msg
+            })
+            console.log('found ' + $scope.messages.length + ' rows')
+            console.log('Per page ', $scope.per_page, ' rows')
+            console.log('page ', $scope.page)
+            $scope.more_items = (messages.collection.item_count == messages.collection.per_page)
           } else {
               if ($scope.page > 0) $scope.page--
               $scope.more_items = false
@@ -1038,8 +1063,8 @@
         
           if (messages.collection.item_range_start) $scope.item_range_start = messages.collection.item_range_start 
           if (messages.collection.item_range_end)   $scope.item_range_end   = messages.collection.item_range_end
-          
 
+//          $scope.myData = messages.collection.items
           hideBusy()
         })
         .error(function () {
@@ -1197,10 +1222,10 @@
             , xml_text            : $scope.input_item_xml_text
             , msg_id_text         : $scope.input_item_msg_id_text
             , unit_type           : $scope.input_item_unit_descriptor
-      	    , created_st_date     : $scope.input_created_st_date
-    	    , created_end_date    : $scope.input_created_end_date
-    	    , modified_st_date    : $scope.input_modified_st_date
-    	    , modified_end_date   : $scope.input_modified_end_date
+            , created_st_date     : $scope.input_created_st_date
+          , created_end_date    : $scope.input_created_end_date
+          , modified_st_date    : $scope.input_modified_st_date
+          , modified_end_date   : $scope.input_modified_end_date
             , req_ts              : Date.now()
             , exclude_trade_item  : false
             , include_trade_item  : true
@@ -1264,7 +1289,7 @@
             console.log('Found ', items.length, ' items')
             console.log('Per page ', $scope.per_page, ' items')
 
-			// doesn't work for last row/page
+      // doesn't work for last row/page
             $scope.more_items = (items.length == $scope.per_page)
           }
           else {
@@ -1383,8 +1408,8 @@
         
         delete $scope.fileLogs
         delete $scope.total_item_count
-	    $scope.page = 0
-	    $scope.input_per_page = 10
+      $scope.page = 0
+      $scope.input_per_page = 10
         delete $scope.more_items
         delete $scope.total_item_count
         delete $scope.item_range_start 
@@ -1437,21 +1462,21 @@
           if (fileLogs.collection.item_range_end)   $scope.item_range_end   = fileLogs.collection.item_range_end   
 
           if (fileLogs.collection.item_count) {
-	          $scope.fileLogs = _.map(fileLogs.collection.items, function (fileLog) {
-	            fileLog.timestamp = (new Date(fileLog.timestamp)).toLocaleString()
-	            return fileLog
-	          })
-	          console.log('found ' + $scope.fileLogs.length + ' rows')
-	          console.log('Per page ', $scope.per_page, ' rows')
-	          console.log('page ', $scope.page)
-	          $scope.more_items = ($scope.fileLogs.length == $scope.per_page)
+            $scope.fileLogs = _.map(fileLogs.collection.items, function (fileLog) {
+              fileLog.timestamp = (new Date(fileLog.timestamp)).toLocaleString()
+              return fileLog
+            })
+            console.log('found ' + $scope.fileLogs.length + ' rows')
+            console.log('Per page ', $scope.per_page, ' rows')
+            console.log('page ', $scope.page)
+            $scope.more_items = ($scope.fileLogs.length == $scope.per_page)
           } else {
             if ($scope.page > 0) $scope.page--
             $scope.more_items = false
             delete $scope.fileLogs
             delete $scope.total_item_count
             //delete $scope.input_per_page
-			//delete $scope.page
+      //delete $scope.page
             //delete $scope.more_items
           }
           hideBusy()
@@ -1464,27 +1489,27 @@
 
     })
 
-	thx_app.directive('datepicker', function () {
-	    return {
-	        require : 'ngModel',
-	        link : function (scope, element, attrs, ngModelCtrl) {
-	            $(function(){
-	                element.datepicker({
-	                    //showOn:"both",
-	                    //changeYear:true,
-	                    //changeMonth:true,
-	                    dateFormat:'m/d/yy',
-	                    //maxDate: new Date(),
-	                    //yearRange: '2014:2016',
-	                    onSelect:function (dateText, inst) {
-	                        ngModelCtrl.$setViewValue(dateText);
-	                        //scope.$apply();
-	                    }
-	                });
-	            });
-	        }
-	    }
-	});
+  thx_app.directive('datepicker', function () {
+      return {
+          require : 'ngModel',
+          link : function (scope, element, attrs, ngModelCtrl) {
+              $(function(){
+                  element.datepicker({
+                      //showOn:"both",
+                      //changeYear:true,
+                      //changeMonth:true,
+                      dateFormat:'m/d/yy',
+                      //maxDate: new Date(),
+                      //yearRange: '2014:2016',
+                      onSelect:function (dateText, inst) {
+                          ngModelCtrl.$setViewValue(dateText);
+                          //scope.$apply();
+                      }
+                  });
+              });
+          }
+      }
+  });
 
     thx_app.directive('gdsnSubscriptions', function (thx_util) {
       log('directive gdsnSubscriptions')
@@ -1554,9 +1579,9 @@
   })()
 
 function winPopup(myXml) {
-	var myWindow = window.open('','','width=800,height=800');
-	myWindow.document.write("<textarea style='height:100%;width:100%' readonly>" +unescape(myXml)+ "</textarea>");
-	myWindow.focus();
+  var myWindow = window.open('','','width=800,height=800');
+  myWindow.document.write("<textarea style='height:100%;width:100%' readonly>" +unescape(myXml)+ "</textarea>");
+  myWindow.focus();
 }
 
 </script>

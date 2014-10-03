@@ -118,7 +118,8 @@ router.post('/msg',     routes_archive.post_archive)
 router.post('/items',   routes_item.post_trade_items)
 router.post('/parties', routes_parties.post_parties)
 
-router.get('/msg/:instance_id',                             routes_archive.find_archive)
+router.get('/msg/migrate',                                  routes_archive.migrate_msg_archive)
+router.get('/msg/:msg_id',                                  routes_archive.find_archive)
 router.get('/msg',                                          routes_archive.list_archive)
 
 router.get('/subscribed/:gtin/:provider/:tm/:tm_sub',       routes_subscr.get_subscribed_item)
@@ -141,7 +142,6 @@ router.get('/party/:gln',                                   routes_parties.find_
 router.get('/parties/:gln',                                 routes_parties.find_parties)
 router.get('/parties',                                      routes_parties.list_parties)
 
-router.get('/info',                                         routes_item.post_get_item_info)
 router.get('/logs',                                         routes_logs.list_logs)
 
 router.get('/login',            require(config.routes_dir + '/login').getRequestHandler(config))
