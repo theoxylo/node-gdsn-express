@@ -233,7 +233,7 @@ info('starting async for task count: ' + tasks.length)
 
               if (req_param['download']) {
                 res.set('Content-Disposition', 'attachment; filename="items_' + Date.now() + '.json"')
-                res.json(items)
+                res.jsonp(items)
               }
               else {
                 var result = utils.get_collection_json(items, config.base_url + req.url)

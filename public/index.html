@@ -142,27 +142,38 @@
       <div>Search Messages</div>
       <div>
         <p/>
-        <span>Instance_id  <input type="text" size="40" ng-model="input_msg_id"    placeholder="msg_id" ></input></span>
+        <span>Msg Id         <input type="text" size="40" ng-model="input_msg_id"         placeholder="RESP_52003" ></input></span>
+        <span>Request Msg Id <input type="text" size="40" ng-model="input_req_msg_id" placeholder="RESP_52003" ></input></span>
         <span>Type
           <select ng-model="input_msg_type">
-            <option value="catalogueItemPublication">CIP</option>
-            <option value="catalogueItemSubscription">CIS</option>
+            <option value=""></option>
+            <option value="basicPartyRegistration">BPR</option>
+            <option value="catalogueItemConfirmation">CIC</option>
             <option value="catalogueItemNotification">CIN</option>
+            <option value="catalogueItemPublication">CIP</option>
+            <option value="catalogueItemRegistrationResponse">CIRR</option>
+            <option value="catalogueItemSubscription">CIS</option>
+            <option value="partyRegistrationResponse">PRR</option>
+            <option value="registryCatalogueItem">RCI</option>
+            <option value="requestForCatalogueItemNotification">RFCIN</option>
+            <option value="GDSNResponse">GDSNResponse</option>
           </select>
         </span>
-        <span>Type     <input type="text" size="30" ng-model="input_msg_type_regex" placeholder="msg type regex"></input></span>
+        <span>Type     <input type="text" size="30" ng-model="input_msg_type_regex" placeholder="msg type"></input></span>
         <br />
-        <span>SourceDP <input type="text" size="13" ng-model="input_source_dp"      placeholder="1100001011285"></input></span>
-        <span>Recipient<input type="text" size="13" ng-model="input_recipient"      placeholder="0625199000015"></input></span>
-        <span>Sender   <input type="text" size="13" ng-model="input_sender"         placeholder="1100001011292"></input></span>
-        <span>Receiver <input type="text" size="13" ng-model="input_receiver"       placeholder="0625199000015"></input></span>
+        <!-- span>SourceDP <input type="text" size="13" ng-model="input_source_dp"      placeholder="1100001011285"></input></span>
+        <span>Recipient<input type="text" size="13" ng-model="input_recipient"      placeholder="0625199000015"></input></span -->
+        <span>Sender        <input type="text" size="13" ng-model="input_sender"         placeholder="1100001011292"></input></span>
+        <span>Receiver      <input type="text" size="13" ng-model="input_receiver"       placeholder="0625199000015"></input></span>
+        <span>XML           <input type="text" ng-model="input_xml_regex" size="30" placeholder="foodAndBev"></input></span>
+        <span>Exception     <input type="text" ng-model="input_exc_regex" size="30" placeholder="Error"></input></span>
         <br />
         <!-- span>Include total count <input type="checkbox" ng-model="input_include_total_count"></input></span -->
         <span>Created Start Date <input type="text" size="10" ng-model="input_created_st_date"        placeholder="8/21/2014" datepicker></input></span>
         <span>Created End Date   <input type="text" size="10" ng-model="input_created_end_date"       placeholder="8/24/2014" datepicker></input></span>
         <span>Modified Start Date<input type="text" size="10" ng-model="input_modified_st_date"        placeholder="8/26/2014" datepicker></input></span>
         <span>Modified End Date  <input type="text" size="10" ng-model="input_modified_end_date"       placeholder="8/28/2014" datepicker></input></span>
-        <span>Rows/page      <input ng-model="input_per_page" placeholder="10" size="3"></input></span>
+        <span>Rows/page      <input ng-model="input_per_page" placeholder="100" size="3"></input></span>
         <button ng-click="list_messages()"   >Search</button>
         <button ng-click="reset_search()"    >Reset</button>
       
@@ -173,24 +184,32 @@
           Page Filter:<input ng-model="query" type="text" size="22" />
           <table>
             <tr>
-              <th><a href="" ng-click="predicate = 'instance_id'; reverse=!reverse">Instance Id</a></th>
-              <th><a href="" ng-click="predicate = 'type';        reverse=!reverse">Type</a></th>
-              <th><a href="" ng-click="predicate = 'source_dp';   reverse=!reverse">SourceDP</a></th>
-              <th><a href="" ng-click="predicate = 'recipient';   reverse=!reverse">Recipient</a></th>
-              <th><a href="" ng-click="predicate = 'sender';      reverse=!reverse">Sender</a></th>
-              <th><a href="" ng-click="predicate = 'receiver';    reverse=!reverse">Receiver</a></th>
-              <th><a href="" ng-click="predicate = 'item_count';  reverse=!reverse">Item Cnt</a></th>
-              <th><a href="" ng-click="predicate = 'created_ts';  reverse=!reverse">Created</a></th>
-              <th><a href="" ng-click="predicate = 'modified_ts'; reverse=!reverse">Modified</a></th>
+              <th><a href="" ng-click="sortField = 'msg_id';         reverse = !reverse">Msg Id</a></th>
+              <th><a href="" ng-click="sortField = 'request_msg_id'; reverse = !reverse">Req Msg Id</a></th>
+              <th><a href="" ng-click="sortField = 'msg_type';       reverse = !reverse">Type</a></th>
+              <!-- th><a href="" ng-click="sortField = 'source_dp';   reverse = !reverse">SourceDP</a></th -->
+              <!-- th><a href="" ng-click="sortField = 'recipient';   reverse = !reverse">Recipient</a></th -->
+              <th><a href="" ng-click="sortField = 'sender';         reverse = !reverse">Sender</a></th>
+              <th><a href="" ng-click="sortField = 'receiver';       reverse = !reverse">Receiver</a></th>
+              <th><a href="" ng-click="sortField = 'item_count';     reverse = !reverse">Item Cnt</a></th>
+              <th>XML</th>
+              <th>Raw XML</th>
+              <th>Exc</th>
+              <th><a href="" ng-click="sortField = 'created_ts';     reverse = !reverse">Created</a></th>
+              <th><a href="" ng-click="sortField = 'modified_ts';    reverse = !reverse">Modified</a></th>
             </tr>
-            <tr class="clickable" ng-repeat="msg in messages | orderBy:predicate:reverse  | filter:query">
+            <tr class="clickable" ng-repeat="msg in messages | filter:query | orderBy:sortField:reverse">
               <td ng-click="showMessageDetail(msg)">{{msg.msg_id}}</td>
-              <td ng-click="popup(msg)">{{msg.msg_type}}</td>
-              <td>{{msg.source_dp}}</td>
-              <td>{{msg.recipient}}</td>
+              <td>{{msg.request_msg_id}}</td>
+              <td>{{msg.msg_type}}</td>
+              <!-- td>{{msg.source_dp}}</td -->
+              <!-- td>{{msg.recipient}}</td -->
               <td>{{msg.sender}}</td>
               <td>{{msg.receiver}}</td>
               <td>{{msg.item_count}}</td>
+              <td ng-click="popupField(msg, 'xml')">xml</td>
+              <td ng-click="popupField(msg, 'raw_xml')">raw_xml</td>
+              <td ng-click="popupField(msg, 'exception')"><span ng-if="msg.exception">exc</span></td>
               <td>{{msg.created_ts2}}</td>
               <td>{{msg.modified_ts2}}</td>
             </tr>
@@ -413,7 +432,8 @@
                     <p>Unit type: {{selectedItem.unit_type}}</p>
                     <p>Source DP: {{selectedItem.source_dp}}</p>
                     <p>XML: <a ng-href="{{selectedItem.href}}?" target="_blank">View</a> <a ng-href="{{selectedItem.href}}?download=true">Download</a></p>
-                    <p>JSON: <a ng-href="{{selectedItem.href}}?json=true&include_trade_item=true" target="_blank">View</a> <a ng-href="{{selectedItem.href}}?json=true&include_trade_item=true&download=true">Download</a></p>
+                    <p>JSON: <a ng-href="{{selectedItem.href}}?json=true" target="_blank">View</a> <a ng-href="{{selectedItem.href}}?json=true&download=true">Download</a></p>
+                    <p>History: <a ng-href="{{selectedItem.history_href}}?json=true" target="_blank">View</a> <a ng-href="{{selectedItem.history_href}}?json=true&download=true">Download</a></p>
                     <p><a class="clickable" ng-click="prettyPrintItem(selectedItem)">PrettyPrint Item</a></p>
                     <p><a class="clickable" ng-click="showItemHierarchy(selectedItem)">Hierarchy</a></p>
                   </th>
@@ -433,7 +453,7 @@
 
       </div>
 
-      <div>Catalog Item Details</div>
+      <div>Catalog Item History</div>
       <div>
         GTIN:
         <br/><input type="text" ng-model="input_item_gtin"/>
@@ -958,7 +978,7 @@
     
     thx_app.controller('thx_msg_controller', function($scope, $http, thx_util) {
       $scope.page = 0
-      $scope.input_per_page = 10
+      $scope.input_per_page = 100
       $scope.more_items = false
       $scope.total_item_count = 0
       $scope.item_range_start = 0 
@@ -985,7 +1005,8 @@
 		};
 */
       $scope.reset_search = function () {
-          delete $scope.input_msg_id
+    	  delete $scope.input_msg_id
+    	  delete $scope.input_req_msg_id
           delete $scope.input_msg_type
           delete $scope.input_msg_type_regex
           
@@ -998,6 +1019,8 @@
           delete $scope.input_created_end_date
           delete $scope.input_modified_st_date
           delete $scope.input_modified_end_date
+          delete $scope.input_xml_regex
+          delete $scope.input_exc_regex
           delete $scope.input_include_total_count
           
           delete $scope.messages
@@ -1006,7 +1029,7 @@
           delete $scope.item_range_start 
           delete $scope.item_range_end
           $scope.page = 0
-          $scope.input_per_page = 10
+          $scope.input_per_page = 100
       }
 
       $scope.list_messages = function (pageIncrement) {
@@ -1016,7 +1039,7 @@
         else {
           $scope.page = 0
           $scope.total_item_count = 0
-          $scope.per_page = $scope.input_per_page || 10
+          $scope.per_page = $scope.input_per_page || 100
         }
         log('list_messages called with page increment ' + pageIncrement)
 
@@ -1024,6 +1047,7 @@
         $http.get(thx_util.msg_url, { 
           params: { 
             msg_id:              $scope.input_msg_id,
+            req_msg_id:          $scope.input_req_msg_id,
             msg_type:            $scope.input_msg_type,
             msg_type_regex:      $scope.input_msg_type_regex,
             
@@ -1036,6 +1060,8 @@
             created_end_date:    $scope.input_created_end_date,
             modified_st_date:    $scope.input_modified_st_date,
             modified_end_date:   $scope.input_modified_end_date,
+            xml_regex:           $scope.input_xml_regex,
+            exc_regex:           $scope.input_exc_regex,
             
             page:                $scope.page,
             per_page:            $scope.input_per_page,
@@ -1078,6 +1104,35 @@
         $result_dialog.html(prettyPrint(msg)).dialog('open')
       }
 
+/*
+      $scope.showDocMessageDetail = function (msg) {
+        log('showDocMessageDetail called for msg ' + msg._id)
+
+        $http.get(thx_util.msg_url, { 
+          params: { 
+            _id:              msg._id,
+          }
+        })
+        .success(function (messages) {
+          
+          if (messages.collection.item_count) {
+            $scope.messages = _.map(messages.collection.items, function (msg) {
+              msg.created_ts2 = (new Date(msg.created_ts)).toLocaleString()
+              msg.modified_ts2 = (new Date(msg.modified_ts)).toLocaleString()
+              return msg
+            })
+            $scope.more_items = (messages.collection.item_count == messages.collection.per_page)
+          } else {
+              alert("None found")
+          }
+        
+        })
+        .error(function () {
+          $error_dialog.html('An error occurred -- please try again').dialog('open')
+        })
+	  }
+*/
+
       $scope.list_msg = function () {
         $('#message_list').load(thx_util.msg_url)
       }
@@ -1096,11 +1151,27 @@
         })
       }
       
-      $scope.popup = function (msg) {
-          log('popup called for msg ' + msg._id)
-          winPopup(msg.xml)
+      $scope.popup = function (msgText) {
+          winPopup(msgText)
       }
 
+      $scope.popupField = function (msg, field) {
+    	  console.log( "id=" +JSON.stringify(msg.msg_id) )
+
+    	  var myData;
+          $http.get(thx_util.msg_url + '/' + msg.msg_id, { 
+              params: { 
+                field:           field
+              }
+          }).success(function (data) {
+        	  console.log( JSON.stringify(data) );
+              winPopup(data)
+          })
+          .error(function () {
+              $error_dialog.html('An error occurred -- please try again').dialog('open')
+          })
+      }
+      
     })
 
     
@@ -1132,7 +1203,6 @@
         var params = {
             req_id   : 'hier_' + Date.now() + '_' + item.gtin
           , children : true
-          , include_trade_item: true
         }
 
         console.log('item.href: ', item.href)
@@ -1227,8 +1297,6 @@
           , modified_st_date    : $scope.input_modified_st_date
           , modified_end_date   : $scope.input_modified_end_date
             , req_ts              : Date.now()
-            , exclude_trade_item  : false
-            , include_trade_item  : true
           }
           $scope.previousSearches = $scope.previousSearches || []
           $scope.previousSearches.unshift($scope.search_params)
@@ -1274,9 +1342,12 @@
 
               if (item.has_nutrient_info) {
                 item.preparationStates = item.tradeItem.extension.foodAndBeverageTradeItemExtension.foodAndBeverageInformation.map(function (fbi) {
-                  return fbi.foodAndBeverageNutrientInformation.map(function (elem) {
-                    return (elem.preparationState && elem.preparationState.length) ? elem.preparationState : false
-                  })
+                  if (fbi.foodAndBeverageNutrientInformation) {
+                    fbi.foodAndBeverageNutrientInformation.map(function (elem) {
+                      return (elem.preparationState && elem.preparationState.length) ? elem.preparationState : ''
+                    })
+                  }
+                  else return []
                 })
                 item.preparationStates = _.compact(_.flatten(item.preparationStates))
               }
@@ -1321,7 +1392,7 @@
       }
 
       $scope.view_catalog_item = function () {
-        $('#item_content_view').load(thx_util.item_url + '/' + $scope.input_item_gtin)
+        $('#item_content_view').load(thx_util.item_url + '/' + $scope.input_item_gtin + '?')
       }
 
     })
@@ -1579,7 +1650,7 @@
   })()
 
 function winPopup(myXml) {
-  var myWindow = window.open('','','width=800,height=800');
+  var myWindow = this.window.open('','','width=800,height=800');
   myWindow.document.write("<textarea style='height:100%;width:100%' readonly>" +unescape(myXml)+ "</textarea>");
   myWindow.focus();
 }

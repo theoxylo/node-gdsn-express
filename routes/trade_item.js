@@ -50,14 +50,14 @@ module.exports = function (config) {
     item.images = urls
   }
 
-  function serveCollectionRes(res, items, include_trade_item, href) {
+  function serveCollection(req, res, items, href) {
 
     var item_count = 1
     items = items.map(function (item) {
-      item.href = item_utils.get_item_href(item)
+      item.href         = item_utils.get_item_href(item, '/items')
+      item.history_href = item_utils.get_item_href(item, '/items/history')
       item.item_count_num = item_count++
       populateItemImageUrls(item)
-      if (!include_trade_item) delete item.tradeItem
       return item
     })
 
@@ -69,7 +69,12 @@ module.exports = function (config) {
     result.collection.item_range_end   = items.length
     result.collection.total_item_count = items.length
 
-    if (!res.finished) res.jsonp(result)
+    if (res.finished) return
+
+    if (req.query.download) {
+      res.set('Content-Disposition', 'attachment; filename="items_' + Date.now() + '.json"')
+    }
+    res.jsonp(result)
   }
 
   // retrieve single trade item, and conditionally its children
@@ -86,9 +91,6 @@ module.exports = function (config) {
 
     var children = (req.param('children') == 'true')
     info('include children ' + children)
-
-    var include_trade_item = (req.param('include_trade_item') == 'true')
-    info('include_trade_item  ' + include_trade_item)
 
     var db_query = item_utils.get_query(req)
     info('db query: ' + JSON.stringify(db_query))
@@ -112,23 +114,20 @@ module.exports = function (config) {
           if (err) return next(err)
           items.unshift(item)
           info('found ' + items.length + ' total items for gtin ' + item.gtin + ' (with children) in ' + (Date.now() - start) + 'ms')
-          serveCollectionRes(res, items, include_trade_item, href)
+          serveCollection(req, res, items, href)
         })
       }
       else {
         info('skipping children for ' + items.length + ' item search results')
-        serveCollectionRes(res, items, include_trade_item, href)
+        serveCollection(req, res, items, href)
       }
       log.db(req.url, req.user, (Date.now() - start) )
-    }) // end config.database.getTradeItem
+    }) // end trade_item_db.getTradeItem
   }
 
   // retrieve list view of items including total count but NOT including xml
   api.list_trade_items = function (req, res, next) {
     log.debug('list_items')
-
-    var exclude_trade_item = req.param('exclude_trade_item') == 'true'
-    log.debug('exclude_trade_item: ' + exclude_trade_item)
 
     var include_total_count = req.param('include_total_count') == 'true'
     log.debug('include_total_count: ' + include_total_count)
@@ -164,10 +163,10 @@ module.exports = function (config) {
       log.info('list_trade_items getTradeItems (with total item count ' + total_item_count + ') returned ' + items.length + ' items in ' + (Date.now() - start) + 'ms')
       var item_count = (page * per_page) + 1
       items = items.map(function (item) {
-        item.href = item_utils.get_item_href(item)
+        item.href         = item_utils.get_item_href(item, '/items')
+        item.history_href = item_utils.get_item_href(item, '/items/history')
         item.item_count_num = item_count++
         populateItemImageUrls(item)
-        if (exclude_trade_item) delete item.tradeItem
         return item
       })
       var href = config.base_url + req.url
@@ -179,6 +178,7 @@ module.exports = function (config) {
       result.collection.item_range_end   = (page * per_page) + items.length
       if (include_total_count) result.collection.total_item_count = total_item_count
 
+      /*
       result.collection.links = [
           {rel: 'next', href: href + '[?|&]page=+1'}
         , {rel: 'prev', href: href + '[?|&]page=-1'}
@@ -198,7 +198,8 @@ module.exports = function (config) {
           {prompt: 'Item GTIN (required)', name: 'gtin', value: '/[0-9]{14}/'},
         ]
       }
-      if (!res.finished) res.json(result)
+      */
+      if (!res.finished) res.jsonp(result)
       log.db(req.url, req.user, (Date.now() - start) )
     })
   }
@@ -276,12 +277,14 @@ module.exports = function (config) {
 
             item.req_user    = req.user
             item.client_name = client_config.client_name
-            item.href        = item_utils.get_item_href(item)
+            item.href         = item_utils.get_item_href(item, '/items')
+            item.history_href = item_utils.get_item_href(item, '/items/history')
 
             //var itemDigest = xml_digest.digest(item.xml)
             //item.tradeItem = itemDigest.tradeItem
             delete item.xml
 
+            /*
             item.data = [
               {
                 prompt: 'Item GTIN (required)'
@@ -292,6 +295,8 @@ module.exports = function (config) {
             item.links = [
               { rel: 'self', href: item.href }
             ]
+            */
+
             return item
           })
 
@@ -300,14 +305,14 @@ module.exports = function (config) {
           if (!res.finished) {
             if (req.query.download) {
               res.set('Content-Disposition', 'attachment; filename="items_' + Date.now() + '.json"')
-              res.json(result)
+              res.jsonp(result)
             }
             else if (req.query.pp) {
               res.setHeader('Content-Type', 'text/html')
               res.render('item_pretty_print', {result: result, test: 'hello'})
             }
             else {
-              res.json(result)
+              res.jsonp(result)
             }
           }
         },
@@ -323,13 +328,12 @@ module.exports = function (config) {
 
   api.post_trade_items = function (req, res, next) {
     log.debug('))))))))))))))))))))))) post_trade_items handler called')
-
     var xml = ''
     req.setEncoding('utf8')
     req.on('data', function (chunk) {
       log.debug('post_trade_items chunk.length: ' + (chunk && chunk.length) || 0)
       xml += chunk
-      if (xml.length > 10 * 1000 * 1000) return res.end('msg xml too big - larger than 10 MB')
+      if (xml.length > 5 * 1000 * 1000) return res.end('msg xml too big - larger than 5 MB')
     })
     req.on('end', function () {
       log.info('Received msg xml of length ' + (xml && xml.length || '0'))
@@ -339,19 +343,30 @@ module.exports = function (config) {
       })
     })
 
+    var unique_items = []
     var tasks = []
+
     config.gdsn.items.getEachTradeItemFromStream(req, function (err, item) {
       if (err) return next(err)
 
       if (item) {
         log.debug('received item from getEachTradeItemFromStream callback with gtin ' + item.gtin)
 
-        var itemDigest = xml_digest.digest(item.xml)
-        item.tradeItem = itemDigest.tradeItem
+        item.slug = item_utils.get_item_slug(item)
 
-        tasks.push(function (callback) {
-          trade_item_db.saveTradeItem(item, callback)
-        })
+        if (unique_items.indexOf(item.slug) == -1) {
+          unique_items.push(item.slug)
+          var itemDigest = xml_digest.digest(item.xml)
+          item.tradeItem = itemDigest.tradeItem
+
+          tasks.push(function (callback) {
+            trade_item_db.saveTradeItem(item, callback)
+          })
+        }
+        else {
+          // skip duplicate item
+          log.warn('skipping apparent item duplicate: ' + item.slug)
+        }
       }
       else { // null item is passed when there are no more items in the stream
         log.debug('no more items from getEachTradeItemFromStream callback')
@@ -364,13 +379,13 @@ module.exports = function (config) {
 
           if (!res.finished) {
             if (results && results.length) {
-              res.json({
+              res.jsonp({
                 msg: 'Created ' + results.length + ' items with GTINs: ' + results.join(', ')
                 , gtins: results
               }) 
             }
             else {
-              res.json({msg: 'No items were created'})
+              res.jsonp({msg: 'No items were created'})
             }
           }
         }) // end async.parallel
@@ -393,7 +408,7 @@ module.exports = function (config) {
       log.info('Received msg xml of length ' + (xml && xml.length || '0'))
       config.gdsn.msg_string_to_msg_info(xml, function (err, msg_info) {
         if (err) return next(err)
-        if (!res.finished) res.json(msg_info)
+        if (!res.finished) res.jsonp(msg_info)
       })
     })
   }
@@ -415,7 +430,7 @@ module.exports = function (config) {
 
         if (!items.length) {
           clearInterval(intervalId)
-          res.json({msg: 'Migrated ' + gtinsMigrated.length + ' items, GTINs: ' + gtinsMigrated.join(', ')})
+          res.jsonp({msg: 'Migrated ' + gtinsMigrated.length + ' items, GTINs: ' + gtinsMigrated.join(', ')})
           return res.end()
         }
 
@@ -440,6 +455,42 @@ module.exports = function (config) {
 
       })
     }, 100)
+  }
+
+  // retrieve single trade item with historic versions
+  api.get_trade_item_history = function (req, res, next) {
+    log.debug('get_trade_item_history')
+
+    var req_id = req.param('req_id')
+    log.debug('using req_id ' + req_id)
+    if (!req_id) req_id = item_utils.get_auto_req_id()
+
+    var info = item_utils.get_info_logger(log, req_id)
+
+    info('req path: ' + req.url)
+    info('req query params: ' + JSON.stringify(req.query))
+
+    var db_query = item_utils.get_query(req)
+    if (db_query.archived_ts) delete db_query.archived_ts // include archived items versions
+    info('db query: ' + JSON.stringify(db_query))
+
+    var start = Date.now()
+    trade_item_db.getTradeItem(db_query, function (err, items) {
+      if (err) return next(err)
+
+      info('found ' + items.length + ' total historical items for ' + req.path + ' in ' + (Date.now() - start) + 'ms')
+
+      items.forEach(function (item) {
+        if (item) item.fetch_type = item.archived_ts ? 'history' : 'match'
+      })
+
+      var start2 = Date.now(); // new start time
+      var href = config.base_url + req.url
+
+      serveCollection(req, res, items, href)
+
+      log.db(req.url, req.user, (Date.now() - start2) )
+    }) // end trade_item_db.getTradeItem
   }
 
   return api

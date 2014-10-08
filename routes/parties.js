@@ -12,7 +12,7 @@ module.exports = function (config) {
     var start = Date.now()
     party_db.findParty(gln, function (err, results) {
       if (err) return next(err)
-      res.json(results);
+      res.jsonp(results);
       log.db(req.url, req.user, (Date.now() - start) )
     })
   }
@@ -25,7 +25,7 @@ module.exports = function (config) {
     var start = Date.now()
     party_db.listParties(page, config.per_page_count, function (err, results) {
       if (err) return next(err)
-      res.json(results);
+      res.jsonp(results);
       log.db(req.url, req.user, (Date.now() - start) )
     })
   }

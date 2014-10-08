@@ -29,10 +29,10 @@ module.exports = function (config) {
 
         if (!res.finished) {
           if (msg_info) {
-            res.json(msg_info)
+            res.jsonp(msg_info)
           }
           else {
-            res.json({msg: 'Message not saved'})
+            res.jsonp({msg: 'Message not saved'})
           }
         }
       })
@@ -110,35 +110,44 @@ module.exports = function (config) {
     msg_archive_db.findMessage(msg_id, function (err, results) {
       if (err) return next(err)
       var item = results && results[0]
-
       if (!item) return next(new Error('item not found'))
 
-      res.set('Content-Type', 'application/xml;charset=utf-8')
-      if (req.query.download) {
-        res.set('Content-Disposition', 'attachment; filename="item_' + item.gtin + '.xml"')
+      var field = req.param('field')
+      if (field) {
+          res.send(item[field])
+      } else {
+          res.set('Content-Type', 'application/xml;charset=utf-8')
+          if (req.query.download) {
+            res.set('Content-Disposition', 'attachment; filename="item_' + item.gtin + '.xml"')
+          }
+          res.send(item.xml)
       }
-      res.send(item.xml)
     })
   }
 
   function get_query(req) {
     var query = {}
+    
+    var msg_id       = req.param('msg_id')
+    if (msg_id) {
+      query.msg_id = {$regex: msg_id}
+    }
+
+    var req_msg_id       = req.param('req_msg_id')
+    if (req_msg_id) {
+      query.request_msg_id = {$regex: req_msg_id}
+    }
 
     // drop down (exact match) is 1st choice
     var msg_type     = req.param('msg_type')
     if (msg_type) {
-      query.type = msg_type
+      query.msg_type = msg_type
     } else {
       // free text is 2nd choice
       var msg_type_regex     = req.param('msg_type_regex')
       if (msg_type_regex) {
-        query.type = {$regex: msg_type_regex}
+        query.msg_type = {$regex: msg_type_regex}
       }
-    }
-
-    var msg_id       = req.param('msg_id')
-    if (msg_id) {
-      query.msg_id = {$regex: msg_id}
     }
 
     var source_dp       = req.param('source_dp')
@@ -181,6 +190,15 @@ module.exports = function (config) {
         }
     }
     
+    var xml_regex       = req.param('xml_regex')
+    if (xml_regex) {
+      query.xml = {$regex: xml_regex}
+    }
+    var exc_regex       = req.param('exc_regex')
+    if (exc_regex) {
+      query.exception = {$regex: exc_regex}
+    }
+    
     return query
   }
 
@@ -205,7 +223,7 @@ module.exports = function (config) {
         log.info('migrate_msg_archive listMessages return count: ' + messages.length)
 
         if (!messages.length) {
-          res.json({msg: 'Migrated ' + msgsMigrated.length + ' messages: ' + msgsMigrated.join(', ')})
+          res.jsonp({msg: 'Migrated ' + msgsMigrated.length + ' messages: ' + msgsMigrated.join(', ')})
           return res.end()
         }
 

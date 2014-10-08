@@ -39,7 +39,7 @@ log.debug('config: ' + JSON.stringify(config))
 var Gdsn = require('gdsn')
 config.gdsn = new Gdsn(config)
 
-require('./lib/db/Database')(config) // adds config.database
+require('./lib/db/Database').init(config) // adds config.database
 
 //var routes          = require(config.routes_dir + '/index')
 //var routes_cin      = require(config.routes_dir + '/cin_form')(config)
@@ -128,6 +128,8 @@ router.get('/subscribed/:gtin/:provider',                   routes_subscr.get_su
 router.get('/subscribed/:gtin',                             routes_subscr.get_subscribed_item)
 router.get('/subscribed/',                                  routes_subscr.get_subscribed_item)
 router.get('/subscribed', function (req, res, next) { res.render('subscribed_api_docs_10') })
+
+router.get('/items/history/:recipient/:gtin/:provider/:tm/:tm_sub', routes_item.get_trade_item_history)
 
 router.get('/items-list',                                   routes_item.list_trade_items)
 router.get('/items/migrate',                                routes_item.migrate_trade_items)

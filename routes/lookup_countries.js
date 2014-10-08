@@ -35,7 +35,7 @@ exports.getRequestHandler = function (config) {
     }
     log.info(result)
 
-    res.json(result)
+    res.jsonp(result)
     res.end
   }
 }
