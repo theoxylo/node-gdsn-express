@@ -1,7 +1,9 @@
 var config = {
     shut_down_pw          : ''                         // for remote server shutdown
-  , http_port             : 8080                       // listen port for *Public* UI and service API
-  //, https_port            : 8443                       // listen port for *Private* UI and service API
+  , http_port             : 8080                       // used internally for dashboard and load balanced traffic
+  , http_host             : 'localhost'                // hostname used for http redirects/auth
+  //, https_port            : 8443                       // potentially used for public access to dashboard without vpn, TBD
+  //, https_host            : 'localhost'                // hostname used for https redirects/auth
   , homeDataPoolGln       : '0000000000000'            // required for data pool workflow
   , debug                 : true                       // additional logging
   , db_url                : 'catalog_services'         // for localhost MongoDb, used by lib/Database.js

@@ -205,13 +205,9 @@ module.exports = function (config) {
   }
 
   api.find_trade_items = function (req, res, next) {
-    log.debug('find_trade_items req.path: ' + req.path)
+    log.info('find_trade_items req.path: ' + req.path)
+    log.info('find_trade_items req.query: ' + JSON.stringify(req.query))
 
-    if (req.url.indexOf('?') < 0) {
-      return res.render('items_api_docs_10')
-    }
-
-    log.info('req params: ' + JSON.stringify(req.query))
     var query = item_utils.get_query(req)
 
     var page = parseInt(req.param('page'))

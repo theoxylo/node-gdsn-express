@@ -4,9 +4,6 @@ exports.getRequestHandler = function (config) {
 
   return function(req, res, next) {
     try {
-      if (req.url.indexOf('?') < 0) {
-        return res.render('login_api_docs_10')
-      }
       log.debug('login req.url: ' + req.url)
       log.debug('login user: ' + req.query['user'])
       var user = req.query['user']

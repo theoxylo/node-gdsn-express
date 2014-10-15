@@ -23,12 +23,10 @@ config.request_counter = 0
 
 var express         = require('express')
 var logger          = require('morgan')
-var basic_auth      = require('basic-auth')
 var compression     = require('compression')
-var session         = require('cookie-session')
+//var session         = require('cookie-session')
 
 var fs      = require('fs')
-var https   = require('https')
 
 var Logger = require('./lib/Logger')
 var log = Logger('gdsnApp', config)
@@ -45,47 +43,63 @@ require('./lib/db/Database').init(config) // adds config.database
 //var routes_cin      = require(config.routes_dir + '/cin_form')(config)
 var routes_subscr   = require(config.routes_dir + '/items_subscribed')(config)
 var routes_login    = require(config.routes_dir + '/login')
-var routes_archive  = require(config.routes_dir + '/msg_archive')(config)
+var routes_msg      = require(config.routes_dir + '/msg_archive')(config)
 var routes_parties  = require(config.routes_dir + '/parties')(config)
 var routes_logs     = require(config.routes_dir + '/logs')(config)
 var routes_item     = require(config.routes_dir + '/trade_item')(config)
 var routes_profile  = require(config.routes_dir + '/profile')(config)
 
 var app = express()
+config.app = app
 
 app.set('views', __dirname + '/views')
 app.set('view engine', 'ejs')
 
-app.use(logger('combined'))
+app.use(compression())
+app.use(require('serve-favicon')(__dirname + '/public/favicon.ico'))
 app.use(express.static(__dirname + '/public'))
 
-app.use(compression())
+// append response time to Http log, for Kibana
+app.use( logger(logger.combined + ' - :response-time ms') )
 
+/*
 app.use(session({
   keys: ['secret135', 'secret258']
   , secureProxy: true
 }))
+*/
+
+log.info('Loading ITN Passport google OAuth2 connector...')
+require('./lib/passport').init(config)
 
 
-// Passport auth: 
-log.info('Loading ITN Passport...')
-var passport = require('./lib/passport')
-passport.init(app, Logger('pp_log', config))
+// api doc renders
+app.get('/docs' + config.base_url + '/items',      function (req, res, next) { res.render('items_api_docs_10')     })
+app.get('/docs' + config.base_url + '/login',      function (req, res, next) { res.render('login_api_docs_10')     })
+app.get('/docs' + config.base_url + '/subscribed', function (req, res, next) { res.render('subscribed_api_docs_10')})
 
+// api endpoint routing
 var router = express.Router()
 app.use(config.base_url, router)
 
-console.log('setting up basic_auth')
-router.use(function (req, res, next) {
-  console.log('req.user: ' + JSON.stringify(req.user))
+log.info('setting up basic_auth')
+var basic_auth = require('basic-auth')
+
+router.use(function authorizeRequest(req, res, next) {
+  log.info('req.user: ' + JSON.stringify(req.user))
 
   var credentials = basic_auth(req)
-  console.log('creds: ' + JSON.stringify(credentials))
+  log.info('creds: ' + JSON.stringify(credentials))
+
+  /*
+  var session = req.session
+  log.info('session: ' + JSON.stringify(session))
 
   if (req.user && req.user.google_token) {
      req.user = 'ted'
      return next()
   }
+  */
 
   if (!credentials || (credentials.name + 'Admin' !== credentials.pass)) {
     res.writeHead(401, {
@@ -94,40 +108,41 @@ router.use(function (req, res, next) {
     return res.end()
   }
   req.user = credentials.name
-  console.log('req.user: ' + JSON.stringify(req.user))
+  log.info('req.user: ' + JSON.stringify(req.user))
   next()
 })
-console.log('done setting up basic_auth')
+log.info('done setting up basic_auth')
 
-console.log('setting up profile loader and checker')
+log.info('setting up profile loader and checker')
 router.use(routes_profile.profileLoader)
 router.use(routes_profile.profileChecker)
-console.log('done setting up profile loader and checker')
+log.info('done setting up profile loader and checker')
 
-console.log('setting up shutdown')
+log.info('setting up shutdown')
 app.get('/shut_down', function (req, res, next) {
   if (req.query.pw === config.shut_down_pw) {
-    console.log('Server is process is exiting down via shut_down endpoint...')
+    log.info('Server is process is exiting down via shut_down endpoint...')
     process.exit(0)
   }
   next(new Error('incorrect shut_down parameter'))
 })
-console.log('done setting up shutdown')
+log.info('done setting up shutdown ' + config.shut_down_pw)
 
-router.post('/msg',     routes_archive.post_archive)
+// POST
+router.post('/msg',     routes_msg.post_archive)
 router.post('/items',   routes_item.post_trade_items)
 router.post('/parties', routes_parties.post_parties)
 
-router.get('/msg/migrate',                                  routes_archive.migrate_msg_archive)
-router.get('/msg/:msg_id',                                  routes_archive.find_archive)
-router.get('/msg',                                          routes_archive.list_archive)
+// GET
+router.get('/msg/migrate',                                  routes_msg.migrate_msg_archive)
+router.get('/msg/:msg_id',                                  routes_msg.find_archive)
+router.get('/msg',                                          routes_msg.list_archive)
 
 router.get('/subscribed/:gtin/:provider/:tm/:tm_sub',       routes_subscr.get_subscribed_item)
 router.get('/subscribed/:gtin/:provider/:tm',               routes_subscr.get_subscribed_item)
 router.get('/subscribed/:gtin/:provider',                   routes_subscr.get_subscribed_item)
 router.get('/subscribed/:gtin',                             routes_subscr.get_subscribed_item)
 router.get('/subscribed/',                                  routes_subscr.get_subscribed_item)
-router.get('/subscribed', function (req, res, next) { res.render('subscribed_api_docs_10') })
 
 router.get('/items/history/:recipient/:gtin/:provider/:tm/:tm_sub', routes_item.get_trade_item_history)
 
@@ -144,40 +159,35 @@ router.get('/party/:gln',                                   routes_parties.find_
 router.get('/parties/:gln',                                 routes_parties.find_parties)
 router.get('/parties',                                      routes_parties.list_parties)
 
+router.get('/login',            require(config.routes_dir + '/login').getRequestHandler(config))
+
 router.get('/logs',                                         routes_logs.list_logs)
 
-router.get('/login',            require(config.routes_dir + '/login').getRequestHandler(config))
-router.get('/lookup_allergens', require(config.routes_dir + '/lookup_allergens').getRequestHandler(config))
-router.get('/lookup_countries', require(config.routes_dir + '/lookup_countries').getRequestHandler(config))
-router.get('/lookup_nutrients', require(config.routes_dir + '/lookup_nutrients').getRequestHandler(config))
-
-console.log('done setting up routes')
+log.info('done setting up routes')
 
 // shutdown processing
 process.on('SIGINT', function () {
-  console.log('Application shutting down...')
+  log.info('Application shutting down...')
   setTimeout(function () {
-    console.log('shutdown complete!')
+    log.info('shutdown complete!')
     process.exit(0)
   }, 500) // simulate shutdown activities for .5 seconds
 })
-console.log('done setting up SIGINT')
+log.info('done setting up SIGINT')
 
 // start the server using normal HTTP
 if (config.http_port) {
   app.listen(config.http_port)
-  log.info("Express GDSN server listening on HTTP port " + config.http_port)
+  log.info('Express GDSN server listening at http://' + config.http_host + ':' + config.http_port)
 }
-console.log('done setting up http server')
 
-// start the server using SSL
+// if configured, start the server using https/SSL
 if (config.https_port) {
   var https_options = {
     key   : fs.readFileSync(config.key_file),
     cert  : fs.readFileSync(config.cert_file)
   }
-  var server = https.createServer(https_options, app)
-  server.listen(config.https_port)
-  log.info("Express GDSN server listening on HTTPS port " + config.https_port)
+  require('https').createServer(https_options, app).listen(config.https_port)
+  log.info('Express GDSN server listening at https://' + config.https_host + ':' + config.https_port)
 }
 
