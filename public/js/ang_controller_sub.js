@@ -1,4 +1,4 @@
-    thx_app.controller('thx_sub_controller', function($scope, $http, thx_util) {
+    thx_app.controller('thx_sub_controller', function ($scope, $http, thx_util) {
       $scope.timestamp = 'n/a'
       $scope.thx_controller_test = 'thx_controller_test_value'
 
@@ -7,26 +7,6 @@
         log(sub)
         $scope.selectedSub = JSON.stringify(sub)
         //$scope.selectedSub = sub
-      }
-
-      $scope.getSubscriptions = function () {
-        if (/\d{13}/.test($scope.subscriber)) {
-          //$http.get(thx_util.sub_url, { 
-          $http.jsonp('http://plt-gdsn01.itradenetwork.com:8080/gdsn-server/api/getSubscriptionList' , {
-            params: { subscriber: $scope.subscriber, callback: 'JSON_CALLBACK' }
-          })
-          .success(function (data) {
-            $scope.data = data
-            $scope.timestamp = data.timestamp
-            $scope.selectedSub = null
-          })
-          .error(function () {
-            log(arguments)
-          })
-        }
-        else {
-          alert('Error: invalid gln, should be 13 digits')
-        }
       }
 
       $scope.resetSubscribedItems = function () {
@@ -59,8 +39,6 @@
 
         showBusy('Fetching subscribed items...')
 
-        //$http.jsonp(url, {
-        //$http.get('/err', {
         $http.get(url, {
           params: { 
               gtin: gtin
@@ -72,7 +50,6 @@
             , multi: multi
             , transform: transform
             , food: food
-            //, callback: 'JSON_CALLBACK'
           }
         })
         .success(function (data) {

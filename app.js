@@ -130,6 +130,7 @@ log.info('done setting up shutdown ' + config.shut_down_pw)
 
 // POST
 router.post('/msg',     routes_msg.post_archive)
+router.post('/dp-post', routes_msg.post_to_gdsn)
 router.post('/items',   routes_item.post_trade_items)
 router.post('/parties', routes_parties.post_parties)
 

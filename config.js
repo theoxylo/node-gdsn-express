@@ -18,7 +18,6 @@ var config = {
   , slow_warn_ms          : 800
   , total_item_count_limit: 1000
   , enable_query_req_id   : false
-
 }
 
 var local_config = {}

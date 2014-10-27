@@ -7,7 +7,6 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <link rel="stylesheet" href="css/styles_new.css" />
   <link rel="stylesheet" href="jqui/jquery-ui-1.10.4.custom.css" />
-  <link rel="stylesheet" href="http://angular-ui.github.com/ng-grid/css/ng-grid.css" />
 </head>
 
 <body ng-app="thx_app">
@@ -16,7 +15,6 @@
 
   <div>
     <h2>Catalog Services Dashboard</h2>
-    <!-- Version $URL: http://svn.instill.com/repos/instill_dev/Catalog_Services/node-api-server/trunk/public/index.html $ -->
     <div id="google_link"><a ng-href="/auth/login">Login with Google</a></div>
   </div>
 
@@ -101,14 +99,12 @@
         <button ng-click="reset_search()"    >Reset</button>
       
         <br/>
-        <!-- not used - because not able to autoformat column width
-        <div class="gridStyle" ng-grid="gridOptions"></div -->
         <div ng-if="messages" style="border-style:solid;border-width:1px;border-color:green">
           Page Filter:<input ng-model="query" type="text" size="22" />
           <table width="100%">
             <tr>
               <th></th>
-              <th><a href="" ng-click="sortField = 'msg_id';         reverse = !reverse">Msg Id [; Req Msg Id]</a></th>
+              <th><a href="" ng-click="sortField = 'msg_id';         reverse = !reverse">Msg Id &nbsp;&nbsp;(Req Msg Id)</a></th>
               <th><a href="" ng-click="sortField = 'msg_type';       reverse = !reverse">Type</a></th>
               <th><a href="" ng-click="sortField = 'sender';         reverse = !reverse">Sender</a></th>
               <th><a href="" ng-click="sortField = 'receiver';       reverse = !reverse">Receiver</a></th>
@@ -119,7 +115,7 @@
             </tr>
             <tr ng-repeat="msg in messages | filter:query | orderBy:sortField:reverse">
               <td class="clickable" ng-click="showMessageDetail(msg)">details</td>
-              <td style="text-align: left;">{{msg.msg_id}}<span ng-if="msg.request_msg_id"> ; {{msg.request_msg_id}}</span></td>
+              <td style="text-align: left;">{{msg.msg_id}}<span ng-if="msg.request_msg_id"> &nbsp;&nbsp;({{msg.request_msg_id}})</span></td>
               <td style="text-align: left;">{{msg.msg_type}}</td>
               <td>{{msg.sender}}</td>
               <td>{{msg.receiver}}</td>
@@ -434,10 +430,10 @@
     </div>
   </div> <!-- end pub_tab -->
 
-  <div id="sub_tab" ng-controller="thx_sub_controller">
+  <div id="sub_tab">
     <div id="sub_accordion">
       <div>Fetch Subscribed Items</div>
-      <div>
+      <div ng-controller="thx_sub_controller">
 
         <div>
           <form id="sub_form">
@@ -484,12 +480,10 @@
           </div>
         </div>
 
-      </div> <!-- end sub_client -->
+      </div><!-- end ng-controller -->
 
       <div>Search Subscriptions</div>
       <div>
-        <input type="text" ng-model="subscriber"></input>
-        <input type="button" ng-click="getSubscriptions(subscriber)" value="Get Subscriptions"></input>
         <div gdsn-subscriptions default-subscriber="1100001011292"/>
       </div>
 
@@ -577,7 +571,7 @@
   <p>Copyright &copy; 2014</p>
 </div>
 
-<div id="result_dialog">Loading...</div>
+<div id="result_dialog" width="100%">Loading...</div>
 
 <div id="error_dialog">An error occurred!</div>
 
@@ -591,7 +585,6 @@
   <script src="jqui/jquery-ui-1.10.4.custom.js"></script>
   <script src="js/underscore-1.5.2.js"></script>
   <script src="js/angular-1.2.2.js"></script>
-  <script src="http://angular-ui.github.com/ng-grid/lib/ng-grid.js"></script>
   <script src="js/file/angular-file-upload.js"></script>
   <script src="js/bp_cs_client.js"></script>
 
@@ -599,24 +592,6 @@
   <script src="three_view/js/controls/OrbitControls.js"></script>
   <script src="three_view/js/three_item_view.js"></script>
   
-<script type="text/ng-template" id="gdsn_sub_list_template.html">
-  <div style="border-style:solid;border-width:1px;border-color:blue">
-    <div>GDSN Widget</div>
-    <div ng-if="data" style="border-style:solid;border-width:1px;border-color:green">
-      <div ng-if="selectedSub"><textarea rows="6" cols="60" disabled ng-bind="selectedSub"></textarea></div>
-      <div>Subscriptions for subscriber {{data.subscriber}} as of <span ng-bind="timestamp"/>:</div>
-      <div class="clickable" ng-repeat="sub in data.subscriptions" ng-click="selectSubscription(sub)">
-        <span>{{$index + 1}}. Publisher/Data Source: {{sub.dsName}} (GLN {{sub.ds}})</span>
-      </div>
-      <div>Data URL: <a ng-href="{{data.url}}">{{data.url}}</a></div>
-      <div>Timestamp: <span>{{timestamp}}</span></div>
-    </div>
-    <div>thx_controller_test: <span>{{thx_controller_test}}</span></div>
-    <div>dir_controller_test: <span>{{dir_controller_test}}</span></div>
-    <div>dir_link_test: <span>{{dir_link_test}}</span></div>
-  </div>
-</script>
-
   <script src="js/cs_page_utils.js"></script>
   <script src="js/ang_app_module.js"></script>
   <script src="js/ang_controller_file.js"></script>
@@ -627,6 +602,7 @@
   <script src="js/ang_controller_sub.js"></script>
   <script src="js/ang_controller_debug.js"></script>
   <script src="js/ang_directives.js"></script>
+  <script src="js/ang_directive_gdsn-sub/directive.js"></script>
   
 </body>
 </html>

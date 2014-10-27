@@ -7,30 +7,9 @@
       $scope.total_item_count = 0
       $scope.item_range_start = 0 
       $scope.item_range_end   = 0
-/*
-      $scope.gridColumns = [
-	     {field:'instance_id',  displayName:'Instance Id'}, 
-	   	 {field:'type',         displayName:'Type'},
-	   	 {field:'source_dp',    displayName:'SourceDP'},
-	   	 {field:'recipient',    displayName:'Recipient'},
-	   	 {field:'sender',       displayName:'Sender'},
-	   	 {field:'receiver',     displayName:'Receiver'},
-	   	 {field:'item_count',   displayName:'Item Cnt'},
-	   	 {field:'created_ts',   displayName:'Created'},
-	   	 {field:'modified_ts',  displayName:'Modified'},
-	  ];
-		$scope.gridOptions = { 
-		  data: 'myData', 
-		  columnDefs: 'gridColumns',
-		  cellTemplate:'<div class="ngCellText" ng-class="col.colIndex()"><a ng-click="loadById(row)">{{row.getProperty(col.field)}}</a></div>' 
-		}
-		$scope.loadById = function(row) {  
-			   console.log(row.instance_id)
-		};
-*/
       $scope.reset_search = function () {
-    	  delete $scope.input_msg_id
-    	  delete $scope.input_req_msg_id
+          delete $scope.input_msg_id
+          delete $scope.input_req_msg_id
           delete $scope.input_msg_type
           delete $scope.input_msg_type_regex
           
@@ -153,7 +132,7 @@
         .error(function () {
           $error_dialog.html('An error occurred -- please try again').dialog('open')
         })
-	  }
+      }
 */
 
       $scope.list_msg = function () {
@@ -179,14 +158,14 @@
       }
 
       $scope.popupField = function (msg, field) {
-    	  console.log( "id=" +JSON.stringify(msg.msg_id) )
+          console.log( "id=" +JSON.stringify(msg.msg_id) )
 
           $http.get(thx_util.msg_url + '/' + msg.msg_id, { 
               params: { 
                 field:           field
               }
           }).success(function (data) {
-        	  console.log( JSON.stringify(data) );
+              console.log( JSON.stringify(data) );
               winPopup(data)
           })
           .error(function () {

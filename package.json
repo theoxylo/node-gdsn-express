@@ -26,6 +26,7 @@
     "compression": "1.1.0",
     "basic-auth": "1.0.0",
     "serve-favicon": "2.1.5"
+    ,"request": "2.39.0"
   },
   "repository": {
     "type": "git",

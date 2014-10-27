@@ -59,7 +59,12 @@
 
       $scope.prettyPrintItem = function (item) {
         log('prettyPrintItem  called for gtin ' + item.gtin)
-        $result_dialog.html(prettyPrint(item)).dialog('open')
+        $result_dialog.html(prettyPrint(item))
+          .dialog( 'option', 'width', window.width)
+          //.dialog( 'option', 'width', 2000)
+          //.dialog( 'option', 'width', '100%')
+          .dialog( 'option', 'position', { my: 'left top', at: 'left top', collision: 'fit' } )
+          .dialog('open')
       }
 
       $scope.reset_search = function () {

@@ -2,6 +2,7 @@ module.exports = function (config) {
 
   var _              = require('underscore')
   var async          = require('async')
+  var request        = require('request')
 
   var log            = require('../lib/Logger')('rt_msg_arch', {debug: true})
   var msg_archive_db = require('../lib/db/msg_archive.js')(config)
@@ -254,6 +255,47 @@ module.exports = function (config) {
       }, include_xml)
     }
     migrateMessageBatch()
+  }
+
+  api.post_to_gdsn = function(req, res, next) {
+    log.info('dp-post target url: ' + config.dp_post_url)
+
+    var xml = ''
+    req.setEncoding('utf8')
+    req.on('data', function (chunk) {
+      log.debug('dp-post chunk.length: ' + (chunk && chunk.length))
+      xml += chunk
+      if (xml.length > 10 * 1000 * 1000) return res.end('msg xml too big - larger than 10 MB')
+    })
+    req.on('end', function () {
+      request.post({
+          url: config.dp_post_url
+        , preambleCRLF: true
+        , postambleCRLF: true
+        , body: xml
+        , auth: {
+            'user': 'admin',
+            'pass': 'devadmin',
+            'sendImmediately': true
+          }
+        }, 
+        function (err, response, body) {
+          if (err) return next(err)
+          var result = {
+            statusCode: response.statusCode,
+            timestamp: Date.now()
+          }
+          var headers = response.headers
+          for (var prop in headers) {
+            if (headers.hasOwnProperty(prop)) {
+              console.log(prop + ': ' + headers[prop])
+              result[prop] = headers[prop]
+            }
+          }
+          res.end(body)
+        }
+      )
+    })
   }
 
   return api

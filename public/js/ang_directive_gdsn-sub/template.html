@@ -1,0 +1,20 @@
+<div style="border-style:solid;border-width:1px;border-color:red">
+  <input type="text" ng-model="subscriber"></input>
+  <input type="button" ng-click="getCurrentSubscriptions(subscriber)" value="Get Subscriptions"></input>
+  <input type="button" ng-click="resetResults()" value="Reset"></input>
+  <div style="border-style:solid;border-width:1px;border-color:blue">
+    <div>GDSN Widget</div>
+    <div ng-if="data" style="border-style:solid;border-width:1px;border-color:green">
+      <div ng-if="selectedSub"><textarea rows="6" cols="60" disabled ng-bind="selectedSub"></textarea></div>
+      <div>Subscriptions for subscriber {{data.subscriber}} as of <span ng-bind="timestamp"/>:</div>
+      <div class="clickable" ng-repeat="sub in data.subscriptions" ng-click="selectSubscription(sub)">
+        <span>{{$index + 1}}. Publisher/Data Source: {{sub.dsName}} (GLN {{sub.ds}})</span>
+      </div>
+      <div>Data URL: <a ng-href="{{data.url}}">{{data.url}}</a></div>
+      <div>Timestamp: <span>{{timestamp}}</span></div>
+    </div>
+    <div>thx_controller_test: <span>{{thx_controller_test}}</span></div>
+    <div>dir_controller_test: <span>{{dir_controller_test}}</span></div>
+    <div>dir_link_test: <span>{{dir_link_test}}</span></div>
+  </div>
+</div>
