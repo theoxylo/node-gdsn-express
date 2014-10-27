@@ -18,6 +18,7 @@ var config = {
   , slow_warn_ms          : 800
   , total_item_count_limit: 1000
   , enable_query_req_id   : false
+  , dp_post_url           : 'http://localhost:8080/gdsn-server/gdsn.ee'
 }
 
 var local_config = {}
