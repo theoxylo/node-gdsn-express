@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<StandardBusinessDocument>
+<StandardBusinessDocumentHeader>
+<HeaderVersion>1.0</HeaderVersion>
+<Sender>
+<Identifier Authority="EAN.UCC">1100001011285</Identifier>
+</Sender>
+<Receiver>
+<Identifier Authority="EAN.UCC">0614141810017</Identifier>
+</Receiver>
+<DocumentIdentification>
+<Standard>EAN.UCC</Standard>
+<TypeVersion>2.8</TypeVersion>
+<InstanceIdentifier>MSG_OUT_91400</InstanceIdentifier>
+<Type>basicPartyRegistration</Type>
+<CreationDateAndTime>2014-10-24T07:43:48.877-07:00</CreationDateAndTime>
+</DocumentIdentification>
+</StandardBusinessDocumentHeader>
+<message>
+<entityIdentification>
+<uniqueCreatorIdentification>MSG_OUT_91400</uniqueCreatorIdentification>
+<contentOwner>
+<gln>1100001011285</gln>
+</contentOwner>
+</entityIdentification>
+<transaction>
+<entityIdentification>
+<uniqueCreatorIdentification>MSG_OUT_91400_TXN1</uniqueCreatorIdentification>
+<contentOwner>
+<gln>1100001011285</gln>
+</contentOwner>
+</entityIdentification>
+<command>
+<documentCommand>
+<documentCommandHeader type="CHANGE_BY_REFRESH">
+<entityIdentification>
+<uniqueCreatorIdentification>MSG_OUT_91400_TXN1_CMD1</uniqueCreatorIdentification>
+<contentOwner>
+<gln>1100001011285</gln>
+</contentOwner>
+</entityIdentification>
+</documentCommandHeader>
+<documentCommandOperand>
+<basicPartyRegistration creationDateTime="2014-10-24T07:43:48.878-07:00" documentStatus="ORIGINAL">
+<transmittingDataPool>1100001011285</transmittingDataPool>
+<partyDataPool>1100001011285</partyDataPool>
+<registryParty>
+<isPartyActive>true</isPartyActive>
+<registryPartyInformation>
+<partyRoleInformation>
+<partyOrDepartmentName>ITN 283 Test Party ® 2015</partyOrDepartmentName>
+<partyRole>SUPPLIER</partyRole>
+</partyRoleInformation>
+<contact>
+<communicationChannel communicationChannelCode="EMAIL" communicationNumber="toneill@itradenetwork.com"/>
+<communicationChannel communicationChannelCode="TELEPHONE" communicationNumber="925-660-1392"/>
+<personOrDepartmentName>
+<description>
+<language>
+<languageISOCode>en</languageISOCode>
+</language>
+<text>Ted One</text>
+</description>
+</personOrDepartmentName>
+</contact>
+<registryPartyNameAndAddress>
+<city>Pleasanton</city>
+<countryCode>
+<countryISOCode>840</countryISOCode>
+</countryCode>
+<name>ITN 283 Test Party ® 2015</name>
+<associatedLanguage>
+<languageISOCode>en</languageISOCode>
+</associatedLanguage>
+<postalCode>94588</postalCode>
+<secondaryGovernmentArea>CA</secondaryGovernmentArea>
+<streetAddressOne>4155 Hopyard Rd</streetAddressOne>
+<streetAddressTwo>Suite 1003</streetAddressTwo>
+</registryPartyNameAndAddress>
+</registryPartyInformation>
+<informationProviderOfParty>
+<gln>4243444546475</gln>
+</informationProviderOfParty>
+</registryParty>
+<processCapabilityInformation>
+<processCapabilityCode>DATA_SYNCHRONISATION</processCapabilityCode>
+<processCapabilityEffectiveStartDateTime>2014-10-24T07:43:29.661-07:00</processCapabilityEffectiveStartDateTime>
+</processCapabilityInformation>
+<basicPartyRegistrationIdentification>
+<uniqueCreatorIdentification>MSG_OUT_91400_TXN1_CMD1_DOC1</uniqueCreatorIdentification>
+<contentOwner>
+<gln>1100001011285</gln>
+</contentOwner>
+</basicPartyRegistrationIdentification>
+</basicPartyRegistration>
+</documentCommandOperand>
+</documentCommand>
+</command>
+</transaction>
+</message>
+</StandardBusinessDocument>
+

@@ -42,8 +42,10 @@ require('./lib/db/Database').init(config) // adds config.database
 //var routes          = require(config.routes_dir + '/index')
 //var routes_cin      = require(config.routes_dir + '/cin_form')(config)
 var routes_subscr   = require(config.routes_dir + '/items_subscribed')(config)
-var routes_login    = require(config.routes_dir + '/login')
+var routes_login    = require(config.routes_dir + '/login')(config)
 var routes_msg      = require(config.routes_dir + '/msg_archive')(config)
+var routes_msg_mig  = require(config.routes_dir + '/msg_migrate')(config)
+var routes_gdsn     = require(config.routes_dir + '/gdsn_datapool')(config)
 var routes_parties  = require(config.routes_dir + '/parties')(config)
 var routes_logs     = require(config.routes_dir + '/logs')(config)
 var routes_item     = require(config.routes_dir + '/trade_item')(config)
@@ -128,14 +130,17 @@ app.get('/shut_down', function (req, res, next) {
 })
 log.info('done setting up shutdown ' + config.shut_down_pw)
 
+log.info('setting up routes and URL templates')
+// GET and POST
+router.use('/dp-post/:msg_id', routes_gdsn.post_to_gdsn)
+
 // POST
 router.post('/msg',     routes_msg.post_archive)
-router.post('/dp-post', routes_msg.post_to_gdsn)
+router.post('/dp-post', routes_gdsn.post_to_gdsn)
 router.post('/items',   routes_item.post_trade_items)
-router.post('/parties', routes_parties.post_parties)
 
 // GET
-router.get('/msg/migrate',                                  routes_msg.migrate_msg_archive)
+router.get('/msg/migrate',                                  routes_msg_mig.migrate_msg_archive)
 router.get('/msg/:msg_id',                                  routes_msg.find_archive)
 router.get('/msg',                                          routes_msg.list_archive)
 
@@ -160,7 +165,7 @@ router.get('/party/:gln',                                   routes_parties.find_
 router.get('/parties/:gln',                                 routes_parties.find_parties)
 router.get('/parties',                                      routes_parties.list_parties)
 
-router.get('/login',            require(config.routes_dir + '/login').getRequestHandler(config))
+router.get('/login',                                        routes_login.authenticate)
 
 router.get('/logs',                                         routes_logs.list_logs)
 

@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sh:StandardBusinessDocument xmlns:sh="http://www.unece.org/cefact/namespaces/StandardBusinessDocumentHeader" xmlns:eanucc="urn:ean.ucc:2" xmlns:gdsn="urn:ean.ucc:gdsn:2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.unece.org/cefact/namespaces/StandardBusinessDocumentHeader http://www.gs1globalregistry.net/2.8/schemas/sbdh/StandardBusinessDocumentHeader.xsd urn:ean.ucc:2 http://www.gs1globalregistry.net/2.8/schemas/BasicPartyRegistrationProxy.xsd ">
+    <sh:StandardBusinessDocumentHeader>
+        <sh:HeaderVersion>1.0</sh:HeaderVersion>
+        <sh:Sender>
+            <sh:Identifier Authority="EAN.UCC">1100001011285</sh:Identifier>
+        </sh:Sender>
+        <sh:Receiver>
+            <sh:Identifier Authority="EAN.UCC">0614141810017</sh:Identifier>
+        </sh:Receiver>
+        <sh:DocumentIdentification>
+            <sh:Standard>EAN.UCC</sh:Standard>
+            <sh:TypeVersion>2.8</sh:TypeVersion>
+            <sh:InstanceIdentifier>BPR_to_GR_20141030_half_fail</sh:InstanceIdentifier>
+            <sh:Type>basicPartyRegistration</sh:Type>
+            <sh:CreationDateAndTime>2014-10-30T08:18:02.678-07:00</sh:CreationDateAndTime>
+        </sh:DocumentIdentification>
+    </sh:StandardBusinessDocumentHeader>
+    <eanucc:message>
+        <entityIdentification>
+            <uniqueCreatorIdentification>BPR_to_GR_20141030_half_fail</uniqueCreatorIdentification>
+            <contentOwner>
+                <gln>1100001011285</gln>
+            </contentOwner>
+        </entityIdentification>
+        <eanucc:transaction>
+            <entityIdentification>
+                <uniqueCreatorIdentification>BPR_to_GR_20141030_half_fail_TXN1</uniqueCreatorIdentification>
+                <contentOwner>
+                    <gln>1100001011285</gln>
+                </contentOwner>
+            </entityIdentification>
+            <command>
+                <eanucc:documentCommand>
+                    <documentCommandHeader type="CHANGE_BY_REFRESH">
+                        <entityIdentification>
+                            <uniqueCreatorIdentification>BPR_to_GR_20141030_half_fail_TXN1_CMD1</uniqueCreatorIdentification>
+                            <contentOwner>
+                                <gln>1100001011285</gln>
+                            </contentOwner>
+                        </entityIdentification>
+                    </documentCommandHeader>
+                    <documentCommandOperand>
+                        <gdsn:basicPartyRegistration creationDateTime="2014-10-30T08:18:02.679-07:00" documentStatus="ORIGINAL">
+                            <transmittingDataPool>1100001011285</transmittingDataPool>
+                            <partyDataPool>1100001011285</partyDataPool>
+                            <registryParty>
+                                <isPartyActive>true</isPartyActive>
+                                <registryPartyInformation>
+                                    <partyRoleInformation>
+                                        <partyOrDepartmentName>ITN 283 Main ® Party</partyOrDepartmentName>
+                                        <partyRole>BROKER_AGENT</partyRole>
+                                    </partyRoleInformation>
+                                    <contact>
+                                        <communicationChannel communicationChannelCode="EMAIL" communicationNumber="toneill@itradenetwork.com"/>
+                                        <communicationChannel communicationChannelCode="TELEPHONE" communicationNumber="925-660-1392"/>
+                                        <personOrDepartmentName>
+                                            <description>
+                                                <language>
+                                                    <languageISOCode>en</languageISOCode>
+                                                </language>
+                                                <text>Ted O'Neill</text>
+                                            </description>
+                                        </personOrDepartmentName>
+                                    </contact>
+                                    <registryPartyNameAndAddress>
+                                        <city>Pleasanton</city>
+                                        <countryCode>
+                                            <countryISOCode>840</countryISOCode>
+                                        </countryCode>
+                                        <name>ITN 283 Main Party ® Name</name>
+                                        <associatedLanguage>
+                                            <languageISOCode>en</languageISOCode>
+                                        </associatedLanguage>
+                                        <postalCode>94588</postalCode>
+                                        <secondaryGovernmentArea>CA</secondaryGovernmentArea>
+                                        <streetAddressOne>4155 Hopyard Rd.</streetAddressOne>
+                                        <streetAddressTwo>Suite 100</streetAddressTwo>
+                                    </registryPartyNameAndAddress>
+                                </registryPartyInformation>
+                                <informationProviderOfParty>
+                                    <gln>1100001011292</gln>
+                                </informationProviderOfParty>
+                            </registryParty>
+                            <processCapabilityInformation>
+                                <processCapabilityCode>DATA_SYNCHRONISATION</processCapabilityCode>
+                                <processCapabilityEffectiveStartDateTime>2014-10-30T08:17:48.067-07:00</processCapabilityEffectiveStartDateTime>
+                            </processCapabilityInformation>
+                            <basicPartyRegistrationIdentification>
+                                <uniqueCreatorIdentification>BPR_to_GR_20141030_half_fail_TXN1_CMD1_DOC1</uniqueCreatorIdentification>
+                                <contentOwner>
+                                    <gln>1100001011285</gln>
+                                </contentOwner>
+                            </basicPartyRegistrationIdentification>
+                        </gdsn:basicPartyRegistration>
+                        <gdsn:basicPartyRegistration creationDateTime="2014-10-30T08:18:02.679-07:00" documentStatus="ORIGINAL">
+                            <transmittingDataPool>1100001011285</transmittingDataPool>
+                            <partyDataPool>1100001011285</partyDataPool>
+                            <registryParty>
+                                <isPartyActive>true</isPartyActive>
+                                <registryPartyInformation>
+                                    <partyRoleInformation>
+                                        <partyOrDepartmentName>ITN 283 Alt ® Party</partyOrDepartmentName>
+                                        <partyRole>BROKER_AGENT</partyRole>
+                                    </partyRoleInformation>
+                                    <contact>
+                                        <communicationChannel communicationChannelCode="EMAIL" communicationNumber="toneill@itradenetwork.com"/>
+                                        <communicationChannel communicationChannelCode="TELEPHONE" communicationNumber="925-660-1392"/>
+                                        <personOrDepartmentName>
+                                            <description>
+                                                <language>
+                                                    <languageISOCode>en</languageISOCode>
+                                                </language>
+                                                <text>Ted O'Neill</text>
+                                            </description>
+                                        </personOrDepartmentName>
+                                    </contact>
+                                    <registryPartyNameAndAddress>
+                                        <city>Pleasanton</city>
+                                        <countryCode>
+                                            <countryISOCode>840</countryISOCode>
+                                        </countryCode>
+                                        <name>ITN 283 Alt Party ® Name</name>
+                                        <associatedLanguage>
+                                            <languageISOCode>en</languageISOCode>
+                                        </associatedLanguage>
+                                        <postalCode>94588</postalCode>
+                                        <secondaryGovernmentArea>CA</secondaryGovernmentArea>
+                                        <streetAddressOne>4155 Hopyard Rd.</streetAddressOne>
+                                        <streetAddressTwo>Suite 100</streetAddressTwo>
+                                    </registryPartyNameAndAddress>
+                                </registryPartyInformation>
+                                <informationProviderOfParty>
+                                    <gln>0038000000010</gln>
+                                </informationProviderOfParty>
+                            </registryParty>
+                            <processCapabilityInformation>
+                                <processCapabilityCode>DATA_SYNCHRONISATION</processCapabilityCode>
+                                <processCapabilityEffectiveStartDateTime>2014-10-30T08:17:48.067-07:00</processCapabilityEffectiveStartDateTime>
+                            </processCapabilityInformation>
+                            <basicPartyRegistrationIdentification>
+                                <uniqueCreatorIdentification>BPR_to_GR_20141030_half_fail_TXN1_CMD1_DOC2</uniqueCreatorIdentification>
+                                <contentOwner>
+                                    <gln>1100001011285</gln>
+                                </contentOwner>
+                            </basicPartyRegistrationIdentification>
+                        </gdsn:basicPartyRegistration>
+                    </documentCommandOperand>
+                </eanucc:documentCommand>
+            </command>
+        </eanucc:transaction>
+    </eanucc:message>
+</sh:StandardBusinessDocument>

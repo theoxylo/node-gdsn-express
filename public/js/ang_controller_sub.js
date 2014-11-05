@@ -1,4 +1,4 @@
-    thx_app.controller('thx_sub_controller', function ($scope, $http, thx_util) {
+    thx_app.controller('thx_sub_controller', function ($scope, $http) {
       $scope.timestamp = 'n/a'
       $scope.thx_controller_test = 'thx_controller_test_value'
 

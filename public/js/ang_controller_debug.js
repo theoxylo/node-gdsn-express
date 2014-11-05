@@ -1,4 +1,4 @@
-    thx_app.controller('thx_debug_controller', function($scope, $http, thx_util) {
+    thx_app.controller('thx_debug_controller', function($scope, $http, config) {
       $scope.page = 0
       $scope.input_per_page = 10
       $scope.more_items = false
@@ -57,11 +57,11 @@
           }
         }
         
-        console.log('logs url=' + thx_util.logs_url+ ", $scope.search_params=" +JSON.stringify($scope.search_params) )
+        console.log('logs url=' + config.logs_url+ ", $scope.search_params=" +JSON.stringify($scope.search_params) )
         
         showBusy('Fetching fileLogs list...')
 
-        $http.get(thx_util.logs_url, { 
+        $http.get(config.logs_url, { 
           params: $scope.search_params
         })
         .success(function (fileLogs) {

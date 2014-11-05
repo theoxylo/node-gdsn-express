@@ -1,10 +1,13 @@
-exports.getRequestHandler = function (config) {
+module.exports = function (config) {
 
-  var log  = require('../lib/Logger')('login', config)
+  var log = require('../lib/Logger')('login', config)
 
-  return function(req, res, next) {
+  var api = {}
+
+  api.authenticate = function(req, res, next) {
     try {
       log.debug('login req.url: ' + req.url)
+      log.debug('login req.originalUrl: ' + req.originalUrl)
       log.debug('login user: ' + req.query['user'])
       var user = req.query['user']
       var pass = req.query['pass']
@@ -19,4 +22,5 @@ exports.getRequestHandler = function (config) {
     }
   }
 
+  return api
 }

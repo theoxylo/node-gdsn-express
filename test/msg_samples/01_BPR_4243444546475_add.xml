@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sh:StandardBusinessDocument xmlns:sh="http://www.unece.org/cefact/namespaces/StandardBusinessDocumentHeader" xmlns:ns3="urn:ean.ucc:gdsn:2" xmlns:ns4="urn:ean.ucc:2" xmlns:ns5="urn:ean.ucc:align:food_beverage_tobacco:2" xmlns:ns6="urn:ean.ucc:align:audio_visual_photography:2">
+<sh:StandardBusinessDocumentHeader>
+<sh:HeaderVersion>1.0</sh:HeaderVersion>
+<sh:Sender>
+<sh:Identifier Authority="EAN.UCC">4243444546475</sh:Identifier>
+</sh:Sender>
+<sh:Receiver>
+<sh:Identifier Authority="EAN.UCC">1100001011285</sh:Identifier>
+</sh:Receiver>
+<sh:DocumentIdentification>
+<sh:Standard>EAN.UCC</sh:Standard>
+<sh:TypeVersion>2.8</sh:TypeVersion>
+<sh:InstanceIdentifier>BPR_add_4243444546475</sh:InstanceIdentifier>
+<sh:Type>basicPartyRegistration</sh:Type>
+<sh:CreationDateAndTime>2012-09-25T08:37:47.762-07:00</sh:CreationDateAndTime>
+</sh:DocumentIdentification>
+</sh:StandardBusinessDocumentHeader>
+<ns4:message>
+<entityIdentification>
+<uniqueCreatorIdentification>BPR_add_4243444546475</uniqueCreatorIdentification>
+<contentOwner>
+<gln>4243444546475</gln>
+</contentOwner>
+</entityIdentification>
+<ns4:transaction>
+<entityIdentification>
+<uniqueCreatorIdentification>BPR_add_4243444546475_TXN-1</uniqueCreatorIdentification>
+<contentOwner>
+<gln>4243444546475</gln>
+</contentOwner>
+</entityIdentification>
+<command>
+<ns4:documentCommand>
+<documentCommandHeader type="ADD">
+<entityIdentification>
+<uniqueCreatorIdentification>BPR_add_4243444546475_TXN-1_CMD-1</uniqueCreatorIdentification>
+<contentOwner>
+<gln>4243444546475</gln>
+</contentOwner>
+</entityIdentification>
+</documentCommandHeader>
+<documentCommandOperand>
+<ns3:basicPartyRegistration documentStatus="ORIGINAL" creationDateTime="2012-09-25T08:37:47.764-07:00">
+<contentVersion>
+<versionIdentification>2.8</versionIdentification>
+</contentVersion>
+<documentStructureVersion>
+<versionIdentification>2.8</versionIdentification>
+</documentStructureVersion>
+<transmittingDataPool>1100001011285</transmittingDataPool>
+<partyDataPool>1100001011285</partyDataPool>
+<registryParty>
+<isPartyActive>true</isPartyActive>
+<registryPartyInformation>
+<partyRoleInformation>
+<partyOrDepartmentName>ITN 28 Test Party</partyOrDepartmentName>
+<partyRole>SUPPLIER</partyRole>
+</partyRoleInformation>
+<contact>
+<communicationChannel communicationNumber="toneill@itradenetwork.com" communicationChannelCode="EMAIL"/>
+<communicationChannel communicationNumber="925-660-1392" communicationChannelCode="TELEPHONE"/>
+<personOrDepartmentName>
+<description>
+<language>
+<languageISOCode>en</languageISOCode>
+</language>
+<text>Ted One</text>
+</description>
+</personOrDepartmentName>
+</contact>
+<registryPartyNameAndAddress>
+<city>Pleasanton</city>
+<countryCode>
+<countryISOCode>840</countryISOCode>
+</countryCode>
+<name>ITN 28 Test Party</name>
+<associatedLanguage>
+<languageISOCode>en</languageISOCode>
+</associatedLanguage>
+<postalCode>94588</postalCode>
+<secondaryGovernmentArea>CA</secondaryGovernmentArea>
+<streetAddressOne>4155 Hopyard Rd</streetAddressOne>
+<streetAddressTwo>Suite 100</streetAddressTwo>
+</registryPartyNameAndAddress>
+</registryPartyInformation>
+<informationProviderOfParty>
+<gln>4243444546475</gln>
+</informationProviderOfParty>
+</registryParty>
+<processCapabilityInformation>
+<processCapabilityCode>DATA_SYNCHRONISATION</processCapabilityCode>
+<processCapabilityEffectiveStartDateTime>2012-09-25T08:37:47.764-07:00</processCapabilityEffectiveStartDateTime>
+</processCapabilityInformation>
+<basicPartyRegistrationIdentification>
+<uniqueCreatorIdentification>BPR_1348587467708_4243444546475_txn-1_cmd-1_doc-1</uniqueCreatorIdentification>
+<contentOwner>
+<gln>1100001011285</gln>
+</contentOwner>
+</basicPartyRegistrationIdentification>
+</ns3:basicPartyRegistration>
+</documentCommandOperand>
+</ns4:documentCommand>
+</command>
+</ns4:transaction>
+</ns4:message>
+</sh:StandardBusinessDocument>

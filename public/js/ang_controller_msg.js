@@ -1,4 +1,4 @@
-    thx_app.controller('thx_msg_controller', function($scope, $http, thx_util) {
+    thx_app.controller('thx_msg_controller', function($scope, $http, config) {
       $scope.input_per_page_default = 20
       
       $scope.page = 0
@@ -47,7 +47,7 @@
         log('list_messages called with page increment ' + pageIncrement)
 
         showBusy('Fetching message list...')
-        $http.get(thx_util.msg_url, { 
+        $http.get(config.msg_url, { 
           params: { 
             msg_id:              $scope.input_msg_id,
             req_msg_id:          $scope.input_req_msg_id,
@@ -110,7 +110,7 @@
       $scope.showDocMessageDetail = function (msg) {
         log('showDocMessageDetail called for msg ' + msg._id)
 
-        $http.get(thx_util.msg_url, { 
+        $http.get(config.msg_url, { 
           params: { 
             _id:              msg._id,
           }
@@ -136,15 +136,18 @@
 */
 
       $scope.list_msg = function () {
-        $('#message_list').load(thx_util.msg_url)
+        $('#message_list').load(config.msg_url)
       }
 
       $scope.view_msg = function () {
-        $('#msg_content_view').load(thx_util.msg_url + '/' + $scope.view_msg_id)
+        $('#msg_content_view').load(config.msg_url + '/' + $scope.view_msg_id)
       }
 
-      $scope.post_msg = function () {
-        $http.post(thx_util.msg_url, $scope.msg_content_post + '\n\n')
+      $scope.post_msg = function (url_name) {
+        var url = config.msg_url
+        if (url_name && config[url_name]) url = config[url_name]
+
+        $http.post(url, $scope.msg_content_post + '\n\n')
         .success(function (data) {
           log(data)
         })
@@ -160,7 +163,7 @@
       $scope.popupField = function (msg, field) {
           console.log( "id=" +JSON.stringify(msg.msg_id) )
 
-          $http.get(thx_util.msg_url + '/' + msg.msg_id, { 
+          $http.get(config.msg_url + '/' + msg.msg_id, { 
               params: { 
                 field:           field
               }

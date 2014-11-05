@@ -1,4 +1,4 @@
-    thx_app.controller('thx_pub_controller', function($scope, $http, thx_util) {
+    thx_app.controller('thx_pub_controller', function($scope, $http, config) {
       $scope.timestamp = 'n/a'
       $scope.thx_controller_test = 'thx_controller_test_value'
 
@@ -10,7 +10,7 @@
       }
 
       $scope.getPublications = function (pubGln) {
-        //$http.get(thx_util.pub_url, { 
+        //$http.get(config.pub_url, { 
         $http.jsonp('http://plt-gdsn01.itradenetwork.com:8080/gdsn-server/api/getPublicationList' , {
           params: { publisher: pubGln, callback: 'JSON_CALLBACK' }
         })

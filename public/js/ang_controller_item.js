@@ -1,4 +1,4 @@
-    thx_app.controller('thx_item_controller', function($scope, $http, thx_util) {
+    thx_app.controller('thx_item_controller', function($scope, $http, config) {
 
       $scope.page = 0
       $scope.per_page = 10
@@ -139,8 +139,8 @@
 
         showBusy('Fetching item list...')
 
-        //$http.get(thx_util.items_list_url, {params: $scope.search_params})
-        $http.get(thx_util.items_list_url, {params: search_params})
+        //$http.get(config.items_list_url, {params: $scope.search_params})
+        $http.get(config.items_list_url, {params: search_params})
         .success(function (data) {
         console.log( JSON.stringify(data) )
           var items = []
@@ -206,7 +206,7 @@
 
       $scope.post_catalog_items = function () {
         //$http.post('/item', $scope.item_content_post + '\n\n') // cheerio testing
-        $http.post(thx_util.item_url, $scope.item_content_post + '\n\n')
+        $http.post(config.item_url, $scope.item_content_post + '\n\n')
         .success(function (data) {
           log('data: ' + data)
           log(data.msg)
@@ -219,7 +219,7 @@
       }
 
       $scope.view_catalog_item = function () {
-        $('#item_content_view').load(thx_util.item_url + '/' + $scope.input_item_gtin + '?')
+        $('#item_content_view').load(config.item_url + '/' + $scope.input_item_gtin + '?')
       }
 
     })

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sh:StandardBusinessDocument xmlns:sh="http://www.unece.org/cefact/namespaces/StandardBusinessDocumentHeader" xmlns:eanucc="urn:ean.ucc:2" xmlns:gdsn="urn:ean.ucc:gdsn:2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ean.ucc:2 http://www.gs1globalregistry.net/2.8/schemas/CatalogueItemSubscriptionProxy.xsd http://www.unece.org/cefact/namespaces/StandardBusinessDocumentHeader http://www.gs1globalregistry.net/2.8/schemas/sbdh/StandardBusinessDocumentHeader.xsd ">
+    <sh:StandardBusinessDocumentHeader>
+        <sh:HeaderVersion>1.0</sh:HeaderVersion>
+        <sh:Sender>
+            <sh:Identifier Authority="EAN.UCC">1100001011292</sh:Identifier>
+        </sh:Sender>
+        <sh:Receiver>
+            <sh:Identifier Authority="EAN.UCC">1100001011285</sh:Identifier>
+        </sh:Receiver>
+        <sh:DocumentIdentification>
+            <sh:Standard>EAN.UCC</sh:Standard>
+            <sh:TypeVersion>2.8</sh:TypeVersion>
+            <sh:InstanceIdentifier>MSG_OUT_255880</sh:InstanceIdentifier>
+            <sh:Type>catalogueItemSubscription</sh:Type>
+            <sh:CreationDateAndTime>2012-11-08T12:43:00.511-08:00</sh:CreationDateAndTime>
+        </sh:DocumentIdentification>
+    </sh:StandardBusinessDocumentHeader>
+    <eanucc:message>
+        <entityIdentification>
+            <uniqueCreatorIdentification>MSG_OUT_255880</uniqueCreatorIdentification>
+            <contentOwner>
+                <gln>1100001011292</gln>
+            </contentOwner>
+        </entityIdentification>
+        <eanucc:transaction>
+            <entityIdentification>
+                <uniqueCreatorIdentification>MSG_OUT_255880_TXN1</uniqueCreatorIdentification>
+                <contentOwner>
+                    <gln>1100001011292</gln>
+                </contentOwner>
+            </entityIdentification>
+            <command>
+                <eanucc:documentCommand>
+                    <documentCommandHeader type="ADD">
+                        <entityIdentification>
+                            <uniqueCreatorIdentification>MSG_OUT_255880_TXN1_CMD1</uniqueCreatorIdentification>
+                            <contentOwner>
+                                <gln>1100001011292</gln>
+                            </contentOwner>
+                        </entityIdentification>
+                    </documentCommandHeader>
+                    <documentCommandOperand>
+                        <gdsn:catalogueItemSubscription creationDateTime="2012-11-08T12:43:00.512-08:00" documentStatus="ORIGINAL">
+                            <dataRecipient>1100001011292</dataRecipient>
+                            <dataSource>4243444546475</dataSource>
+                            <recipientDataPool>1100001011285</recipientDataPool>
+                            <catalogueItemSubscriptionIdentification>
+                                <uniqueCreatorIdentification>MSG_OUT_255880_TXN1_CMD1_DOC1</uniqueCreatorIdentification>
+                                <contentOwner>
+                                    <gln>1100001011292</gln>
+                                </contentOwner>
+                            </catalogueItemSubscriptionIdentification>
+                        </gdsn:catalogueItemSubscription>
+                    </documentCommandOperand>
+                </eanucc:documentCommand>
+            </command>
+        </eanucc:transaction>
+    </eanucc:message>
+</sh:StandardBusinessDocument>

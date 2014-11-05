@@ -1,4 +1,4 @@
-    thx_app.controller('thx_party_controller', function($scope, $http, thx_util) {
+    thx_app.controller('thx_party_controller', function($scope, $http, config) {
 
       $scope.page = 0
 
@@ -21,7 +21,7 @@
         log('list_parties called with page increment ' + pageIncrement)
 
         showBusy('Fetching party list...')
-        $http.get(thx_util.parties_url, { 
+        $http.get(config.parties_url, { 
           params: { page: $scope.page }
         })
         .success(function (parties) {
@@ -40,7 +40,7 @@
       }
 
       $scope.post_parties = function () {
-        $http.post(thx_util.parties_url, $scope.party_content_post + '\n\n')
+        $http.post(config.parties_url, $scope.party_content_post + '\n\n')
         .success(function (data) {
           log(data)
           alert('XML uploaded successfully (' + data + ')')
@@ -51,7 +51,7 @@
       }
 
       $scope.view_party = function () {
-        $('#party_content_view').load(thx_util.party_url + '/' + $scope.input_party_gln)
+        $('#party_content_view').load(config.party_url + '/' + $scope.input_party_gln)
       }
 
     })

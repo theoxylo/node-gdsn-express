@@ -70,15 +70,12 @@
           <select ng-model="input_msg_type">
             <option value=""></option>
             <option value="basicPartyRegistration">BPR</option>
-            <option value="catalogueItemConfirmation">CIC</option>
-            <option value="catalogueItemNotification">CIN</option>
-            <option value="catalogueItemPublication">CIP</option>
-            <option value="catalogueItemRegistrationResponse">CIRR</option>
-            <option value="catalogueItemSubscription">CIS</option>
-            <option value="partyRegistrationResponse">PRR</option>
             <option value="registryCatalogueItem">RCI</option>
+            <option value="catalogueItemPublication">CIP</option>
+            <option value="catalogueItemSubscription">CIS</option>
+            <option value="catalogueItemNotification">CIN</option>
+            <option value="catalogueItemConfirmation">CIC</option>
             <option value="requestForCatalogueItemNotification">RFCIN</option>
-            <option value="GDSNException">GDSNException</option>
             <option value="GDSNResponse">GDSNResponse</option>
           </select>
         </span>
@@ -103,24 +100,35 @@
           Page Filter:<input ng-model="query" type="text" size="22" />
           <table width="100%">
             <tr>
-              <th></th>
               <th><a href="" ng-click="sortField = 'msg_id';         reverse = !reverse">Msg Id &nbsp;&nbsp;(Req Msg Id)</a></th>
               <th><a href="" ng-click="sortField = 'msg_type';       reverse = !reverse">Type</a></th>
+              <th><a href="" ng-click="sortField = 'status';         reverse = !reverse">Status</a></th>
               <th><a href="" ng-click="sortField = 'sender';         reverse = !reverse">Sender</a></th>
               <th><a href="" ng-click="sortField = 'receiver';       reverse = !reverse">Receiver</a></th>
+              <th><a href="" ng-click="sortField = 'provider';       reverse = !reverse">Provider</a></th>
+              <th><a href="" ng-click="sortField = 'recipient';      reverse = !reverse">Recipient</a></th>
               <th><a href="" ng-click="sortField = 'item_count';     reverse = !reverse">Items</a></th>
               <th>XML</th>
               <th><a href="" ng-click="sortField = 'created_ts';     reverse = !reverse">Created</a></th>
               <th><a href="" ng-click="sortField = 'modified_ts';    reverse = !reverse">Modified</a></th>
             </tr>
             <tr ng-repeat="msg in messages | filter:query | orderBy:sortField:reverse">
-              <td class="clickable" ng-click="showMessageDetail(msg)">details</td>
-              <td style="text-align: left;">{{msg.msg_id}}<span ng-if="msg.request_msg_id"> &nbsp;&nbsp;({{msg.request_msg_id}})</span></td>
+              <td class="clickable" ng-click="showMessageDetail(msg)" style="text-align: left;">{{msg.msg_id}}
+                <br/><span ng-if="msg.request_msg_id">&nbsp;({{msg.request_msg_id}})</span>
+              </td>
               <td style="text-align: left;">{{msg.msg_type}}</td>
+              <td style="text-align: left;">{{msg.status}}</td>
               <td>{{msg.sender}}</td>
-              <td>{{msg.receiver}}</td>
+              <td>
+                <span ng-if="!msg.gdsn_repostable">{{msg.receiver}}</span>
+                <span ng-if="msg.gdsn_repostable"><a ng-href="/cs_api/1.0/dp-post/{{msg.msg_id}}" target="_blank" title="Repost to GDSN">{{msg.receiver}}</a></span>
+              </td>
+              <td style="text-align: left;">{{msg.provider}}</td>
+              <td style="text-align: left;">{{msg.recipient}}</td>
               <td>{{msg.item_count}}<span ng-if="msg.exception" class="clickable" ng-click="popupField(msg, 'exception')">exc</span></td>
-              <td><span class="clickable" ng-click="popupField(msg, 'xml')">xml</span>, <span class="clickable" ng-click="popupField(msg, 'raw_xml')">raw_xml</span></td>
+              <td>
+                <span class="clickable" ng-click="popupField(msg, 'xml')">xml</span>
+              </td>
               <td>{{msg.created_ts2}}</td>
               <td>{{msg.modified_ts2}}</td>
             </tr>
@@ -155,7 +163,19 @@
         </div>
         <div>
           <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
-          <br/><button ng-click="post_msg()">Post</button>
+          <br/><button ng-click="post_msg('msg_url')">Post</button>
+        </div>
+      </div>
+
+      <div>Post Message to GDSN Data Pool</div>
+      <div>
+        <div ng-controller="thx_file_controller">
+          <input type="file" ng-file-select="onFileSelect($files, 'gdsn_url')"></input>
+          <button ng-click="uploadFile('gdsn_url')">Upload File to GDSN</button>
+        </div>
+        <div>
+          <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
+          <br/><button ng-click="post_msg('gdsn_url')">Post XML to GDSN</button>
         </div>
       </div>
 

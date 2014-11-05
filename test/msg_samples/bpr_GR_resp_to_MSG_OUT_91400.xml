@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<StandardBusinessDocument>
+<StandardBusinessDocumentHeader>
+<HeaderVersion>1.0</HeaderVersion>
+<Sender>
+<Identifier Authority="EAN.UCC">0614141810017</Identifier>
+</Sender>
+<Receiver>
+<Identifier Authority="EAN.UCC">1100001011285</Identifier>
+</Receiver>
+<DocumentIdentification>
+<Standard>EAN.UCC</Standard>
+<TypeVersion>2.8</TypeVersion>
+<InstanceIdentifier>MSG_OUT_91400_750510</InstanceIdentifier>
+<Type>GDSNResponse</Type>
+<CreationDateAndTime>2014-10-24T10:45:33-04:00</CreationDateAndTime>
+</DocumentIdentification>
+<BusinessScope>
+<Scope>
+<Type>GDSN</Type>
+<InstanceIdentifier>750510</InstanceIdentifier>
+<CorrelationInformation>
+<RequestingDocumentInstanceIdentifier>MSG_OUT_91400</RequestingDocumentInstanceIdentifier>
+</CorrelationInformation>
+</Scope>
+</BusinessScope>
+</StandardBusinessDocumentHeader>
+<message>
+<entityIdentification>
+<uniqueCreatorIdentification>750510</uniqueCreatorIdentification>
+<contentOwner>
+<gln>0614141810017</gln>
+</contentOwner>
+</entityIdentification>
+<partyRegistrationResponse responseStatus="ACCEPTED">
+<responseIdentification>
+<uniqueCreatorIdentification>MSG_OUT_91400_TXN1_CMD1_DOC1</uniqueCreatorIdentification>
+<contentOwner>
+<gln>1100001011285</gln>
+</contentOwner>
+</responseIdentification>
+<partyRegistrationInformation>
+<lastChangedDate>2014-10-24</lastChangedDate>
+<registrationDate>2012-09-25</registrationDate>
+</partyRegistrationInformation>
+<partyReference>4243444546475</partyReference>
+</partyRegistrationResponse>
+</message>
+</StandardBusinessDocument>
+
