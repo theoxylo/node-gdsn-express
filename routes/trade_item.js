@@ -402,7 +402,7 @@ module.exports = function (config) {
     })
     req.on('end', function () {
       log.info('Received msg xml of length ' + (xml && xml.length || '0'))
-      config.gdsn.msg_string_to_msg_info(config, xml, function (err, msg_info) {
+      config.gdsn.msg_string_to_msg_info(xml, function (err, msg_info) {
         if (err) return next(err)
         if (!res.finished) res.jsonp(msg_info)
       })

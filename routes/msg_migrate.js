@@ -19,6 +19,7 @@ module.exports = function (config) {
         //version: {$exists: false}
         //status: "REVIEW"
         //msg_type: 'catalogueItemNotification'
+        msg_type: 'GDSNResponse'
         //msg_id: 'API_CIP_1348588916974_10036016500279'
         //gdsn_repostable: {$exists: true}
       }
