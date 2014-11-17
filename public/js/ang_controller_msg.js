@@ -4,7 +4,6 @@
       $scope.page = 0
       $scope.input_per_page = $scope.input_per_page_default
       $scope.more_items = false
-      $scope.total_item_count = 0
       $scope.item_range_start = 0 
       $scope.item_range_end   = 0
       $scope.reset_search = function () {
@@ -24,10 +23,8 @@
           delete $scope.input_modified_end_date
           delete $scope.input_xml_regex
           delete $scope.input_exc_regex
-          delete $scope.input_include_total_count
           
           delete $scope.messages
-          delete $scope.total_item_count
           delete $scope.more_items
           delete $scope.item_range_start 
           delete $scope.item_range_end
@@ -41,7 +38,6 @@
         }
         else {
           $scope.page = 0
-          $scope.total_item_count = 0
           $scope.per_page = $scope.input_per_page || $scope.input_per_page_default
         }
         log('list_messages called with page increment ' + pageIncrement)
@@ -67,8 +63,7 @@
             exc_regex:           $scope.input_exc_regex,
             
             page:                $scope.page,
-            per_page:            $scope.input_per_page,
-            include_total_count: $scope.input_include_total_count
+            per_page:            $scope.input_per_page
           }
         })
         .success(function (messages) {
@@ -88,11 +83,8 @@
               $scope.more_items = false
               delete $scope.messages
           }
-        
           if (messages.collection.item_range_start) $scope.item_range_start = messages.collection.item_range_start 
           if (messages.collection.item_range_end)   $scope.item_range_end   = messages.collection.item_range_end
-
-//          $scope.myData = messages.collection.items
           hideBusy()
         })
         .error(function () {
@@ -105,35 +97,6 @@
         log('showMessageDetail called for msg ' + msg._id)
         $result_dialog.html(prettyPrint(msg)).dialog('open')
       }
-
-/*
-      $scope.showDocMessageDetail = function (msg) {
-        log('showDocMessageDetail called for msg ' + msg._id)
-
-        $http.get(config.msg_url, { 
-          params: { 
-            _id:              msg._id,
-          }
-        })
-        .success(function (messages) {
-          
-          if (messages.collection.item_count) {
-            $scope.messages = _.map(messages.collection.items, function (msg) {
-              msg.created_ts2 = (new Date(msg.created_ts)).toLocaleString()
-              msg.modified_ts2 = (new Date(msg.modified_ts)).toLocaleString()
-              return msg
-            })
-            $scope.more_items = (messages.collection.item_count == messages.collection.per_page)
-          } else {
-              alert("None found")
-          }
-        
-        })
-        .error(function () {
-          $error_dialog.html('An error occurred -- please try again').dialog('open')
-        })
-      }
-*/
 
       $scope.list_msg = function () {
         $('#message_list').load(config.msg_url)

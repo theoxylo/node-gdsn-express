@@ -86,12 +86,11 @@
         <span>XML           <input type="text" ng-model="input_xml_regex" size="30" placeholder="foodAndBev"></input></span>
         <span>Exception     <input type="text" ng-model="input_exc_regex" size="30" placeholder="Error"></input></span>
         <br />
-        <!-- span>Include total count <input type="checkbox" ng-model="input_include_total_count"></input></span -->
         <span>Created Start Date <input type="text" size="10" ng-model="input_created_st_date"        placeholder="8/21/2014" datepicker></input></span>
         <span>Created End Date   <input type="text" size="10" ng-model="input_created_end_date"       placeholder="8/24/2014" datepicker></input></span>
         <span>Modified Start Date<input type="text" size="10" ng-model="input_modified_st_date"        placeholder="8/26/2014" datepicker></input></span>
         <span>Modified End Date  <input type="text" size="10" ng-model="input_modified_end_date"       placeholder="8/28/2014" datepicker></input></span>
-        <span>Rows/page      <input ng-model="input_per_page" placeholder="20" size="3"></input></span>
+        <span>Per Page      <input ng-model="input_per_page" placeholder="20" size="3"></input></span>
         <button ng-click="list_messages()"   >Search</button>
         <button ng-click="reset_search()"    >Reset</button>
       
@@ -142,7 +141,6 @@
           <button ng-if="messages && messages.length == per_page" ng-click="list_messages(1)" >Next</button>
           <div class="centered">Displaying items <span>{{ item_range_start }}</span> to {{ item_range_end }}</div>
           <div class="centered" ng-if="!(more_items)">No more items to display</div>
-          <div class="centered" ng-if="total_item_count && input_include_total_count">Total number of matching items <span>{{ total_item_count }}</span></div>
         </p>
       </div>
 
@@ -259,7 +257,6 @@
         <span>Recipient GLN <input type="text" ng-model="input_item_recipient" size="15" placeholder="0625199000015"></input></span>
         <span>TM Country    <input type="text" ng-model="input_item_tm" size="3" placeholder="840"></input></span>
         <span>TM Sub        <input type="text" ng-model="input_item_tm_sub" size="5" placeholder="US-CA"></input></span>
-        <span>Include total count <input type="checkbox" ng-model="input_include_total_count"></input></span>
         <span>Per page      <input ng-model="input_per_page" size="3"></input></span>
         <p/>
         <span>XML Regex     <input type="text" ng-model="input_item_xml_text" size="30" placeholder="foodAndBev"></input></span>
@@ -320,10 +317,8 @@
             <button ng-if="page > 0" ng-click="list_items(-1)">Prev</button>
             <span>Page:<span>{{ page + 1 }}</span>
             <button ng-if="more_items" ng-click="list_items(1)">Next</button>
-            <button ng-if="total_item_count && more_items" ng-click="list_items((total_item_count / per_page) - page)">Last</button>
             <div class="centered"></span>Displaying items <span>{{ item_range_start }}</span> to {{ item_range_end }}</div>
             <div class="centered" ng-if="!(more_items)">No more items to display</div>
-            <div class="centered" ng-if="total_item_count && input_include_total_count">Total number of matching items <span>{{ total_item_count }}</span></div>
           </p>
 
           <div ng-if="selectedItem" id="selectedItem" class="blue_box">
@@ -396,13 +391,17 @@
       <div>Post Catalog Items</div>
       <div>
         <div ng-controller="thx_file_controller">
-          <input type="file" ng-file-select="onFileSelect($files, 'item_url')"></input>
+          Multi-item file upload: <input type="file" ng-file-select="onFileSelect($files, 'item_url')"></input>
           <button ng-click="uploadFile('item_url')">Upload File</button>
+          <br/>
+          Single item file upload: <input type="file" ng-file-select="onFileSelect($files, 'single_item_url')"></input>
+          <button ng-click="uploadFile('single_item_url')">Upload File</button>
         </div>
         <div>
           <br/>Or paste CIN XML:
           <br/><textarea rows="6" cols="100" ng-model="item_content_post"></textarea>
-          <br/><button ng-click="post_catalog_items()">Post XML</button>
+          <br/><button ng-click="post_catalog_items()">Post Multi-Item XML</button>
+          <button ng-click="post_catalog_item()">Post Single Item XML</button>
         </div>
       </div>
 
@@ -534,8 +533,7 @@
         <span>Username     <input type="text" size="15" ng-model="input_username" placeholder="per" ></input></span>
         <span>Min Duration (ms)     <input type="text" size="8" ng-model="input_duration" placeholder="200" ></input></span>
         <br />
-        <span>Include total count <input type="checkbox" ng-model="input_include_total_count"></input></span>
-        <span>Rows/page      <input ng-model="input_per_page" placeholder="10" size="3"></input></span>
+        <span>Per Page      <input ng-model="input_per_page" placeholder="10" size="3"></input></span>
         <button ng-click="list_fileLogs(0)">Search</button>
         <button ng-click="reset_log_search()">Reset</button>
 
@@ -565,10 +563,8 @@
             <button ng-if="page > 0" ng-click="list_fileLogs(-1)">Prev</button>
             <span>Page:<span>{{ page + 1 }}</span>
             <button ng-if="more_items" ng-click="list_fileLogs(1)">Next</button>
-            <button ng-if="total_item_count && more_items" ng-click="list_fileLogs( ((total_item_count % per_page) != 0) ? (total_item_count / per_page) : ((total_item_count / per_page)-1) - page)">Last</button>
             <div class="centered"></span>Displaying items <span>{{ item_range_start }}</span> to {{ item_range_end }}</div>
             <div class="centered" ng-if="!(more_items)">No more items to display</div>
-            <div class="centered" ng-if="total_item_count && input_include_total_count">Total number of matching items <span>{{ total_item_count }}</span></div>
       </p>
   </div>
 

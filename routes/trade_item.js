@@ -9,8 +9,6 @@ module.exports = function (config) {
   var trade_item_db  = require('../lib/db/trade_item.js')(config)
   var msg_archive_db = require('../lib/db/msg_archive.js')(config)
 
-  var api = {}
-
   function populateItemImageUrls(item) {
     //log.debug('populateItemImageUrls with item ' + JSON.stringify(item))
     var urls = []
@@ -67,7 +65,6 @@ module.exports = function (config) {
     result.collection.per_page         = 100
     result.collection.item_range_start = 1
     result.collection.item_range_end   = items.length
-    result.collection.total_item_count = items.length
 
     if (res.finished) return
 
@@ -76,6 +73,8 @@ module.exports = function (config) {
     }
     res.jsonp(result)
   }
+
+  var api = {} // for return
 
   // retrieve single trade item, and conditionally its children
   api.get_trade_item = function (req, res, next) {
@@ -96,7 +95,7 @@ module.exports = function (config) {
     info('db query: ' + JSON.stringify(db_query))
 
     var start = Date.now()
-    trade_item_db.getTradeItem(db_query, function (err, items) {
+    trade_item_db.getTradeItems(db_query, 0, 5, false, function (err, items) {
       if (err) return next(err)
 
       info('found ' + items.length + ' total items for gtin ' + db_query.gtin + ' in ' + (Date.now() - start) + 'ms')
@@ -105,7 +104,7 @@ module.exports = function (config) {
         item.fetch_type = 'match'
       })
 
-      start = Date.now(); // reset time
+      var start2 = Date.now()
       var href = config.base_url + req.url
 
       if (children && items.length == 1) { // only get children for first item match
@@ -113,7 +112,7 @@ module.exports = function (config) {
         item_utils.fetch_all_children(item, req_id, function(err, items) {
           if (err) return next(err)
           items.unshift(item)
-          info('found ' + items.length + ' total items for gtin ' + item.gtin + ' (with children) in ' + (Date.now() - start) + 'ms')
+          info('found ' + items.length + ' total items for gtin ' + item.gtin + ' (with children) in ' + (Date.now() - start2) + 'ms')
           serveCollection(req, res, items, href)
         })
       }
@@ -122,15 +121,12 @@ module.exports = function (config) {
         serveCollection(req, res, items, href)
       }
       log.db(req.url, req.user, (Date.now() - start) )
-    }) // end trade_item_db.getTradeItem
+    }) // end trade_item_db.getTradeItems
   }
 
-  // retrieve list view of items including total count but NOT including xml
+  // retrieve list of items NOT including xml
   api.list_trade_items = function (req, res, next) {
     log.debug('list_items')
-
-    var include_total_count = req.param('include_total_count') == 'true'
-    log.debug('include_total_count: ' + include_total_count)
 
     var page = parseInt(req.param('page'))
     log.debug('page: ' + page)
@@ -147,20 +143,9 @@ module.exports = function (config) {
     var query = item_utils.get_query(req)
 
     var start = Date.now()
-    var include_xml = true
-    var tasks = []
-    tasks.push(function (callback) {
-      trade_item_db.getTradeItems(query, page, per_page, !include_xml, callback)
-    })
-    if (include_total_count) tasks.push(function (callback) {
-      trade_item_db.getTradeItems(query, page, per_page, !include_xml, callback, include_total_count)
-    })
-    //async.series(tasks, function (err, results) { // I thought maybe db caching might make series faster, but no
-    async.parallel(tasks, function (err, results) {
+    trade_item_db.getTradeItems(query, page, per_page, false, function (err, items) {
       if (err) return next(err)
-      var items = results[0]
-      var total_item_count = results[1]
-      log.info('list_trade_items getTradeItems (with total item count ' + total_item_count + ') returned ' + items.length + ' items in ' + (Date.now() - start) + 'ms')
+      log.info('list_trade_items getTradeItems returned ' + (items && items.length) + ' items in ' + (Date.now() - start) + 'ms')
       var item_count = (page * per_page) + 1
       items = items.map(function (item) {
         item.href         = item_utils.get_item_href(item, '/items')
@@ -176,34 +161,13 @@ module.exports = function (config) {
       result.collection.per_page         = per_page
       result.collection.item_range_start = (page * per_page) + 1
       result.collection.item_range_end   = (page * per_page) + items.length
-      if (include_total_count) result.collection.total_item_count = total_item_count
 
-      /*
-      result.collection.links = [
-          {rel: 'next', href: href + '[?|&]page=+1'}
-        , {rel: 'prev', href: href + '[?|&]page=-1'}
-      ]
-      result.collection.queries = [
-        {
-          href   : '/items',
-          rel    : 'search',
-          prompt : 'Search by GTIN',
-          data   : [
-            {name : 'gtin', value : '/[0-9]{0-14}/'}
-          ]
-        }
-      ]
-      result.collection.template = {
-        data : [
-          {prompt: 'Item GTIN (required)', name: 'gtin', value: '/[0-9]{14}/'},
-        ]
-      }
-      */
       if (!res.finished) res.jsonp(result)
       log.db(req.url, req.user, (Date.now() - start) )
     })
   }
 
+  // retrieve list of items including xml
   api.find_trade_items = function (req, res, next) {
     log.info('find_trade_items req.path: ' + req.path)
     log.info('find_trade_items req.query: ' + JSON.stringify(req.query))
@@ -219,8 +183,7 @@ module.exports = function (config) {
     if (!per_page || per_page < 0 || per_page > 100) per_page = config.per_page_count
 
     var start = Date.now()
-    var include_xml = true
-    trade_item_db.getTradeItems(query, page, per_page, include_xml, function (err, items) {
+    trade_item_db.getTradeItems(query, page, per_page, true, function (err, items) {
       if (err) return next(err)
       log.info('find_trade_items getTradeItems found ' + items.length + ' items in ' + (Date.now() - start) + 'ms')
 
@@ -276,22 +239,11 @@ module.exports = function (config) {
             item.href         = item_utils.get_item_href(item, '/items')
             item.history_href = item_utils.get_item_href(item, '/items/history')
 
+            // run digest at request time?
             //var itemDigest = xml_digest.digest(item.xml)
             //item.tradeItem = itemDigest.tradeItem
-            delete item.xml
 
-            /*
-            item.data = [
-              {
-                prompt: 'Item GTIN (required)'
-                , name: 'gtin'
-                , value: item.gtin
-              }
-            ]
-            item.links = [
-              { rel: 'self', href: item.href }
-            ]
-            */
+            delete item.xml
 
             return item
           })
@@ -389,25 +341,51 @@ module.exports = function (config) {
     }) // end getEachTradeItemFromStream
   } // end api.post_trade_items
 
-  api.post_get_item_info = function (req, res, next) {
-    log.debug('post_get_item_info handler called')
-
+  api.post_trade_item = function (req, res, next) {
+    log.debug('post_trade_item handler called')
     var xml = ''
     req.setEncoding('utf8')
+
     req.on('data', function (chunk) {
-      log.debug('post_get_item_info chunk.length: ' + chunk.length + ' / ' + xml.length)
-      //log.debug(chunk)
+      log.debug('post_trade_item chunk.length: ' + chunk.length + ' / ' + xml.length)
       xml += chunk 
-      if (xml.length > 10 * 1000 * 1000) next(Error('10 MB limit for persisting raw message'))
+      if (xml.length > 5 * 1000 * 1000) next(Error('5 MB limit for raw message'))
     })
+
     req.on('end', function () {
-      log.info('Received msg xml of length ' + (xml && xml.length || '0'))
-      config.gdsn.msg_string_to_msg_info(xml, function (err, msg_info) {
+      log.info('post_trade_item received msg xml of length ' + (xml && xml.length || '0'))
+
+      config.gdsn.item_string_to_item_info(xml, function (err, item) {
         if (err) return next(err)
-        if (!res.finished) res.jsonp(msg_info)
+        if (!item) return next(Error('no item info was derived'))
+
+        log.debug('received item from item_string_to_item_info callback with gtin ' + item.gtin)
+
+        item.slug = item_utils.get_item_slug(item)
+
+        var itemDigest = xml_digest.digest(item.xml)
+        item.tradeItem = itemDigest.tradeItem
+
+        trade_item_db.saveTradeItem(item, function (err, results) {
+          log.debug('save item err: ' + JSON.stringify(err))
+          log.debug('save item results: ' + JSON.stringify(results))
+          if (err) return next(err)
+          if (!res.finished) {
+            if (results && results.length) {
+              res.jsonp({
+                msg: 'Created ' + results.length + ' items with GTINs: ' + results.join(', ')
+                , gtins: results
+              }) 
+            }
+            else {
+              res.jsonp({msg: 'No item was created'})
+            }
+          }
+        })
       })
-    })
-  }
+    }) // end req on end
+
+  } // end api.post_trade_item
 
   api.migrate_trade_items = function (req, res, next) {
     log.debug('migrate_trade_items handler called')
@@ -419,8 +397,7 @@ module.exports = function (config) {
     var gtinsMigrated = []
 
     var intervalId = setInterval(function () {
-      var include_xml = true
-      trade_item_db.getTradeItems(query, 0, 10, include_xml, function (err, items) {
+      trade_item_db.getTradeItems(query, 0, 10, true, function (err, items) {
         if (err) return next(err)
         log.info('migrate_trade_items getTradeItems return item count: ' + items.length)
 
@@ -471,7 +448,7 @@ module.exports = function (config) {
     info('db query: ' + JSON.stringify(db_query))
 
     var start = Date.now()
-    trade_item_db.getTradeItem(db_query, function (err, items) {
+    trade_item_db.getTradeItems(db_query, 0, 10, false, function (err, items) {
       if (err) return next(err)
 
       info('found ' + items.length + ' total historical items for ' + req.path + ' in ' + (Date.now() - start) + 'ms')
@@ -486,7 +463,7 @@ module.exports = function (config) {
       serveCollection(req, res, items, href)
 
       log.db(req.url, req.user, (Date.now() - start2) )
-    }) // end trade_item_db.getTradeItem
+    }) // end trade_item_db.getTradeItems
   }
 
   return api

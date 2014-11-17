@@ -10,7 +10,6 @@ module.exports = function (config) {
   api.list_logs = function(req, res, next) {
     log.debug('list_logs() req params= ' + JSON.stringify(req.query))
 
-    var include_total_count = req.param('include_total_count') == 'true'
 
     var page = parseInt(req.param('page'))
     if (!page || page < 0) page = 0
@@ -20,18 +19,9 @@ module.exports = function (config) {
     var query = get_query(req)
     log.debug('list_logs() query= ' + JSON.stringify(query))
     var start = Date.now()
-    var tasks = []
-    tasks.push(function (callback) {
-        logs.listLogs(query, page, per_page, callback)
-    })
-    if (include_total_count) tasks.push(function (callback) {
-        logs.listLogs(query, page, per_page, callback, include_total_count)
-    })
-    async.parallel(tasks, function (err, results) {
+    logs.listLogs(query, page, per_page, function (err, items) {
       if (err) return next(err)
-      var items = results[0]
-      var total_item_count = results[1]
-      log.info('logs list_logs (with total item count ' + total_item_count + ') returned ' + items.length + ' items in ' + (Date.now() - start) + 'ms')
+      log.info('logs list_logs returned ' + items.length + ' items in ' + (Date.now() - start) + 'ms')
       var item_count = (page * per_page) + 1
       items = items.map(function (item) {
         item.item_count_num = item_count++
@@ -44,7 +34,6 @@ module.exports = function (config) {
       result.collection.per_page         = per_page
       result.collection.item_range_start = (page * per_page) + 1
       result.collection.item_range_end   = (page * per_page) + items.length
-      if (include_total_count) result.collection.total_item_count = total_item_count
 
       if (!res.finished) res.jsonp(result)
     })

@@ -16,7 +16,6 @@ var config = {
   , per_page_count        : 10
   , base_url              : '/cs_api/1.0'
   , slow_warn_ms          : 800
-  , total_item_count_limit: 1000
   , enable_query_req_id   : false
   , dp_post_url           : 'http://localhost:8080/gdsn-server/gdsn.ee'
 }

@@ -80,8 +80,6 @@
         delete $scope.input_created_end_date
         delete $scope.input_modified_st_date
         delete $scope.input_modified_end_date
-        delete $scope.input_include_total_count
-        delete $scope.total_item_count
         delete $scope.items
         delete $scope.page
         delete $scope.more_items
@@ -101,16 +99,13 @@
         if (pageIncrement) {
           $scope.page += pageIncrement              // note that we don't allow per_page to be changed when paging
           $scope.search_params.page = $scope.page
-          $scope.search_params.include_total_count = false // don't recount when paging
         }
         else { // only reread search params from form and reset counts if not paging
           $scope.page = 0
-          $scope.total_item_count = 0
           $scope.per_page = $scope.input_per_page || 10
           $scope.search_params = {
               page                : $scope.page 
             , per_page            : $scope.per_page
-            , include_total_count : $scope.input_include_total_count
             , gtin                : $scope.input_item_gtin
             , provider            : $scope.input_item_provider
             , recipient           : $scope.input_item_recipient
@@ -134,7 +129,6 @@
 
       $scope.executeItemSearch = function (search_params) {
 
-        console.log('include total count checkbox: ' + $scope.input_include_total_count)
         console.log('page num to request: ' + $scope.page)
 
         showBusy('Fetching item list...')
@@ -149,7 +143,6 @@
           }
           catch (e) {console.log(e)}
 
-          if (data.collection.total_item_count) $scope.total_item_count = data.collection.total_item_count
           if (data.collection.item_range_start) $scope.item_range_start = data.collection.item_range_start 
           if (data.collection.item_range_end)   $scope.item_range_end   = data.collection.item_range_end   
 
@@ -193,7 +186,6 @@
           else {
             if ($scope.page > 0) $scope.page--
             $scope.more_items = false
-            delete $scope.total_item_count
             delete $scope.items
           }
           hideBusy()
@@ -207,6 +199,19 @@
       $scope.post_catalog_items = function () {
         //$http.post('/item', $scope.item_content_post + '\n\n') // cheerio testing
         $http.post(config.item_url, $scope.item_content_post + '\n\n')
+        .success(function (data) {
+          log('data: ' + data)
+          log(data.msg)
+          log(JSON.stringify(data))
+          alert('XML text uploaded successfully (' + data.msg + ')')
+        })
+        .error(function () {
+          log(arguments)
+        })
+      }
+
+      $scope.post_catalog_item = function () {
+        $http.post(config.single_item_url, $scope.item_content_post + '\n\n')
         .success(function (data) {
           log('data: ' + data)
           log(data.msg)

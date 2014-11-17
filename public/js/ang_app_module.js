@@ -6,6 +6,7 @@
         , pub_url         : app.api + '/publicationList'
         , msg_url         : app.api + '/msg'
         , item_url        : app.api + '/items'
+        , single_item_url : app.api + '/item'
         , items_list_url  : app.api + '/items-list'
         , item_detail_url : app.api + '/item'
         , party_url       : app.api + '/party'
