@@ -26,7 +26,7 @@ module.exports = function (config) {
       log.info('Received msg xml of length ' + (xml && xml.length || '0'))
       msg_archive_db.saveMessage(xml, function (err, msg_info) {
         if (err) return next(err)
-        log.info('Message info saved to archive: ' + JSON.stringify(msg_info))
+        log.info('Message info saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
 
         if (!res.finished) {
           if (msg_info) {
@@ -40,7 +40,7 @@ module.exports = function (config) {
     })
 
     var tasks = []
-    config.gdsn.items.getEachTradeItemFromStream(req, function (err, item) {
+    config.gdsn.getEachTradeItemFromStream(req, function (err, item) {
       if (err) {
         log.error('Error getting trade items from stream: ' + err)
         return
@@ -59,10 +59,8 @@ module.exports = function (config) {
       else { // null item is passed when there are no more items in the stream
         log.debug('no more items from getEachTradeItemFromStream callback')
         async.parallel(tasks, function (err, results) {
-          log.debug('parallel err: ' + JSON.stringify(err))
           log.debug('parallel results: ' + JSON.stringify(results))
           if (err) {
-            error = true
             log.error('Error saving trade items for message: ' + err)
             return
           }

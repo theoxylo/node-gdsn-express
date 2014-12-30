@@ -11,21 +11,21 @@
         <sh:DocumentIdentification>
             <sh:Standard>EAN.UCC</sh:Standard>
             <sh:TypeVersion>2.8</sh:TypeVersion>
-            <sh:InstanceIdentifier>BPR_to_GR_20141022</sh:InstanceIdentifier>
+            <sh:InstanceIdentifier>BPR_to_GR_20141203</sh:InstanceIdentifier>
             <sh:Type>basicPartyRegistration</sh:Type>
-            <sh:CreationDateAndTime>2014-10-22T08:18:02.678-07:00</sh:CreationDateAndTime>
+            <sh:CreationDateAndTime>2014-12-03T08:18:02.678-07:00</sh:CreationDateAndTime>
         </sh:DocumentIdentification>
     </sh:StandardBusinessDocumentHeader>
     <eanucc:message>
         <entityIdentification>
-            <uniqueCreatorIdentification>BPR_to_GR_20141022</uniqueCreatorIdentification>
+            <uniqueCreatorIdentification>BPR_to_GR_20141203</uniqueCreatorIdentification>
             <contentOwner>
                 <gln>1100001011285</gln>
             </contentOwner>
         </entityIdentification>
         <eanucc:transaction>
             <entityIdentification>
-                <uniqueCreatorIdentification>BPR_to_GR_20141022_TXN1</uniqueCreatorIdentification>
+                <uniqueCreatorIdentification>BPR_to_GR_20141203_TXN1</uniqueCreatorIdentification>
                 <contentOwner>
                     <gln>1100001011285</gln>
                 </contentOwner>
@@ -34,14 +34,14 @@
                 <eanucc:documentCommand>
                     <documentCommandHeader type="CHANGE_BY_REFRESH">
                         <entityIdentification>
-                            <uniqueCreatorIdentification>BPR_to_GR_20141022_TXN1_CMD1</uniqueCreatorIdentification>
+                            <uniqueCreatorIdentification>BPR_to_GR_20141203_TXN1_CMD1</uniqueCreatorIdentification>
                             <contentOwner>
                                 <gln>1100001011285</gln>
                             </contentOwner>
                         </entityIdentification>
                     </documentCommandHeader>
                     <documentCommandOperand>
-                        <gdsn:basicPartyRegistration creationDateTime="2014-10-22T08:18:02.679-07:00" documentStatus="ORIGINAL">
+                        <gdsn:basicPartyRegistration creationDateTime="2014-12-03T08:18:02.679-07:00" documentStatus="ORIGINAL">
                             <transmittingDataPool>1100001011285</transmittingDataPool>
                             <partyDataPool>1100001011285</partyDataPool>
                             <registryParty>
@@ -84,16 +84,16 @@
                             </registryParty>
                             <processCapabilityInformation>
                                 <processCapabilityCode>DATA_SYNCHRONISATION</processCapabilityCode>
-                                <processCapabilityEffectiveStartDateTime>2014-10-22T08:17:48.067-07:00</processCapabilityEffectiveStartDateTime>
+                                <processCapabilityEffectiveStartDateTime>2014-12-03T08:17:48.067-07:00</processCapabilityEffectiveStartDateTime>
                             </processCapabilityInformation>
                             <basicPartyRegistrationIdentification>
-                                <uniqueCreatorIdentification>BPR_to_GR_20141022_TXN1_CMD1_DOC1</uniqueCreatorIdentification>
+                                <uniqueCreatorIdentification>BPR_to_GR_20141203_TXN1_CMD1_DOC1</uniqueCreatorIdentification>
                                 <contentOwner>
                                     <gln>1100001011285</gln>
                                 </contentOwner>
                             </basicPartyRegistrationIdentification>
                         </gdsn:basicPartyRegistration>
-                        <gdsn:basicPartyRegistration creationDateTime="2014-10-22T08:18:02.679-07:00" documentStatus="ORIGINAL">
+                        <gdsn:basicPartyRegistration creationDateTime="2014-12-03T08:18:02.679-07:00" documentStatus="ORIGINAL">
                             <transmittingDataPool>1100001011285</transmittingDataPool>
                             <partyDataPool>1100001011285</partyDataPool>
                             <registryParty>
@@ -127,7 +127,7 @@
                                         <postalCode>94588</postalCode>
                                         <secondaryGovernmentArea>CA</secondaryGovernmentArea>
                                         <streetAddressOne>4155 Hopyard Rd.</streetAddressOne>
-                                        <streetAddressTwo>Suite 100</streetAddressTwo>
+                                        <streetAddressTwo>Suite 101</streetAddressTwo>
                                     </registryPartyNameAndAddress>
                                 </registryPartyInformation>
                                 <informationProviderOfParty>
@@ -136,10 +136,10 @@
                             </registryParty>
                             <processCapabilityInformation>
                                 <processCapabilityCode>DATA_SYNCHRONISATION</processCapabilityCode>
-                                <processCapabilityEffectiveStartDateTime>2014-10-22T08:17:48.067-07:00</processCapabilityEffectiveStartDateTime>
+                                <processCapabilityEffectiveStartDateTime>2014-12-03T08:17:48.067-07:00</processCapabilityEffectiveStartDateTime>
                             </processCapabilityInformation>
                             <basicPartyRegistrationIdentification>
-                                <uniqueCreatorIdentification>BPR_to_GR_20141022_TXN1_CMD1_DOC2</uniqueCreatorIdentification>
+                                <uniqueCreatorIdentification>BPR_to_GR_20141203_TXN1_CMD1_DOC2</uniqueCreatorIdentification>
                                 <contentOwner>
                                     <gln>1100001011285</gln>
                                 </contentOwner>

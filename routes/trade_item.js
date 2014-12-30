@@ -10,14 +10,15 @@ module.exports = function (config) {
   var msg_archive_db = require('../lib/db/msg_archive.js')(config)
 
   function populateItemImageUrls(item) {
-    //log.debug('populateItemImageUrls with item ' + JSON.stringify(item))
     var urls = []
-    if (item && item.tradeItem) {
+    if (item 
+        && item.tradeItem
+        && item.tradeItem.tradeItemInformation
+        && item.tradeItem.tradeItemInformation.tradeItemDescriptionInformation
+        && item.tradeItem.tradeItemInformation.tradeItemDescriptionInformation.tradeItemExternalInformation
+    ) {
       try {
-        //tradeItem/tradeItemInformation/tradeItemDescriptionInformation/
-        //tradeItemExternalInformation[1]/uniformResourceIdentifier
         var dUrls = item.tradeItem.tradeItemInformation.tradeItemDescriptionInformation.tradeItemExternalInformation.map(function (extInfo) {
-          console.log('external Url: ' + extInfo.uniformResourceIdentifier)
           return extInfo.uniformResourceIdentifier
         })
         if (dUrls && dUrls.length) {
@@ -27,12 +28,14 @@ module.exports = function (config) {
         }
       }
       catch (e) {console.log(e)}
-
-      log.debug('urls: ' + urls.join(' '))
-
+    }
+    if (item 
+        && item.tradeItem
+        && item.tradeItem.extension
+        && item.tradeItem.extension.foodAndBeverageTradeItemExtension
+        && item.tradeItem.extension.foodAndBeverageTradeItemExtension.tradeItemExternalInformation
+    ) {
       try {
-        //tradeItem/extension/food:foodAndBeverageTradeItemExtension/
-        //tradeItemExternalInformation[1]/uniformResourceIdentifier
         var fUrls = item.tradeItem.extension.foodAndBeverageTradeItemExtension.tradeItemExternalInformation.map(function (extInfo) {
           return extInfo.uniformResourceIdentifier
         })
@@ -44,7 +47,7 @@ module.exports = function (config) {
       }
       catch (e) {console.log(e)}
     }
-    log.debug('all item external file urls: ' + urls.join(' '))
+    if (urls.length) log.debug('all item external file urls: ' + urls.join(' '))
     item.images = urls
   }
 
@@ -205,19 +208,6 @@ module.exports = function (config) {
 
           if (item) {
 
-            if (client_config.xml_mappings && item.xml) {
-              info('applying server profile xpath mappings for client ' + req.user + ' to item GTIN ' + item.gtin)
-              try {
-                //log.debug('applying xpath to xml: ' + item.xml)
-                item.tradeItem = config.gdsn.getCustomTradeItemInfo(item.xml, client_config.xml_mappings)
-                //log.debug(JSON.stringify(item.tradeItem))
-              }
-              catch (e) {
-                log.error('Error applying server profile xpath mappings to item: ' + e)
-              }
-            }
-            //else info('SKIPPING server profile xpath mappings for client ' + req.user + ' to item GTIN ' + item.gtin)
-
             res.set('Content-Type', 'application/xml;charset=utf-8')
             if (req.param('download')) {
               res.set('Content-Disposition', 'attachment; filename="item_' + item.gtin + '.xml"')
@@ -287,25 +277,33 @@ module.exports = function (config) {
       log.info('Received msg xml of length ' + (xml && xml.length || '0'))
       msg_archive_db.saveMessage(xml, function (err, msg_info) {
         if (err) return next(err)
-        log.info('Message info saved to archive: ' + JSON.stringify(msg_info))
+        log.info('Message info saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
       })
     })
 
     var unique_items = []
     var tasks = []
 
-    config.gdsn.items.getEachTradeItemFromStream(req, function (err, item) {
+    config.gdsn.getEachTradeItemFromStream(req, function (err, item) {
       if (err) return next(err)
 
       if (item) {
-        log.debug('received item from getEachTradeItemFromStream callback with gtin ' + item.gtin)
+        log.debug('received item from stream callback with gtin ' + item.gtin)
 
         item.slug = item_utils.get_item_slug(item)
+        log.debug('item slug: ' + item.slug)
 
         if (unique_items.indexOf(item.slug) == -1) {
           unique_items.push(item.slug)
-          var itemDigest = xml_digest.digest(item.xml)
-          item.tradeItem = itemDigest.tradeItem
+
+          try {
+            var itemDigest = xml_digest.digest(item.xml)
+            item.tradeItem = itemDigest && itemDigest.tradeItem
+          }
+          catch (e) {
+            log.debug('failed digest xml: ' + item.xml)
+            return next(e)
+          }
 
           tasks.push(function (callback) {
             trade_item_db.saveTradeItem(item, callback)
@@ -317,7 +315,7 @@ module.exports = function (config) {
         }
       }
       else { // null item is passed when there are no more items in the stream
-        log.debug('no more items from getEachTradeItemFromStream callback')
+        log.debug('no more items from stream callback')
         async.parallel(tasks, function (err, results) {
           log.debug('parallel err: ' + JSON.stringify(err))
           log.debug('parallel results: ' + JSON.stringify(results))
@@ -338,54 +336,8 @@ module.exports = function (config) {
           }
         }) // end async.parallel
       } // end else
-    }) // end getEachTradeItemFromStream
+    }) // end gdsn.getTradeItemsFromStream
   } // end api.post_trade_items
-
-  api.post_trade_item = function (req, res, next) {
-    log.debug('post_trade_item handler called')
-    var xml = ''
-    req.setEncoding('utf8')
-
-    req.on('data', function (chunk) {
-      log.debug('post_trade_item chunk.length: ' + chunk.length + ' / ' + xml.length)
-      xml += chunk 
-      if (xml.length > 5 * 1000 * 1000) next(Error('5 MB limit for raw message'))
-    })
-
-    req.on('end', function () {
-      log.info('post_trade_item received msg xml of length ' + (xml && xml.length || '0'))
-
-      config.gdsn.item_string_to_item_info(xml, function (err, item) {
-        if (err) return next(err)
-        if (!item) return next(Error('no item info was derived'))
-
-        log.debug('received item from item_string_to_item_info callback with gtin ' + item.gtin)
-
-        item.slug = item_utils.get_item_slug(item)
-
-        var itemDigest = xml_digest.digest(item.xml)
-        item.tradeItem = itemDigest.tradeItem
-
-        trade_item_db.saveTradeItem(item, function (err, results) {
-          log.debug('save item err: ' + JSON.stringify(err))
-          log.debug('save item results: ' + JSON.stringify(results))
-          if (err) return next(err)
-          if (!res.finished) {
-            if (results && results.length) {
-              res.jsonp({
-                msg: 'Created ' + results.length + ' items with GTINs: ' + results.join(', ')
-                , gtins: results
-              }) 
-            }
-            else {
-              res.jsonp({msg: 'No item was created'})
-            }
-          }
-        })
-      })
-    }) // end req on end
-
-  } // end api.post_trade_item
 
   api.migrate_trade_items = function (req, res, next) {
     log.debug('migrate_trade_items handler called')
@@ -411,8 +363,14 @@ module.exports = function (config) {
         items.forEach(function (item) {
           log.debug('migrating tradeitem with gtin ' + item.gtin)
 
-          var itemDigest = xml_digest.digest(item.xml)
-          item.tradeItem = itemDigest.tradeItem
+          try {
+            var itemDigest = xml_digest.digest(item.xml)
+            item.tradeItem = itemDigest && itemDigest.tradeItem
+          }
+          catch (e) {
+            log.debug('failed digest xml: ' + item.xml)
+            return next(e)
+          }
 
           tasks.push(function (callback) {
             trade_item_db.saveTradeItem(item, callback)

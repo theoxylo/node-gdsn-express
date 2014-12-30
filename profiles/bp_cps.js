@@ -6,16 +6,7 @@ module.exports = {
     ,'/cs_api/1.0/subscribed'
     ]
   , getDataPool: function (dp_gln) {
-      //var data_pools = {
-      var data_pools = require('../data/datapools.js') || {
-          '0068780850147' : 'ECCnet'
-        , '7540000000530' : 'GS1 Canada'
-        , '8380160030003' : '1WS Test'
-        , '0838016003001' : '1WS'
-        , '0850522001050' : 'FSE'
-        , '1100001011285' : 'iTradeNetwork'
-      }
-      console.log('datapools: ' + JSON.stringify(data_pools))
+      var data_pools = require('../data/datapools.js')
       return data_pools[dp_gln] || dp_gln || ''
   }
   , getMeasurement: function (measurements, prop) {

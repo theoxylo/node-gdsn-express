@@ -18,6 +18,7 @@ var config = {
   , slow_warn_ms          : 800
   , enable_query_req_id   : false
   , dp_post_url           : 'http://localhost:8080/gdsn-server/gdsn.ee'
+  , dp_xsd_url            : 'http://localhost:8080/gdsn-server/api/xmlvalidation'
 }
 
 var local_config = {}

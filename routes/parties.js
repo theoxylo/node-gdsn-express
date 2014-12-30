@@ -35,7 +35,7 @@ module.exports = function (config) {
 
     var parties = []
 
-    config.gdsn.parties.getEachPartyFromStream(req, function (err, party) {
+    config.gdsn.getEachPartyFromStream(req, function (err, party) {
       if (err) return next(err)
 
       if (party) {

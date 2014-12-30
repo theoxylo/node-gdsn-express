@@ -100,13 +100,11 @@
           <table width="100%">
             <tr>
               <th><a href="" ng-click="sortField = 'msg_id';         reverse = !reverse">Msg Id &nbsp;&nbsp;(Req Msg Id)</a></th>
+              <th><a href="" ng-click="sortField = 'version';        reverse = !reverse">Version</a></th>
               <th><a href="" ng-click="sortField = 'msg_type';       reverse = !reverse">Type</a></th>
               <th><a href="" ng-click="sortField = 'status';         reverse = !reverse">Status</a></th>
               <th><a href="" ng-click="sortField = 'sender';         reverse = !reverse">Sender</a></th>
               <th><a href="" ng-click="sortField = 'receiver';       reverse = !reverse">Receiver</a></th>
-              <th><a href="" ng-click="sortField = 'provider';       reverse = !reverse">Provider</a></th>
-              <th><a href="" ng-click="sortField = 'recipient';      reverse = !reverse">Recipient</a></th>
-              <th><a href="" ng-click="sortField = 'item_count';     reverse = !reverse">Items</a></th>
               <th>XML</th>
               <th><a href="" ng-click="sortField = 'created_ts';     reverse = !reverse">Created</a></th>
               <th><a href="" ng-click="sortField = 'modified_ts';    reverse = !reverse">Modified</a></th>
@@ -115,18 +113,20 @@
               <td class="clickable" ng-click="showMessageDetail(msg)" style="text-align: left;">{{msg.msg_id}}
                 <br/><span ng-if="msg.request_msg_id">&nbsp;({{msg.request_msg_id}})</span>
               </td>
+              <td>{{msg.version}}</td>
               <td style="text-align: left;">{{msg.msg_type}}</td>
-              <td style="text-align: left;">{{msg.status}}</td>
+              <td style="text-align: left;">
+                  <span ng-if="msg.exception" class="clickable" ng-click="popupField(msg, 'exception')">{{msg.status}}</span>
+                  <span ng-if="!msg.exception">{{msg.status}}</span>
+              </td>
               <td>{{msg.sender}}</td>
               <td>
                 <span ng-if="!msg.gdsn_repostable">{{msg.receiver}}</span>
-                <span ng-if="msg.gdsn_repostable"><a ng-href="/cs_api/1.0/dp-post/{{msg.msg_id}}" target="_blank" title="Repost to GDSN">{{msg.receiver}}</a></span>
+                <span ng-if="msg.gdsn_repostable"><a ng-href="/cs_api/1.0/dp-submit/{{msg.msg_id}}" target="_blank" title="Repost to GDSN">{{msg.receiver}}</a></span>
               </td>
-              <td style="text-align: left;">{{msg.provider}}</td>
-              <td style="text-align: left;">{{msg.recipient}}</td>
-              <td>{{msg.item_count}}<span ng-if="msg.exception" class="clickable" ng-click="popupField(msg, 'exception')">exc</span></td>
               <td>
-                <span class="clickable" ng-click="popupField(msg, 'xml')">xml</span>
+                <span class="clickable" ng-click="popupField(msg, 'xml')">XML</span>
+                <span class="clickable"><a ng-href="/cs_api/1.0/dp-xsd/{{msg.msg_id}}" target="_blank" title="XSD Validate">XSD</a></span>
               </td>
               <td>{{msg.created_ts2}}</td>
               <td>{{msg.modified_ts2}}</td>
@@ -153,11 +153,29 @@
         <br/><span ng-if="view_msg_id">[<a ng-href="/cs_api/1.0/msg/{{view_msg_id}}">Link to message {{view_msg_id}}</a>]</span>
       </div>
 
+      <div>Archive Message</div>
+      <div>
+        <div ng-controller="thx_file_controller">
+          <span>This form will post messages to the CS Msg Archive only with no party/item parsing or persistence</span>
+          <form>
+              <input type="file" ng-file-select="onFileSelect($files, 'test_url')"></input>
+              <button ng-click="uploadFile('test_url')">Upload File</button>
+          </form>
+        </div>
+        <div>
+          <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
+          <br/><button ng-click="post_msg('test_url')">Post</button>
+        </div>
+      </div>
+
       <div>Post Message</div>
       <div>
         <div ng-controller="thx_file_controller">
-          <input type="file" ng-file-select="onFileSelect($files, 'msg_url')"></input>
-          <button ng-click="uploadFile('msg_url')">Upload File</button>
+          <span>This form will post messages to CS for party/item parsing and persistence, along with message archival</span>
+          <form>
+            <input type="file" ng-file-select="onFileSelect($files, 'msg_url')"></input>
+            <button ng-click="uploadFile('msg_url')">Upload File</button>
+          </form>
         </div>
         <div>
           <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
@@ -174,6 +192,18 @@
         <div>
           <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
           <br/><button ng-click="post_msg('gdsn_url')">Post XML to GDSN</button>
+        </div>
+      </div>
+
+      <div>XSD Validate Message</div>
+      <div>
+        <div ng-controller="thx_file_controller">
+          <input type="file" ng-file-select="onFileSelect($files, 'xsd_url')"></input>
+          <button ng-click="uploadFile('xsd_url')">Validate XML File</button>
+        </div>
+        <div>
+          <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
+          <br/><button ng-click="post_msg('xsd_url')">Validate XML Text</button>
         </div>
       </div>
 

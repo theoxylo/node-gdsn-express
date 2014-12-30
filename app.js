@@ -46,6 +46,7 @@ var routes_login    = require(config.routes_dir + '/login')(config)
 var routes_msg      = require(config.routes_dir + '/msg_archive')(config)
 var routes_msg_mig  = require(config.routes_dir + '/msg_migrate')(config)
 var routes_gdsn     = require(config.routes_dir + '/gdsn_datapool')(config)
+var routes_xsd      = require(config.routes_dir + '/gdsn_xsd')(config)
 var routes_parties  = require(config.routes_dir + '/parties')(config)
 var routes_logs     = require(config.routes_dir + '/logs')(config)
 var routes_item     = require(config.routes_dir + '/trade_item')(config)
@@ -134,15 +135,17 @@ log.info('setting up routes and URL templates')
 // GET
 
 // POST
-router.post('/msg',     routes_msg.post_archive)
-router.post('/dp-post', routes_gdsn.post_to_gdsn)
-router.post('/items',   routes_item.post_trade_items)
-
-router.post('/item',    routes_item.post_trade_item)
-router.post('/items',   routes_item.post_trade_items)
+router.post('/test',        require(config.routes_dir + '/route_test')(config))
+router.post('/msg',         routes_msg.post_archive)
+router.post('/items',       routes_item.post_trade_items)
+router.post('/item',        routes_item.post_trade_items)
+router.post('/dp-submit',   routes_gdsn.post_to_gdsn)
+router.post('/dp-xsd',      routes_xsd.post_to_validate)
+router.post('/parties',     routes_parties.post_parties)
 
 // GET
-router.use('/dp-post/:msg_id', routes_gdsn.lookup_and_post_to_gdsn)
+router.use('/dp-submit/:msg_id', routes_gdsn.lookup_and_post_to_gdsn)
+router.use('/dp-xsd/:msg_id',    routes_xsd.lookup_and_validate)
 
 router.get('/msg/migrate',                                  routes_msg_mig.migrate_msg_archive)
 router.get('/msg/:msg_id',                                  routes_msg.find_archive)
