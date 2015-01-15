@@ -39,19 +39,19 @@ config.gdsn = new Gdsn(config)
 
 require('./lib/db/Database').init(config) // adds config.database
 
-//var routes          = require(config.routes_dir + '/index')
-//var routes_cin      = require(config.routes_dir + '/cin_form')(config)
-var routes_subscr   = require(config.routes_dir + '/items_subscribed')(config)
-var routes_login    = require(config.routes_dir + '/login')(config)
-var routes_msg      = require(config.routes_dir + '/msg_archive')(config)
-var routes_msg_mig  = require(config.routes_dir + '/msg_migrate')(config)
-var routes_gdsn     = require(config.routes_dir + '/gdsn_datapool')(config)
-var routes_xsd      = require(config.routes_dir + '/gdsn_xsd')(config)
-var routes_parties  = require(config.routes_dir + '/parties')(config)
-var routes_logs     = require(config.routes_dir + '/logs')(config)
-var routes_item     = require(config.routes_dir + '/trade_item')(config)
-var routes_profile  = require(config.routes_dir + '/profile')(config)
-
+//var routes          = require(config.routes_dir + '/index.js')
+//var routes_cin      = require(config.routes_dir + '/cin_form.js')(config)
+var routes_subscr   = require(config.routes_dir + '/items_subscribed.js')(config)
+var routes_login    = require(config.routes_dir + '/login.js')(config)
+var routes_msg      = require(config.routes_dir + '/msg_archive.js')(config)
+var routes_msg_mig  = require(config.routes_dir + '/msg_migrate.js')(config)
+var routes_gdsn     = require(config.routes_dir + '/gdsn_datapool.js')(config)
+var routes_xsd      = require(config.routes_dir + '/gdsn_xsd.js')(config)
+var routes_parties  = require(config.routes_dir + '/parties.js')(config)
+var routes_logs     = require(config.routes_dir + '/logs.js')(config)
+var routes_item     = require(config.routes_dir + '/trade_item.js')(config)
+var routes_profile  = require(config.routes_dir + '/profile.js')(config)
+var routes_gdsn_wf  = require(config.routes_dir + '/gdsn_workflow_test.js')(config)
 var app = express()
 config.app = app
 
@@ -77,6 +77,7 @@ require('./lib/passport').init(config)
 
 
 // api doc renders
+app.get('/docs' + config.base_url + '/parties',    function (req, res, next) { res.render('parties_api_docs_10')   })
 app.get('/docs' + config.base_url + '/items',      function (req, res, next) { res.render('items_api_docs_10')     })
 app.get('/docs' + config.base_url + '/login',      function (req, res, next) { res.render('login_api_docs_10')     })
 app.get('/docs' + config.base_url + '/subscribed', function (req, res, next) { res.render('subscribed_api_docs_10')})
@@ -135,17 +136,18 @@ log.info('setting up routes and URL templates')
 // GET
 
 // POST
-router.post('/test',        require(config.routes_dir + '/route_test')(config))
-router.post('/msg',         routes_msg.post_archive)
-router.post('/items',       routes_item.post_trade_items)
-router.post('/item',        routes_item.post_trade_items)
-router.post('/dp-submit',   routes_gdsn.post_to_gdsn)
-router.post('/dp-xsd',      routes_xsd.post_to_validate)
-router.post('/parties',     routes_parties.post_parties)
+router.post('/msg',            routes_msg.post_archive)
+router.post('/items',          routes_item.post_trade_items)
+router.post('/item',           routes_item.post_trade_items)
+router.post('/parties',        routes_parties.post_parties)
+router.post('/gdsn-wf',        routes_gdsn_wf)
+router.post('/gdsn-dp-submit', routes_gdsn.post_to_gdsn)
+router.post('/gdsn-dp-xsd',    routes_xsd.post_to_validate)
 
 // GET
-router.use('/dp-submit/:msg_id', routes_gdsn.lookup_and_post_to_gdsn)
-router.use('/dp-xsd/:msg_id',    routes_xsd.lookup_and_validate)
+router.get('/gdsn-wf/:msg_id', routes_gdsn_wf)
+router.get('/gdsn-dp-submit/:msg_id', routes_gdsn.lookup_and_post_to_gdsn)
+router.get('/gdsn-dp-xsd/:msg_id',    routes_xsd.lookup_and_validate)
 
 router.get('/msg/migrate',                                  routes_msg_mig.migrate_msg_archive)
 router.get('/msg/:msg_id',                                  routes_msg.find_archive)

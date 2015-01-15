@@ -4,7 +4,8 @@ var config = {
   , http_host             : 'localhost'                // hostname used for http redirects/auth
   //, https_port            : 8443                       // potentially used for public access to dashboard without vpn, TBD
   //, https_host            : 'localhost'                // hostname used for https redirects/auth
-  , homeDataPoolGln       : '0000000000000'            // required for data pool workflow
+  , homeDataPoolGln       : '1100001011285'            // GLN of home data pool, only single DP is supported for now!
+  , gdsn_gr_gln           : '0614141810017'            // GLN of GS1 GDSN Global Registry (GR)
   , debug                 : true                       // additional logging
   , db_url                : 'catalog_services'         // for localhost MongoDb, used by lib/Database.js
   , inbox_dir             : __dirname + '/msg/inbox/'  // watch directory for incoming messages

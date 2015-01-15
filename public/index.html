@@ -108,6 +108,7 @@
               <th>XML</th>
               <th><a href="" ng-click="sortField = 'created_ts';     reverse = !reverse">Created</a></th>
               <th><a href="" ng-click="sortField = 'modified_ts';    reverse = !reverse">Modified</a></th>
+              <th><a href="" ng-click="sortField = 'content_length'; reverse = !reverse">Length</a></th>
             </tr>
             <tr ng-repeat="msg in messages | filter:query | orderBy:sortField:reverse">
               <td class="clickable" ng-click="showMessageDetail(msg)" style="text-align: left;">{{msg.msg_id}}
@@ -122,14 +123,17 @@
               <td>{{msg.sender}}</td>
               <td>
                 <span ng-if="!msg.gdsn_repostable">{{msg.receiver}}</span>
-                <span ng-if="msg.gdsn_repostable"><a ng-href="/cs_api/1.0/dp-submit/{{msg.msg_id}}" target="_blank" title="Repost to GDSN">{{msg.receiver}}</a></span>
+                <span ng-if="msg.gdsn_repostable"><a ng-href="/cs_api/1.0/gdsn-dp-submit/{{msg.msg_id}}" target="_blank" title="Repost to GDSN">{{msg.receiver}}</a></span>
               </td>
               <td>
-                <span class="clickable" ng-click="popupField(msg, 'xml')">XML</span>
-                <span class="clickable"><a ng-href="/cs_api/1.0/dp-xsd/{{msg.msg_id}}" target="_blank" title="XSD Validate">XSD</a></span>
+                <span><a ng-href="/cs_api/1.0/msg/{{msg.msg_id}}" target="_blank" title="view xml in new tab">xml</a></span>
+                <span class="clickable" ng-click="popupField(msg, 'xml')">pop</span>
+                <span><a ng-href="/cs_api/1.0/gdsn-dp-xsd/{{msg.msg_id}}" target="_blank" title="XSD Validate">xsd</a></span>
+                <span><a ng-href="/cs_api/1.0/gdsn-wf/{{msg.msg_id}}" target="_blank" title="XSD Validate">wf</a></span>
               </td>
               <td>{{msg.created_ts2}}</td>
               <td>{{msg.modified_ts2}}</td>
+              <td>{{msg.xml_length}}</td>
             </tr>
           </table>
         </div>
@@ -153,18 +157,18 @@
         <br/><span ng-if="view_msg_id">[<a ng-href="/cs_api/1.0/msg/{{view_msg_id}}">Link to message {{view_msg_id}}</a>]</span>
       </div>
 
-      <div>Archive Message</div>
+      <div>GDSN Workflow Message</div>
       <div>
         <div ng-controller="thx_file_controller">
-          <span>This form will post messages to the CS Msg Archive only with no party/item parsing or persistence</span>
+          <span>This form will persist messages to CS and generate response or fowarded messages as required for GDSN workflow (not persisted)</span>
           <form>
-              <input type="file" ng-file-select="onFileSelect($files, 'test_url')"></input>
-              <button ng-click="uploadFile('test_url')">Upload File</button>
+              <input type="file" ng-file-select="onFileSelect($files, 'gdsn_wf')"></input>
+              <button ng-click="uploadFile('gdsn_wf')">Upload File</button>
           </form>
         </div>
         <div>
           <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
-          <br/><button ng-click="post_msg('test_url')">Post</button>
+          <br/><button ng-click="post_msg('gdsn_wf')">Post</button>
         </div>
       </div>
 
@@ -186,12 +190,12 @@
       <div>Post Message to GDSN Data Pool</div>
       <div>
         <div ng-controller="thx_file_controller">
-          <input type="file" ng-file-select="onFileSelect($files, 'gdsn_url')"></input>
-          <button ng-click="uploadFile('gdsn_url')">Upload File to GDSN</button>
+          <input type="file" ng-file-select="onFileSelect($files, 'gdsn_dp_submit')"></input>
+          <button ng-click="uploadFile('gdsn_dp_submit')">Upload File to GDSN</button>
         </div>
         <div>
           <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
-          <br/><button ng-click="post_msg('gdsn_url')">Post XML to GDSN</button>
+          <br/><button ng-click="post_msg('gdsn_dp_submit')">Post XML to GDSN</button>
         </div>
       </div>
 
@@ -611,8 +615,6 @@
   </div>   <!-- end debug_accordion -->
 </div>  <!-- end debug_tab -->
 
-
-
 <div id="footer_area">
   <p>Copyright &copy; 2014</p>
 </div>
@@ -622,33 +624,33 @@
 <div id="error_dialog">An error occurred!</div>
 
 <div id="progress_dialog">
-    <p class="vert_spacer" ></p>
-    <div id="progressbar"></div>
+  <p class="vert_spacer" ></p>
+  <div id="progressbar"></div>
 </div>
 
-  <script src="js/jp-pretty-print-101.js"></script>
-  <script src="js/jquery-1.10.2.js"></script>
-  <script src="jqui/jquery-ui-1.10.4.custom.js"></script>
-  <script src="js/underscore-1.5.2.js"></script>
-  <script src="js/angular-1.2.2.js"></script>
-  <script src="js/file/angular-file-upload.js"></script>
-  <script src="js/bp_cs_client.js"></script>
+<script src="js/jp-pretty-print-101.js"></script>
+<script src="js/jquery-1.10.2.js"></script>
+<script src="jqui/jquery-ui-1.10.4.custom.js"></script>
+<script src="js/underscore-1.5.2.js"></script>
+<script src="js/angular-1.2.2.js"></script>
+<script src="js/file/angular-file-upload.js"></script>
+<script src="js/bp_cs_client.js"></script>
 
-  <script src="three_view/js/three_r68.js"></script>
-  <script src="three_view/js/controls/OrbitControls.js"></script>
-  <script src="three_view/js/three_item_view.js"></script>
-  
-  <script src="js/cs_page_utils.js"></script>
-  <script src="js/ang_app_module.js"></script>
-  <script src="js/ang_controller_file.js"></script>
-  <script src="js/ang_controller_msg.js"></script>
-  <script src="js/ang_controller_party.js"></script>
-  <script src="js/ang_controller_item.js"></script>
-  <script src="js/ang_controller_pub.js"></script>
-  <script src="js/ang_controller_sub.js"></script>
-  <script src="js/ang_controller_debug.js"></script>
-  <script src="js/ang_directives.js"></script>
-  <script src="js/ang_directive_gdsn-sub/directive.js"></script>
-  
+<script src="three_view/js/three_r68.js"></script>
+<script src="three_view/js/controls/OrbitControls.js"></script>
+<script src="three_view/js/three_item_view.js"></script>
+
+<script src="js/cs_page_utils.js"></script>
+<script src="js/ang_app_module.js"></script>
+<script src="js/ang_controller_file.js"></script>
+<script src="js/ang_controller_msg.js"></script>
+<script src="js/ang_controller_party.js"></script>
+<script src="js/ang_controller_item.js"></script>
+<script src="js/ang_controller_pub.js"></script>
+<script src="js/ang_controller_sub.js"></script>
+<script src="js/ang_controller_debug.js"></script>
+<script src="js/ang_directives.js"></script>
+<script src="js/ang_directive_gdsn-sub/directive.js"></script>
+
 </body>
 </html>

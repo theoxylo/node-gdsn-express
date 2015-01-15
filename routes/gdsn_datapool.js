@@ -3,7 +3,7 @@ var request        = require('request')
 module.exports = function (config) {
 
   //var _              = require('underscore')
-  //var async          = require('async')
+  var async          = require('async')
 
   var log            = require('../lib/Logger')('rt_gdsn_dp', config)
   var msg_archive_db = require('../lib/db/msg_archive.js')(config)

@@ -1,4 +1,3 @@
-<p/>
 <h2>API Documentation</h2>
 <div>
   Most API calls can return a variety of response formats and content types. Return type is based on URL, request parameters, or the "Accept" header, depending on what is supported by the specific endpoint.
@@ -7,12 +6,6 @@
 
   <div>Login Session</div>
   <div id="doc_login"/>
-
-  <div>All Catalog Items</div>
-  <div id="doc_items"/>
-
-  <div>Subscribed Items</div>
-  <div id="doc_subscribed"/>
 
   <div>Messages</div>
   <div>
@@ -43,22 +36,50 @@
 
   <div>Trading Parties</div>
   <div>
+    <div>A party is a GDSN entity that can exchange item data with other parties through its home data pool</div>
     <table>
       <tr>
-        <th></th>
-        <th></th>
-        <th></th>
+        <th>Endpoint</th>
+        <th>Method</th>
+        <th>Description</th>
+        <th>Params</th>
       </tr>
       <tr>
-        <td></td>
-        <td></td>
-        <td></td>
+        <td>/api/1.0/parties</td>
+        <td>POST</td>
+        <td>Submit an RPDD file with one or more parties. Max content-length limited only by resources -- using streaming approach to keep server memory usage low.</td>
+        <td>none</td>
+      </tr>
+      <tr>
+        <td>/api/1.0/parties</td>
+        <td>GET</td>
+        <td>Returns an array of parties</td>
+        <td>
+          <div>/gln: 13 character numeric GLN</div>
+          <div>?page: page index, default 0</div>
+          <div>?per_page: coming soon</div>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <div>/api/1.0/party/:gln</div>
+          <div>/api/1.0/parties/:gln</div>
+        </td>
+        <td>GET</td>
+        <td>Returns single party record (not a collection)</td>
+        <td>
+          <div>/gln: 13 character numeric GLN</div>
+        </td>
       </tr>
     </table>
   </div>
 
+  <div>Catalog Items</div>
+  <div id="doc_items"/>
+
   <div>Publications</div>
   <div>
+    CIP
     <table>
       <tr>
         <th></th>
@@ -75,6 +96,7 @@
 
   <div>Subscriptions</div>
   <div>
+    CIS
     <table>
       <tr>
         <th></th>
@@ -89,14 +111,39 @@
     </table>
   </div>
 
-  <div>Lookup - Allergens</div>
-  <div id="doc_allergens"/>
+  <div>Confirmation</div>
+  <div>
+    CIC
+    <table>
+      <tr>
+        <th></th>
+        <th></th>
+        <th></th>
+      </tr>
+      <tr>
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+    </table>
+  </div>
 
-  <div>Lookup - Countries</div>
-  <div id="doc_countries"/>
-
-  <div>Lookup - Nutrients</div>
-  <div id="doc_nutrients"/>
+  <div>Stats</div>
+  <div>
+    stats
+    <table>
+      <tr>
+        <th></th>
+        <th></th>
+        <th></th>
+      </tr>
+      <tr>
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+    </table>
+  </div>
 
 </div>
 
@@ -109,6 +156,7 @@
       , collapsible: true
     })
 
+    $('#doc_parties').load('/docs/cs_api/1.0/parties #docs')
     $('#doc_items').load('/docs/cs_api/1.0/items #docs')
     $('#doc_login').load('/docs/cs_api/1.0/login #docs')
     $('#doc_subscribed').load('/docs/cs_api/1.0/subscribed #docs')
