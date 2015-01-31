@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<sh:StandardBusinessDocument xmlns:sh="http://www.unece.org/cefact/namespaces/StandardBusinessDocumentHeader" xmlns:ns3="urn:ean.ucc:gdsn:2" xmlns:ns4="urn:ean.ucc:2" xmlns:ns5="urn:ean.ucc:align:food_beverage_tobacco:2" xmlns:ns6="urn:ean.ucc:align:audio_visual_photography:2">
+<sh:StandardBusinessDocument xmlns:sh="http://www.unece.org/cefact/namespaces/StandardBusinessDocumentHeader" xmlns:gdsn="urn:ean.ucc:gdsn:2" xmlns:eanucc="urn:ean.ucc:2" xmlns:ns5="urn:ean.ucc:align:food_beverage_tobacco:2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.unece.org/cefact/namespaces/StandardBusinessDocumentHeader http://www.gs1globalregistry.net/2.8/schemas/sbdh/StandardBusinessDocumentHeader.xsd urn:ean.ucc:2 http://www.gs1globalregistry.net/2.8/schemas/BasicPartyRegistrationProxy.xsd">
 <sh:StandardBusinessDocumentHeader>
 <sh:HeaderVersion>1.0</sh:HeaderVersion>
 <sh:Sender>
@@ -16,14 +16,14 @@
 <sh:CreationDateAndTime>2012-09-25T08:37:47.762-07:00</sh:CreationDateAndTime>
 </sh:DocumentIdentification>
 </sh:StandardBusinessDocumentHeader>
-<ns4:message>
+<eanucc:message>
 <entityIdentification>
 <uniqueCreatorIdentification>BPR_add_4243444546475</uniqueCreatorIdentification>
 <contentOwner>
 <gln>4243444546475</gln>
 </contentOwner>
 </entityIdentification>
-<ns4:transaction>
+<eanucc:transaction>
 <entityIdentification>
 <uniqueCreatorIdentification>BPR_add_4243444546475_TXN-1</uniqueCreatorIdentification>
 <contentOwner>
@@ -31,7 +31,7 @@
 </contentOwner>
 </entityIdentification>
 <command>
-<ns4:documentCommand>
+<eanucc:documentCommand>
 <documentCommandHeader type="ADD">
 <entityIdentification>
 <uniqueCreatorIdentification>BPR_add_4243444546475_TXN-1_CMD-1</uniqueCreatorIdentification>
@@ -41,7 +41,7 @@
 </entityIdentification>
 </documentCommandHeader>
 <documentCommandOperand>
-<ns3:basicPartyRegistration documentStatus="ORIGINAL" creationDateTime="2012-09-25T08:37:47.764-07:00">
+<gdsn:basicPartyRegistration documentStatus="ORIGINAL" creationDateTime="2012-09-25T08:37:47.764-07:00">
 <contentVersion>
 <versionIdentification>2.8</versionIdentification>
 </contentVersion>
@@ -98,10 +98,10 @@
 <gln>1100001011285</gln>
 </contentOwner>
 </basicPartyRegistrationIdentification>
-</ns3:basicPartyRegistration>
+</gdsn:basicPartyRegistration>
 </documentCommandOperand>
-</ns4:documentCommand>
+</eanucc:documentCommand>
 </command>
-</ns4:transaction>
-</ns4:message>
+</eanucc:transaction>
+</eanucc:message>
 </sh:StandardBusinessDocument>
