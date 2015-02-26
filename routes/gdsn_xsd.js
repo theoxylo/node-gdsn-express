@@ -5,7 +5,7 @@ module.exports = function (config) {
   //var _              = require('underscore')
   //var async          = require('async')
 
-  var log            = require('../lib/Logger')('rt_gdsn_dp', config)
+  var log            = require('../lib/Logger')('rt_gdsnVld', config)
   var msg_archive_db = require('../lib/db/msg_archive.js')(config)
 
   var api = {}
@@ -16,8 +16,6 @@ module.exports = function (config) {
     if (!url) return next('post to GDSN validate is not enabled, please set dp_xsd_url if needed')
 
     var start = Date.now()
-    log.info('starting lookup_and_validate to dp xsd url ' + url)
-
     var msg_id = req.params.msg_id
     if (msg_id) { // fetch existing msg xml and submit to dp
       log.debug('lookup_and_validate will use existing message with id ' + msg_id)
@@ -27,8 +25,8 @@ module.exports = function (config) {
         var xml = messages && messages[0] && (messages[0].raw_xml || messages[0].xml)
         if (!xml) return next(new Error('msg and xml not found for msg_id ' + msg_id))
         log.info('lookup_and_validate xml length from msg archive lookup: ' + xml.length)
-        log.info('lookup_and_validate xml setup (db) took ' + (Date.now() - start) + ' ms')
-        do_post(url, xml, function(err, post_response) {
+        log.info('lookup_and_validate xml archive lookup (db) took ' + (Date.now() - start) + ' ms')
+        do_validation_post(log, url, xml, function(err, post_response) {
           if (err) return next(err)
           res.end(post_response)
           if (!res.finished) res.end(post_response)
@@ -47,8 +45,6 @@ module.exports = function (config) {
     if (!url) return next('post to GDSN not enabled, please set dp_xsd_url if needed')
 
     var start = Date.now()
-    log.info('starting post_to_validate to dp url ' + url)
-
     // read posted content and submit to dp
     var xml = ''
     req.setEncoding('utf8')
@@ -61,7 +57,7 @@ module.exports = function (config) {
       log.info('post_to_validate xml length from post: ' + xml.length)
       log.info('post_to_validate xml setup (post) took ' + (Date.now() - start) + ' ms')
       xml = config.gdsn.trim_xml(xml)
-      do_post(url, xml, function(err, post_response) {
+      do_validation_post(log, url, xml, function(err, post_response) {
         if (err) return next(err)
         res.end(post_response)
         log.info('post_to_validate response took ' + (Date.now() - start) + ' ms')
@@ -72,7 +68,8 @@ module.exports = function (config) {
   return api
 }
     
-function do_post(url, xml, cb) {
+function do_validation_post(log, url, xml, cb) {
+  url += '?bus_vld=true'
   var post_options = {
     url: url
     , auth: {
@@ -83,7 +80,10 @@ function do_post(url, xml, cb) {
     , body: xml
   }
   try {
+
+    var start = Date.now()
     request.post(post_options, function (err, response, body) {
+      log.info('do_validation_post to GDSN Server took ' + (Date.now() - start) + ' ms')
       if (err) return cb(err)
       cb(null, body)
     })

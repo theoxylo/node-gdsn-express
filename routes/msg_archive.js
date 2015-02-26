@@ -114,18 +114,18 @@ module.exports = function (config) {
     log.debug('find_message called with msg_id ' + msg_id)
     msg_archive_db.findMessage(msg_id, function (err, results) {
       if (err) return next(err)
-      var item = results && results[0]
-      if (!item) return next(new Error('item not found'))
+      var msg = results && results[0]
+      if (!msg) return next(new Error('message not found'))
 
       var field = req.param('field')
       if (field) {
-          res.send(item[field])
+          res.send(msg[field])
       } else {
           res.set('Content-Type', 'application/xml;charset=utf-8')
           if (req.query.download) {
-            res.set('Content-Disposition', 'attachment; filename="item_' + item.gtin + '.xml"')
+            res.set('Content-Disposition', 'attachment; filename="item_' + msg.gtin + '.xml"')
           }
-          res.send(item.xml)
+          res.send(msg.xml)
       }
     })
   }

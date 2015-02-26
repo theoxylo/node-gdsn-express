@@ -288,6 +288,9 @@ module.exports = function (config) {
       if (err) return next(err)
 
       if (item) {
+        if (!item.gtin) item.gtin = config.item_default_gtin
+        if (!item.gpc)  item.gpc  = config.item_default_gpc
+
         log.debug('received item from stream callback with gtin ' + item.gtin)
 
         item.slug = item_utils.get_item_slug(item)
@@ -315,26 +318,19 @@ module.exports = function (config) {
         }
       }
       else { // null item is passed when there are no more items in the stream
-        log.debug('no more items from stream callback')
-        async.parallel(tasks, function (err, results) {
-          log.debug('parallel err: ' + JSON.stringify(err))
-          log.debug('parallel results: ' + JSON.stringify(results))
+        log.debug('no more items from stream callback, final item count: ' + tasks.length)
+        if (!tasks.length) return res.jsonp({msg: 'No items were found or created'})
+
+        async.parallel(tasks, function (err, async_results) { // async_results is an array of results arrays, one per task
+          log.debug('parallel async_err,     if any: ' + JSON.stringify(err))
+          log.debug('parallel async_results, if any: ' + JSON.stringify(async_results))
           if (err) return next(err)
-
-          results = _.flatten(results) // async.parallel returns an array of results arrays
-
-          if (!res.finished) {
-            if (results && results.length) {
-              res.jsonp({
-                msg: 'Created ' + results.length + ' items with GTINs: ' + results.join(', ')
-                , gtins: results
-              }) 
-            }
-            else {
-              res.jsonp({msg: 'No items were created'})
-            }
-          }
-        }) // end async.parallel
+          if (!async_results || !async_results.length) return res.jsonp({msg: 'No items were found or created'})
+          var results = _.flatten(async_results) // _.flatten will always return at least an empty array http://underscorejs.org/#flatten
+          if (!results.length) return res.jsonp({msg: 'No items were found or created'})
+          //return res.jsonp({ msg: 'Created ' + results.length + ' items with GTINs: ' + results.join(', ') , gtins: results }) 
+          return res.jsonp({ msg: 'Created ' + results.length + ' items with GTINs: ' + results.join(', ')}) 
+        }) // end if async.parallel
       } // end else
     }) // end gdsn.getTradeItemsFromStream
   } // end api.post_trade_items

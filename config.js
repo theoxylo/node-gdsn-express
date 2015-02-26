@@ -20,6 +20,9 @@ var config = {
   , enable_query_req_id   : false
   , dp_post_url           : 'http://localhost:8080/gdsn-server/gdsn.ee'
   , dp_xsd_url            : 'http://localhost:8080/gdsn-server/api/xmlvalidation'
+  // item defaults -
+  , item_default_gtin     : '00000000000000'
+  , item_default_gpc      : '00000000'
 }
 
 var local_config = {}

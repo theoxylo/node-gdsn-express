@@ -48,10 +48,45 @@ module.exports = function (config) {
     if (Array.isArray(msg_info)) msg_info = msg_info[0]
     if (!msg_info || !msg_info.msg_id) return next(Error('missing msg_info'))
 
+    if (msg_info.receiver != config.homeDataPoolGln) return next(Error('to initiate workflow, the message receiver must be the datapool'))
+
     log.info('starting workflow for ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
 
     var tasks = []
 
+    // all non-response messages will require a response to be generated
+    if (msg_info.msg_type != 'GDSNResponse') {
+      tasks.push(function (cb) {
+        config.gdsn.populateResponseTemplate(config, msg_info, function (err, dp_response) {
+          if (err) return cb(err)
+          console.log(dp_response)
+          cb(null, dp_response)
+        })
+      })
+    }
+
+    // each message type may or may not have additional downstream messages that we can generate
+    if (msg_info.msg_type == 'basicPartyRegistration') {
+      tasks.push(function (cb) {
+        config.gdsn.populateBprToGrTemplate(config, msg_info, function (err, cis_to_gr) {
+          if (err) return cb(err)
+          console.log(cis_to_gr)
+          cb(null, cis_to_gr)
+        })
+      })
+    }
+    if (msg_info.msg_type == 'catalogueItemNotification') {
+      tasks.push(function (cb) {
+        config.gdsn.populateRciToGrTemplate(config, msg_info, function (err, cis_to_gr) {
+          if (err) return cb(err)
+          console.log(cis_to_gr)
+          cb(null, cis_to_gr)
+        })
+      })
+    }
+    if (msg_info.msg_type == 'catalogueItemPublication') {
+      // only a response to local TP is needed, no further messages
+    }
     if (msg_info.msg_type == 'catalogueItemSubscription') {
       tasks.push(function (cb) {
         config.gdsn.populateCisToGrTemplate(config, msg_info, function (err, cis_to_gr) {
@@ -61,15 +96,16 @@ module.exports = function (config) {
         })
       })
     }
-
-    if (msg_info.msg_type != 'GDSNResponse') {
+    if (msg_info.msg_type == 'catalogueItemConfirmation') {
       tasks.push(function (cb) {
-        config.gdsn.populateResponseTemplate(config, msg_info, function (err, dp_response) {
+        config.gdsn.populateCicTemplate(config, msg_info, function (err, cis_to_gr) {
           if (err) return cb(err)
-          console.log(dp_response)
-          cb(null, dp_response)
+          console.log(cis_to_gr)
+          cb(null, cis_to_gr)
         })
       })
+    }
+    if (msg_info.msg_type == 'requestForCatalogueItemNotification') {
     }
 
     async.parallel(tasks, function (err, results) {

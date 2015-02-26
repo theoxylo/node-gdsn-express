@@ -1,5 +1,15 @@
+function TIV_Cube(item, size, material) {
+  this.mesh = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), material)
+  this.item = item
+}
+
+TIV_Cube.prototype.update = function (dt) {
+  this.mesh.rotation.y += dt * 4
+}
+
 function init_three_view($div, items) {
   console.log('init_three_view ', $div)
+  console.log('init view items ', items && items.length && items.join('|'))
 
   //if (!Detector.webgl) return Detector.addGetWebGLMessage();
 
@@ -22,11 +32,11 @@ function init_three_view($div, items) {
     var deltaTime = Date.now() - prevTime
     prevTime += deltaTime
     deltaTime /= 1000
-    console.log('dt ', deltaTime)
+    //console.log('dt ', deltaTime) // DEBUG
     sphere.rotation.y += deltaTime * 5
 
-    cubes.forEach(function (cube) {
-      cube.update(deltaTime)
+    if (cubes) cubes.forEach(function (cube) {
+      if (cube) cube.update(deltaTime)
     })
 
     renderer.render(scene, camera)
@@ -78,10 +88,12 @@ function init_three_view($div, items) {
 
 
     cubes = items.map(function (item) {
-      console.log('items each ' + item.gtin)
+      console.log('items map each ' + item.gtin)
       var material, size
       var url = item && item.images && item.images[0]
-      console.log('cube url: ' + url)
+      console.log('cube img url: ' + url)
+      // testing with local img:
+      url = '/icon_camera.jpg'
       if (url) {
         var texture = THREE.ImageUtils.loadTexture(url)
         texture.anisotropy = renderer.getMaxAnisotropy()
@@ -92,7 +104,7 @@ function init_three_view($div, items) {
         material = new THREE.MeshNormalMaterial()
         size = 0.4
       }
-      var cube = new Cube(item, size, material)
+      var cube = new TIV_Cube(item, size, material)
       scene.add(cube.mesh)
       return cube
     })
@@ -100,15 +112,6 @@ function init_three_view($div, items) {
     cubes.forEach(function(cube) {
       console.log('cubes each test init gtin ' + cube.item.gtin)
     })
-  }
-
-  function Cube(item, size, material) {
-    this.mesh = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), material)
-    this.item = item
-  }
-
-  Cube.prototype.update = function (dt) {
-    this.mesh.rotation.y += dt * 4
   }
 
 }

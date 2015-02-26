@@ -128,7 +128,7 @@
               <td>
                 <span><a ng-href="/cs_api/1.0/msg/{{msg.msg_id}}" target="_blank" title="view xml in new tab">xml</a></span>
                 <span class="clickable" ng-click="popupField(msg, 'xml')">pop</span>
-                <span><a ng-href="/cs_api/1.0/gdsn-dp-xsd/{{msg.msg_id}}" target="_blank" title="XSD Validate">xsd</a></span>
+                <span><a ng-href="/cs_api/1.0/gdsn-dp-xsd/{{msg.msg_id}}" target="_blank" title="GDSN Validate">vld</a></span>
                 <span><a ng-href="/cs_api/1.0/gdsn-wf/{{msg.msg_id}}" target="_blank" title="XSD Validate">wf</a></span>
               </td>
               <td>{{msg.created_ts2}}</td>
@@ -616,7 +616,7 @@
 </div>  <!-- end debug_tab -->
 
 <div id="footer_area">
-  <p>Copyright &copy; 2014</p>
+  <p>Copyright &copy; 2015</p>
 </div>
 
 <div id="result_dialog" width="100%">Loading...</div>
@@ -636,10 +636,6 @@
 <script src="js/file/angular-file-upload.js"></script>
 <script src="js/bp_cs_client.js"></script>
 
-<script src="three_view/js/three_r68.js"></script>
-<script src="three_view/js/controls/OrbitControls.js"></script>
-<script src="three_view/js/three_item_view.js"></script>
-
 <script src="js/cs_page_utils.js"></script>
 <script src="js/ang_app_module.js"></script>
 <script src="js/ang_controller_file.js"></script>
@@ -651,6 +647,10 @@
 <script src="js/ang_controller_debug.js"></script>
 <script src="js/ang_directives.js"></script>
 <script src="js/ang_directive_gdsn-sub/directive.js"></script>
+
+<script src="three_view/js/three_r68.js"></script>
+<script src="three_view/js/controls/OrbitControls.js"></script>
+<script src="three_view/js/three_item_view.js"></script>
 
 </body>
 </html>
