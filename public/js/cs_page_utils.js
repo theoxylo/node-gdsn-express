@@ -111,7 +111,7 @@
       sub   : 5, 
       debug : 6
     }
-    $('#tabs').tabs('option', 'active', tab_names['items']) 
+    $('#tabs').tabs('option', 'active', tab_names['msg']) // activate msg tab at start
 
     $('#progressbar').progressbar({ value: false })
 

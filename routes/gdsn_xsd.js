@@ -17,12 +17,14 @@ module.exports = function (config) {
 
     var start = Date.now()
     var msg_id = req.params.msg_id
+    var sender = req.params.sender
     if (msg_id) { // fetch existing msg xml and submit to dp
       log.debug('lookup_and_validate will use existing message with id ' + msg_id)
-      msg_archive_db.findMessage(msg_id, function (err, messages) {
+      msg_archive_db.findMessage(sender, msg_id, function (err, db_msg_info) {
         if (err) return next(err)
-        log.debug('found ' + (messages ? messages.length : 0) + ' messages for msg_id ' + msg_id)
-        var xml = messages && messages[0] && (messages[0].raw_xml || messages[0].xml)
+        if (db_msg_info.length > 1) return next(Error('found multiple messages with id ' + msg_id))
+        log.debug('found message for msg_id ' + msg_id)
+        var xml = db_msg_info[0].xml
         if (!xml) return next(new Error('msg and xml not found for msg_id ' + msg_id))
         log.info('lookup_and_validate xml length from msg archive lookup: ' + xml.length)
         log.info('lookup_and_validate xml archive lookup (db) took ' + (Date.now() - start) + ' ms')

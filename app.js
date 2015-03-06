@@ -133,50 +133,54 @@ app.get('/shut_down', function (req, res, next) {
 log.info('done setting up shutdown ' + config.shut_down_pw)
 
 log.info('setting up routes and URL templates')
-// GET
+
+// get/post to [GDSN Server] for data pool services
+router.post('/gdsn-submit',                  routes_gdsn.post_to_gdsn)
+router.post('/gdsn-validate',                routes_xsd.post_to_validate)
+router.post('/gdsn-workflow',                routes_gdsn_wf)
+router.get('/gdsn-submit/:msg_id',           routes_gdsn.lookup_and_post_to_gdsn)
+router.get('/gdsn-submit/:msg_id/:sender',   routes_gdsn.lookup_and_post_to_gdsn)
+router.get('/gdsn-validate/:msg_id',         routes_xsd.lookup_and_validate)
+router.get('/gdsn-validate/:msg_id/:sender', routes_xsd.lookup_and_validate)
+router.get('/gdsn-workflow/:msg_id',         routes_gdsn_wf)
+router.get('/gdsn-workflow/:msg_id/:sender', routes_gdsn_wf)
 
 // POST
-router.post('/msg',            routes_msg.post_archive)
-router.post('/items',          routes_item.post_trade_items)
-router.post('/item',           routes_item.post_trade_items)
-router.post('/parties',        routes_parties.post_parties)
-router.post('/gdsn-wf',        routes_gdsn_wf)
-router.post('/gdsn-dp-submit', routes_gdsn.post_to_gdsn)
-router.post('/gdsn-dp-xsd',    routes_xsd.post_to_validate)
+router.post('/msg',                          routes_msg.post_archive)
+router.post('/items',                        routes_item.post_trade_items)
+router.post('/item',                         routes_item.post_trade_items)
+router.post('/parties',                      routes_parties.post_parties)
 
 // GET
-router.get('/gdsn-wf/:msg_id',        routes_gdsn_wf)
-router.get('/gdsn-dp-submit/:msg_id', routes_gdsn.lookup_and_post_to_gdsn)
-router.get('/gdsn-dp-xsd/:msg_id',    routes_xsd.lookup_and_validate)
+router.get('/msg/migrate',                   routes_msg_mig.migrate_msg_archive)
+router.get('/msg/:msg_id',                   routes_msg.find_archive)
+router.get('/msg/:msg_id/:sender',           routes_msg.find_archive)
+router.get('/msg',                           routes_msg.list_archive)
 
-router.get('/msg/migrate',            routes_msg_mig.migrate_msg_archive)
-router.get('/msg/:msg_id',            routes_msg.find_archive)
-router.get('/msg',                    routes_msg.list_archive)
-
-router.get('/subscribed/:gtin/:provider/:tm/:tm_sub',       routes_subscr.get_subscribed_item)
-router.get('/subscribed/:gtin/:provider/:tm',               routes_subscr.get_subscribed_item)
-router.get('/subscribed/:gtin/:provider',                   routes_subscr.get_subscribed_item)
-router.get('/subscribed/:gtin',                             routes_subscr.get_subscribed_item)
-router.get('/subscribed/',                                  routes_subscr.get_subscribed_item)
+router.get('/subscribed/:gtin/:provider/:tm/:tm_sub', routes_subscr.get_subscribed_item)
+router.get('/subscribed/:gtin/:provider/:tm', routes_subscr.get_subscribed_item)
+router.get('/subscribed/:gtin/:provider',    routes_subscr.get_subscribed_item)
+router.get('/subscribed/:gtin',              routes_subscr.get_subscribed_item)
+router.get('/subscribed/',                   routes_subscr.get_subscribed_item)
 
 router.get('/items/history/:recipient/:gtin/:provider/:tm/:tm_sub', routes_item.get_trade_item_history)
 
-router.get('/items-list',                                   routes_item.list_trade_items)
-router.get('/items/migrate',                                routes_item.migrate_trade_items)
+router.get('/items-list',                    routes_item.list_trade_items)
+router.get('/items/migrate',                 routes_item.migrate_trade_items)
 router.get('/items/:recipient/:gtin/:provider/:tm/:tm_sub', routes_item.get_trade_item) // return exact item with optional children
-router.get('/items/:recipient/:gtin/:provider/:tm',         routes_item.find_trade_items)
-router.get('/items/:recipient/:gtin/:provider',             routes_item.find_trade_items)
-router.get('/items/:recipient/:gtin',                       routes_item.find_trade_items)
-router.get('/items/:recipient',                             routes_item.find_trade_items)
-router.get('/items',                                        routes_item.find_trade_items)
+router.get('/items/:recipient/:gtin/:provider/:tm', routes_item.find_trade_items)
+router.get('/items/:recipient/:gtin/:provider', routes_item.find_trade_items)
+router.get('/items/:recipient/:gtin',        routes_item.find_trade_items)
+router.get('/items/:recipient',              routes_item.find_trade_items)
+router.get('/items',                         routes_item.find_trade_items)
 
-router.get('/party/:gln',             routes_parties.find_parties)
-router.get('/parties/:gln',           routes_parties.find_parties)
-router.get('/parties',                routes_parties.list_parties)
+router.get('/party/:gln',                    routes_parties.find_parties)
+router.get('/parties/:gln',                  routes_parties.find_parties)
+router.get('/parties',                       routes_parties.list_parties)
 
-router.get('/login',                  routes_login.authenticate)
+router.get('/login',                         routes_login.authenticate)
 
-router.get('/logs',                   routes_logs.list_logs)
+router.get('/logs',                          routes_logs.list_logs)
 
 log.info('done setting up routes')
 
@@ -257,7 +261,7 @@ router.post('/test_123', function(req, res, next) {
       // 2.8: *:StandardBusinessDocument
       // 3.1: *:catalogueItemNotificationMessage or other specific *Message
 
-      var msg_info = {}
+      var msg_info = {}  // using plain msg_info, not "new MessageInfo(..."
 
       msg_info.gtins = []
       msg_info.trade_items = []
@@ -276,10 +280,6 @@ router.post('/test_123', function(req, res, next) {
         if (!$gtin.length) $gtin = $('tradeItemIdentification > gtin', this).first() // 2.8
         var gtin = $gtin.text()
         console.log('gtin: ' + $gtin.text())
-
-        var $gtin = $('tradeItem gtin', this).each(function () {
-          console.log('gtin element type: ' + $(this).text())
-        })
 
         if (gtin) msg_info.gtins.push(gtin)
       })
@@ -333,11 +333,6 @@ router.post('/test_123', function(req, res, next) {
           if (parent.name == 'documentCommandOperand') parent = parent.parent // 2.8: abc:documentCommand
 
           console.log('found CIN document element parent: ' + parent.name)
-
-          console.log('found CIN cmd type: ' + $('documentCommandHeader', parent).attr('type'))
-          console.log('found CIN cmd cmd id: ' + $('documentCommandHeader', parent).first().text())
-          console.log('found CIN cmd owner gln: ' + $('contentOwner > gln', parent).first().text())
-          console.log('found CIN cmd owner gln: ' + $(parent).find('contentOwner > gln').first().text())
         }
 
       }) // end *.each
@@ -350,67 +345,3 @@ router.post('/test_123', function(req, res, next) {
     next(err)
   }
 })
-
-
-          /*
-          $('*', this).each(function () {
-            if (endsWith(this.name, 'documentCommand')) {
-              console.log('found cmd element: ' + this.name)
-              var $cmd = $('documentCommandHeader', this)
-              var cmdType = $cmd.attr('type')
-              console.log('command type: ' + $('documentCommandHeader', this).attr('type'))
-
-              $('*', this).each(function () {
-                if (endsWith(this.name, 'catalogueItemNotification')) {
-                  console.log('found cin: ' + this.name)
-
-                  $('catalogueItem > tradeItem > gtin', this).each(function () {
-                    console.log('3.1 gtin: ' + $(this).text())
-                    console.log('additional id: ' + $('additionalTradeItemIdentification > additionalTradeItemIdentificationValue', $this.parent()).first().text())
-                    msg_info.version = '3.1'
-                  })
-
-                  $('catalogueItem > tradeItem > tradeItemIdentification > gtin', this).each(function () {
-                    //console.log('2.8 gtin: ' + $(this).text())
-                    msg_info.version = '2.8'
-                  })
-                }
-              })
-            }
-          })
-        }
-      })
-*/
-
-/*
-      $('catalogueItem > tradeItem > tradeItemIdentification > gtin').each(function (idx, ele) {
-        var $this = $(this)
-        var gtin = $this.text()
-        if (!config.gdsn.validateGtin(gtin)) {
-          log.debug('found and included invalid gtin: ' + gtin)
-        }
-        msg_info.gtins.push(gtin)
-        console.log((idx + 1) + ' saved gtin: ' + gtin)
-        console.log('additional id: ' + $('additionalTradeItemIdentification > additionalTradeItemIdentificationValue', $this.parent()).first().text())
-      })
-
-      $('catalogueItem > tradeItem > tradeItemIdentification > gtin').each(function (idx, ele) {
-        var $this = $(this)
-        var gtin = $this.text()
-        if (!config.gdsn.validateGtin(gtin)) {
-          log.debug('found and included invalid gtin: ' + gtin)
-        }
-        msg_info.gtins.push(gtin)
-        console.log((idx + 1) + ' saved gtin: ' + gtin)
-        console.log('additional id: ' + $('additionalTradeItemIdentification > additionalTradeItemIdentificationValue', $this.parent()).first().text())
-      })
-      console.log('saved a total of ' + msg_info.gtins.length + ' gtins in ' + (Date.now() - start) + ' ms')
-      res.jsonp(msg_info)
-    })
-  }
-  catch (err) {
-    next(err)
-  }
-})
-
-*/

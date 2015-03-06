@@ -64,7 +64,7 @@
       <div>Search Messages</div>
       <div>
         <p/>
-        <span>Msg Id         <input type="text" size="40" ng-model="input_msg_id"         placeholder="RESP_52003" ></input></span>
+        <span>Msg Id         <input type="text" size="40" ng-model="input_msg_id"     placeholder="RESP_52003" ></input></span>
         <span>Request Msg Id <input type="text" size="40" ng-model="input_req_msg_id" placeholder="RESP_52003" ></input></span>
         <span>Type
           <select ng-model="input_msg_type">
@@ -123,13 +123,13 @@
               <td>{{msg.sender}}</td>
               <td>
                 <span ng-if="!msg.gdsn_repostable">{{msg.receiver}}</span>
-                <span ng-if="msg.gdsn_repostable"><a ng-href="/cs_api/1.0/gdsn-dp-submit/{{msg.msg_id}}" target="_blank" title="Repost to GDSN">{{msg.receiver}}</a></span>
+                <span ng-if="msg.gdsn_repostable"><a ng-href="/cs_api/1.0/gdsn-submit/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Repost to GDSN">{{msg.receiver}}</a></span>
               </td>
               <td>
-                <span><a ng-href="/cs_api/1.0/msg/{{msg.msg_id}}" target="_blank" title="view xml in new tab">xml</a></span>
+                <span><a ng-href="/cs_api/1.0/msg/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="view xml in new tab">xml</a></span>
                 <span class="clickable" ng-click="popupField(msg, 'xml')">pop</span>
-                <span><a ng-href="/cs_api/1.0/gdsn-dp-xsd/{{msg.msg_id}}" target="_blank" title="GDSN Validate">vld</a></span>
-                <span><a ng-href="/cs_api/1.0/gdsn-wf/{{msg.msg_id}}" target="_blank" title="XSD Validate">wf</a></span>
+                <span><a ng-href="/cs_api/1.0/gdsn-validate/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="GDSN Validate">vld</a></span>
+                <span><a ng-href="/cs_api/1.0/gdsn-workflow/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="XSD Validate">wf</a></span>
               </td>
               <td>{{msg.created_ts2}}</td>
               <td>{{msg.modified_ts2}}</td>
@@ -162,13 +162,13 @@
         <div ng-controller="thx_file_controller">
           <span>This form will persist messages to CS and generate response or fowarded messages as required for GDSN workflow (not persisted)</span>
           <form>
-              <input type="file" ng-file-select="onFileSelect($files, 'gdsn_wf')"></input>
-              <button ng-click="uploadFile('gdsn_wf')">Upload File</button>
+              <input type="file" ng-file-select="onFileSelect($files, 'gdsn_workflow')"></input>
+              <button ng-click="uploadFile('gdsn_workflow')">Upload File</button>
           </form>
         </div>
         <div>
           <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
-          <br/><button ng-click="post_msg('gdsn_wf')">Post</button>
+          <br/><button ng-click="post_msg('gdsn_workflow')">Post</button>
         </div>
       </div>
 
@@ -190,24 +190,24 @@
       <div>Post Message to GDSN Data Pool</div>
       <div>
         <div ng-controller="thx_file_controller">
-          <input type="file" ng-file-select="onFileSelect($files, 'gdsn_dp_submit')"></input>
-          <button ng-click="uploadFile('gdsn_dp_submit')">Upload File to GDSN</button>
+          <input type="file" ng-file-select="onFileSelect($files, 'gdsn_submit')"></input>
+          <button ng-click="uploadFile('gdsn_submit')">Upload File to GDSN</button>
         </div>
         <div>
           <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
-          <br/><button ng-click="post_msg('gdsn_dp_submit')">Post XML to GDSN</button>
+          <br/><button ng-click="post_msg('gdsn_submit')">Post XML to GDSN</button>
         </div>
       </div>
 
-      <div>XSD Validate Message</div>
+      <div>Validate Message with GDSN Data Pool</div>
       <div>
         <div ng-controller="thx_file_controller">
-          <input type="file" ng-file-select="onFileSelect($files, 'xsd_url')"></input>
-          <button ng-click="uploadFile('xsd_url')">Validate XML File</button>
+          <input type="file" ng-file-select="onFileSelect($files, 'gdsn_validate')"></input>
+          <button ng-click="uploadFile('gdsn_validate')">Validate XML File</button>
         </div>
         <div>
           <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
-          <br/><button ng-click="post_msg('xsd_url')">Validate XML Text</button>
+          <br/><button ng-click="post_msg('gdsn_validate')">Validate XML Text</button>
         </div>
       </div>
 

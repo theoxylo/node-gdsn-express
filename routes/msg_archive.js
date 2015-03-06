@@ -1,13 +1,10 @@
 module.exports = function (config) {
 
   var _              = require('underscore')
-  var async          = require('async')
   var request        = require('request')
 
   var log            = require('../lib/Logger')('rt_msg_arch', {debug: true})
   var msg_archive_db = require('../lib/db/msg_archive.js')(config)
-  var trade_item_db  = require('../lib/db/trade_item.js')(config)
-  var xml_digest     = require('../lib/xml_to_json.js')(config)
   var utils          = require('../lib/utils.js')(config)
 
   var api = {}
@@ -38,6 +35,12 @@ module.exports = function (config) {
         }
       })
     })
+
+    /* attempt to store trade items with every file upload...
+
+    var async          = require('async')
+    var trade_item_db  = require('../lib/db/trade_item.js')(config)
+    var xml_digest     = require('../lib/xml_to_json.js')(config)
 
     var tasks = []
     config.gdsn.getEachTradeItemFromStream(req, function (err, item) {
@@ -72,6 +75,7 @@ module.exports = function (config) {
       }
 
     })
+    */
   }
 
   // returns pages of msg_info
@@ -111,8 +115,9 @@ module.exports = function (config) {
     log.debug('find_archive params=' + JSON.stringify(req.query))
     
     var msg_id = req.params.msg_id
+    var sender = req.params.sender
     log.debug('find_message called with msg_id ' + msg_id)
-    msg_archive_db.findMessage(msg_id, function (err, results) {
+    msg_archive_db.findMessage(sender, msg_id, function (err, results) {
       if (err) return next(err)
       var msg = results && results[0]
       if (!msg) return next(new Error('message not found'))

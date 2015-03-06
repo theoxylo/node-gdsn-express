@@ -5,7 +5,6 @@
           sub_url         : app.api + '/subscriptionList'
         , pub_url         : app.api + '/publicationList'
         , msg_url         : app.api + '/msg'
-        , gdsn_wf        : app.api + '/gdsn-wf'
         , item_url        : app.api + '/items'
         , single_item_url : app.api + '/item'
         , items_list_url  : app.api + '/items-list'
@@ -13,7 +12,8 @@
         , party_url       : app.api + '/party'
         , parties_url     : app.api + '/parties'
         , logs_url        : app.api + '/logs'
-        , gdsn_dp_submit  : app.api + '/gdsn-dp-submit'
-        , xsd_url         : app.api + '/gdsn-dp-xsd'
+        , gdsn_submit     : app.api + '/gdsn-submit'   // raw xml
+        , gdsn_validate   : app.api + '/gdsn-validate' // xsd and business validation rules
+        , gdsn_workflow   : app.api + '/gdsn-workflow' // generate result messages
       }
     })
