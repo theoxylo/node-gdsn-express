@@ -102,6 +102,8 @@ module.exports = function (config) {
     if (msg_info.msg_type == 'basicPartyRegistration'
      || msg_info.msg_type == 'registryPartyDataDump') {
 
+      // GDSN Server API call: /gdsn-server/api/party/1100001011293?partyRole={*BILL_TO}&name={*TestParty}&sourcedp={*1100001011285}&address1=a1&address2=a2&city={*c1}&state=CA&zip=12345[&status=PTY_IN_PROGRESS]
+
       var tasks = []
       msg_info.party.forEach(function (party) {
 
@@ -112,12 +114,10 @@ module.exports = function (config) {
           console.log('update party data for gln ' + party.gln + ', ' + party.name)
 
           var start_bpr_api_call = Date.now()
-          var is_new = (msg_info.status == 'ADD')
-
           request.post({
             url             : config.url_gdsn_api + '/party/' + party.gln 
             , form          : { 
-                dp_gln      : party.source_dp
+              , sourcedp    : party.source_dp
               , partyRole   : party.role
               , name        : party.name
               , address1    : party.address1
@@ -129,11 +129,8 @@ module.exports = function (config) {
               , contactName : party.contact_name
               , contactEmail: party.contact_email
               , contactPhone: party.contact_phone
-              , _addNew     : is_new
-              , addNew      : is_new
-              //, status      : is_new ? 'PTY_IN_PROGRESS' : 'PTY_REGISTERED'
-              , status      : 'PTY_REGISTERED' // for now so that BPRR from GR is not needed
-              //, status      : 'PTY_IN_PROGRESS' // TESTING
+              //, status      : 'PTY_IN_PROGRESS' // will require BPRR from GR to activate
+              , status      : 'PTY_REGISTERED' // BPRR from GR is not needed, but might be out of sync
               , ts          : new Date()
             }
             , auth: {
@@ -160,7 +157,7 @@ module.exports = function (config) {
       async.parallel(tasks, function (err, results) {
         console.log('all bpr submissions complete for msg_id ' + msg_info.msg_id)
 
-console.log('async api results: ')
+console.log('async api party results: ')
 console.dir(results)
 
         if (err) {
@@ -181,7 +178,7 @@ console.dir(results)
         var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
         res.write(response_xml)
         res.end()
-      })
+      }, 10) // concurrency
       return
     }
 
@@ -203,23 +200,21 @@ console.dir(results)
           var start_cin_api_call = Date.now()
           console.log('posting CIN data to GDSN Server API for msg_id  ' + msg_info.msg_id)
 
+          // GDSN Server API call: /gdsn-server/api/ci/1100001011293/10044700002411/840/US-MA?brandName={*brandName2}&classCategoryCode={*10001681}&unitDescriptor={*CASE}&documentCommandHeader={*ADD}[&isBaseUnit=true][&isConsumerUnit=false][&isDispatchUnit=true][&isInvoiceUnit=false][&isMarkedReturnable=true][&isOrderableUnit=false][&isVariableUnit=true][&lastChangeDateTime=2001-12-17T09:30:47Z][&canceledDate=2001-12-17T09:30:47Z][&discontinuedDate=2001-12-17T09:30:47Z][&skipMatchingProcess=true]
+
           var is_new = (msg_info.status == 'ADD')
           request.post({
-            url        : config.url_gdsn_api + '/ci'
+            url        : config.url_gdsn_api + '/ci/' + item.provider + '/' + item.gtin + '/' + item.tm + '/' + item.tm_sub || 'na' 
             , form       : { 
-                mode : 'update'
-              , gtin                      : item.gtin
-              , gln                       : item.gln
-              , brandName                 : item.brand
-              , infoProviderGln           : item.provider
+                brandName                 : item.brand || 'generic'
               , classCategoryCode         : item.gpc
               , unitDescriptor            : item.unit_type
-              , targetMarketCountry       : item.tm
-              , targetMarketSubDivision   : item.tm_sub
-              , documentCommandHeader     : msg_info.status
-              , lastChangeDateTime        : new Date().toISOString() // now
-              , skipMatchingProcess       : true
-              , status                    : is_new ? 'IN_PROGRESS' : 'REGISTERED'
+              , documentCommandHeader     : msg_info.status 
+              //, lastChangeDateTime        : new Date().toISOString() // now
+
+              //, skipMatchingProcess       : true              // should probably never skip the matching process...
+              //, status                    : is_new ? 'IN_PROGRESS' : 'REGISTERED'
+              , status                    : 'REGISTERED'
               , ts                        : new Date()
               //, canceledDate:
               //, discontinuedDate:
@@ -255,7 +250,7 @@ console.dir(results)
       async.parallel(tasks, function (err, results) {
         log.debug('all item submissions complete for msg_id ' + msg_info.msg_id)
 
-console.log('async api results: ')
+console.log('async api ci results: ')
 console.dir(results)
 
         if (err) {
@@ -275,20 +270,27 @@ console.dir(results)
         var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
         res.write(response_xml)
         res.end()
-      })
+      }, 10) // concurrency
+
       return
-    }
+    } // end CIN
 
     if (msg_info.msg_type == 'catalogueItemPublication') {
+
       // TODO: call GDSN Server API to publish item
+      // /gdsn-server/api/publish?gln={\\d13}&dr={\\d13}&gtin={\\d14}&tm={\\d3}[&il=true}][&delete=true}]"
+
       var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
       res.write(response_xml)
       return res.end()
     }
 
     if (msg_info.msg_type == 'catalogueItemConfirmation') {
+
       // TODO: call GDSN Server API to confirm item
+
       //var cic = config.gdsn.populateCicToOtherDP(config, msg_info)
+
       var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
       res.write(response_xml)
       return res.end()
