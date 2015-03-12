@@ -148,6 +148,21 @@
         </p>
       </div>
 
+      <div>Post Message</div>
+      <div>
+        <div ng-controller="thx_file_controller">
+          <span>This form will post messages to CS for party/item parsing and persistence, along with message archival</span>
+          <form>
+            <input type="file" ng-file-select="onFileSelect($files, 'msg_url')"></input>
+            <button ng-click="uploadFile('msg_url')">Upload File</button>
+          </form>
+        </div>
+        <div>
+          <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
+          <br/><button ng-click="post_msg('msg_url')">Post</button>
+        </div>
+      </div>
+
       <div>View Message</div>
       <div>
         Message ID:
@@ -169,21 +184,6 @@
         <div>
           <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
           <br/><button ng-click="post_msg('gdsn_workflow')">Post</button>
-        </div>
-      </div>
-
-      <div>Post Message</div>
-      <div>
-        <div ng-controller="thx_file_controller">
-          <span>This form will post messages to CS for party/item parsing and persistence, along with message archival</span>
-          <form>
-            <input type="file" ng-file-select="onFileSelect($files, 'msg_url')"></input>
-            <button ng-click="uploadFile('msg_url')">Upload File</button>
-          </form>
-        </div>
-        <div>
-          <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
-          <br/><button ng-click="post_msg('msg_url')">Post</button>
         </div>
       </div>
 

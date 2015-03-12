@@ -8,6 +8,12 @@ module.exports = function (config) {
     
   return function (req, res, next) {
 
+    var sender = req.params.sender
+    if (!config.gdsn.validateGln(sender)) {
+      res.end('sender must be a valid GLN')
+      return
+    }
+  
     if (req.method != 'POST') {
       var msg_id = req.params.msg_id
       var sender = req.params.sender
@@ -53,9 +59,12 @@ module.exports = function (config) {
 
     // db_msg_info representation might not reflect latest parsing logic...
     // so reparse original msg xml to generate parties and trade items
-    var start_parse = Date.now()
-    var msg_info = config.gdsn.get_msg_info(db_msg_info.xml)
-    log.debug('parse of db msg xml took ' + (Date.now() - start_parse) + ' ms for ' + msg_info.xml.length + ' new length')
+    //var start_parse = Date.now()
+    //var msg_info = config.gdsn.get_msg_info(db_msg_info.xml)
+    //log.debug('parse of db msg xml took ' + (Date.now() - start_parse) + ' ms for ' + msg_info.xml.length + ' new length')
+
+    // ... or just trust the object tree as stored in db at message persist time:
+    var msg_info = db_msg_info
 
     log.info('starting workflow for ' + msg_info.msg_id + ', msg_type: ' + msg_info.msg_type + ', modified: ' + new Date(msg_info.modified_ts))
     log.debug('msg xml: ' + msg_info.xml)
@@ -102,8 +111,6 @@ module.exports = function (config) {
     if (msg_info.msg_type == 'basicPartyRegistration'
      || msg_info.msg_type == 'registryPartyDataDump') {
 
-      // GDSN Server API call: /gdsn-server/api/party/1100001011293?partyRole={*BILL_TO}&name={*TestParty}&sourcedp={*1100001011285}&address1=a1&address2=a2&city={*c1}&state=CA&zip=12345[&status=PTY_IN_PROGRESS]
-
       var tasks = []
       msg_info.party.forEach(function (party) {
 
@@ -113,11 +120,11 @@ module.exports = function (config) {
 
           console.log('update party data for gln ' + party.gln + ', ' + party.name)
 
-          var start_bpr_api_call = Date.now()
+          var start_party_api_call = Date.now()
           request.post({
             url             : config.url_gdsn_api + '/party/' + party.gln 
             , form          : { 
-              , sourcedp    : party.source_dp
+                sourcedp    : party.source_dp
               , partyRole   : party.role
               , name        : party.name
               , address1    : party.address1
@@ -137,31 +144,28 @@ module.exports = function (config) {
                 'user': 'admin'
                 , 'pass': 'devadmin'
                 , 'sendImmediately': true
-              }
+            }
             , body: config.gdsn.populateBprToGr(config, msg_info)
           }, 
           function (err, response, body) {
-            log.info('bpr api call took ' 
-              + (Date.now() - start_bpr_api_call) 
+            log.info('party api call took ' 
+              + (Date.now() - start_party_api_call) 
               + ' ms with response: '
               + (response ? response.statusCode : 'NO_RESPONSE')
               + ', body: '
               + body)
             if (err) return callback(err)
-            if (response.statusCode != '200') return callback(Error(body))
+            if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
             callback(null, body)
           }) // end request.post
         }) // end tasks.push
       }) // end msg_info.party.forEach
 
       async.parallel(tasks, function (err, results) {
-        console.log('all bpr submissions complete for msg_id ' + msg_info.msg_id)
-
-console.log('async api party results: ')
-console.dir(results)
+        console.log('all party submissions complete for msg_id ' + msg_info.msg_id)
 
         if (err) {
-          console.log('async api err: ')
+          console.log('async party api err: ')
           console.dir(err)
           var orig_msg_info = msg_info
 
@@ -188,7 +192,7 @@ console.dir(results)
       var tasks = []
       msg_info.item.forEach(function (item) {
 
-        console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> item gtin:::::::::::::::: ' + item.gtin)
+        console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> item gtin:::::::::::::::: ' + item.gtin + ', valid: ' + config.gdsn.validateGtin(item.gtin))
 
         tasks.push(function (callback) {
 
@@ -200,9 +204,8 @@ console.dir(results)
           var start_cin_api_call = Date.now()
           console.log('posting CIN data to GDSN Server API for msg_id  ' + msg_info.msg_id)
 
-          // GDSN Server API call: /gdsn-server/api/ci/1100001011293/10044700002411/840/US-MA?brandName={*brandName2}&classCategoryCode={*10001681}&unitDescriptor={*CASE}&documentCommandHeader={*ADD}[&isBaseUnit=true][&isConsumerUnit=false][&isDispatchUnit=true][&isInvoiceUnit=false][&isMarkedReturnable=true][&isOrderableUnit=false][&isVariableUnit=true][&lastChangeDateTime=2001-12-17T09:30:47Z][&canceledDate=2001-12-17T09:30:47Z][&discontinuedDate=2001-12-17T09:30:47Z][&skipMatchingProcess=true]
+          //var is_new = (msg_info.status == 'ADD')
 
-          var is_new = (msg_info.status == 'ADD')
           request.post({
             url        : config.url_gdsn_api + '/ci/' + item.provider + '/' + item.gtin + '/' + item.tm + '/' + item.tm_sub || 'na' 
             , form       : { 
@@ -241,7 +244,7 @@ console.dir(results)
               + ', body: '
               + body)
             if (err) return callback(err)
-            if (response.statusCode != '200') return callback(Error(body))
+            if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
             callback(null, body)
           }) // end request.post
         }) // end tasks.push
@@ -254,7 +257,7 @@ console.log('async api ci results: ')
 console.dir(results)
 
         if (err) {
-          log.debug('async api err: ' + err)
+          log.debug('async cin api err: ' + err)
           var orig_msg_info = msg_info
 
           // don't modify original msg_info object
@@ -277,12 +280,142 @@ console.dir(results)
 
     if (msg_info.msg_type == 'catalogueItemPublication') {
 
-      // TODO: call GDSN Server API to publish item
+      // call GDSN Server API to publish item:
       // /gdsn-server/api/publish?gln={\\d13}&dr={\\d13}&gtin={\\d14}&tm={\\d3}[&il=true}][&delete=true}]"
 
-      var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
-      res.write(response_xml)
-      return res.end()
+      var tasks = []
+      msg_info.pub.forEach(function (pub) {
+
+        console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> pub gln :::::::::::::::: ' + pub.provider)
+
+        tasks.push(function (callback) {
+
+          console.log('update pub data for gtin ' + pub.gtin + ', ' + pub.name)
+
+          var start_cip_api_call = Date.now()
+          request.post({
+            url          : config.url_gdsn_api + '/publish'
+            , form       : { 
+                ds       : pub.provider
+              , dr       : pub.recipient
+              , gtin     : pub.gtin
+              , tm       : pub.tm
+              , tms      : pub.tm_sub != 'na' ? pub.tm_sub : ''
+              , il       : pub.initial_load
+              , ts       : new Date()
+            }
+            , auth: {
+                'user': 'admin'
+                , 'pass': 'devadmin'
+                , 'sendImmediately': true
+            }
+          }, 
+          function (err, response, body) {
+            log.info('cip api call took ' 
+              + (Date.now() - start_cip_api_call) 
+              + ' ms with response: '
+              + (response ? response.statusCode : 'NO_RESPONSE')
+              + ', body: '
+              + body)
+            if (err) return callback(err)
+            if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
+            callback(null, body)
+          }) // end request.post
+        }) // end tasks.push
+      }) // end msg_info.pub.forEach
+
+      async.parallel(tasks, function (err, results) {
+        console.log('all cip submissions complete for msg_id ' + msg_info.msg_id)
+
+        if (err) {
+          console.log('async cip api err: ')
+          console.dir(err)
+          var orig_msg_info = msg_info
+
+          // don't modify original msg_info object
+          msg_info = {
+              msg_id: orig_msg_info.msg_id
+            , sender: orig_msg_info.sender
+            , receiver: orig_msg_info.receiver
+            , status: 'ERROR'
+            , exception: err.toString()
+          }
+        }
+
+        var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
+        res.write(response_xml)
+        res.end()
+      }, 10) // concurrency
+      return
+    }
+
+    if (msg_info.msg_type == 'catalogueItemSubscription') {
+
+      var tasks = []
+      msg_info.sub.forEach(function (sub) {
+
+        console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> subscriber gln :::::::::::::::: ' + sub.recipient)
+
+        tasks.push(function (callback) {
+
+          console.log('updating sub data for sub/pub ' + sub.recipient + '/' + sub.provider)
+           
+
+          var start_cis_api_call = Date.now()
+          request.post({
+            url          : config.url_gdsn_api + '/cis/' + sub.recipient + '/' + sub.provider
+            , form       : { 
+                gtin  : ''
+              , gpc   : ''
+              , tm    : ''
+              , ts    : new Date()
+              //, mode: 'unsubscribe'
+              //, is_from_gr: 'true'
+            }
+            , auth: {
+                'user': 'admin'
+                , 'pass': 'devadmin'
+                , 'sendImmediately': true
+              }
+            , body: (msg_info.sender != config.gdsn_gr_gln) ? config.gdsn.populateCisToGr(config, msg_info) : ''
+          }, 
+          function (err, response, body) {
+            log.info('cis api call took ' 
+              + (Date.now() - start_cis_api_call) 
+              + ' ms with response: '
+              + (response ? response.statusCode : 'NO_RESPONSE')
+              + ', body: '
+              + body)
+            if (err) return callback(err)
+            if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
+            callback(null, body)
+          }) // end request.post
+        }) // end tasks.push
+      }) // end msg_info.sub.forEach
+
+      async.parallel(tasks, function (err, results) {
+        console.log('all cis submissions complete for msg_id ' + msg_info.msg_id)
+
+        if (err) {
+          console.log('async cis api err: ')
+          console.dir(err)
+          var orig_msg_info = msg_info
+
+          // don't modify original msg_info object
+          msg_info = {
+              msg_id: orig_msg_info.msg_id
+            , sender: orig_msg_info.sender
+            , receiver: orig_msg_info.receiver
+            , status: 'ERROR'
+            , exception: err.toString()
+          }
+        }
+
+        var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
+        res.write(response_xml)
+        res.end()
+      }, 10) // concurrency
+      return
     }
 
     if (msg_info.msg_type == 'catalogueItemConfirmation') {
@@ -296,14 +429,6 @@ console.dir(results)
       return res.end()
     }
 
-    if (msg_info.msg_type == 'catalogueItemSubscription') {
-      // TODO: call GDSN Server API to manage subscription
-      var cis = config.gdsn.populateCisToGr(config, msg_info)
-      var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
-      res.write(response_xml)
-      return res.end()
-    }
-
     if (msg_info.msg_type == 'requestForCatalogueItemNotification') {
       // TODO: call GDSN Server API to manage subscription
       //var rfcin = config.gdsn.populateRfcin(config, msg_info)
@@ -311,5 +436,20 @@ console.dir(results)
       res.write(response_xml)
       return res.end()
     }
+  }
+
+  function getSuccess(body) {
+    try {
+
+        var obj = JSON.parse(body)
+        console.log('getSuccess debug ' + body)
+        console.dir(obj)
+
+      return JSON.parse(body).success == 'true'
+    }
+    catch (e) {
+      console.log('json parse error: ' + e)
+    }
+    return false
   }
 }
