@@ -1,11 +1,16 @@
 module.exports = function (config) {
 
   var _              = require('underscore')
+  var async          = require('async')
   var request        = require('request')
 
   var log            = require('../lib/Logger')('rt_msg_arch', {debug: true})
   var msg_archive_db = require('../lib/db/msg_archive.js')(config)
+  var party_db       = require('../lib/db/trading_party.js')(config)
+  var trade_item_db  = require('../lib/db/trade_item.js')(config)
+  var xml_digest     = require('../lib/xml_to_json.js')(config)
   var utils          = require('../lib/utils.js')(config)
+
 
   var api = {}
 
@@ -25,42 +30,34 @@ module.exports = function (config) {
         if (err) return next(err)
         log.info('Message info saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
 
-        if (!res.finished) {
-          if (msg_info) {
-            res.jsonp(msg_info)
-          }
-          else {
-            res.jsonp({msg: 'Message not saved'})
-          }
-        }
-      })
-    })
-
-    /* attempt to store trade items with every file upload...
-
-    var async          = require('async')
-    var trade_item_db  = require('../lib/db/trade_item.js')(config)
-    var xml_digest     = require('../lib/xml_to_json.js')(config)
-
-    var tasks = []
-    config.gdsn.getEachTradeItemFromStream(req, function (err, item) {
-      if (err) {
-        log.error('Error getting trade items from stream: ' + err)
-        return
-      }
-
-      if (item) {
-        log.debug('received item from getEachTradeItemFromStream callback with gtin ' + item.gtin)
-
-        var itemDigest = xml_digest.digest(item.xml)
-        item.tradeItem = itemDigest.tradeItem
-
-        tasks.push(function (callback) {
-          trade_item_db.saveTradeItem(item, callback)
+        // attempt to store parties, trade items, pubs, subs...
+        var tasks = []
+        msg_info.pub.forEach(function (pub) {
+          console.log('saving pub: ' + JSON.stringify(pub))
         })
-      }
-      else { // null item is passed when there are no more items in the stream
-        log.debug('no more items from getEachTradeItemFromStream callback')
+        msg_info.sub.forEach(function (sub) {
+          console.log('saving sub: ' + JSON.stringify(sub))
+        })
+        msg_info.party.forEach(function (party) {
+          console.log('saving party: ' + party.gln)
+
+          tasks.push(function (callback) {
+            party_db.saveTradeItem(party, callback)
+          })
+        })
+        msg_info.item.forEach(function (item) {
+          console.log('saving trade item: ' + item.gtin)
+
+          // temp fix
+          item.recipient = msg_info.receiver
+
+          var itemDigest = xml_digest.digest(item.xml)
+          item.tradeItem = itemDigest.tradeItem
+
+          tasks.push(function (callback) {
+            trade_item_db.saveTradeItem(item, callback)
+          })
+        })
         async.parallel(tasks, function (err, results) {
           log.debug('parallel results: ' + JSON.stringify(results))
           if (err) {
@@ -72,10 +69,54 @@ module.exports = function (config) {
             log.info('Saved trade item count: ' + results.length)
           }
         })
-      }
 
+        /* old impl using stream:
+        config.gdsn.getEachTradeItemFromStream(req, function (err, item) {
+          if (err) {
+            log.error('Error getting trade items from stream: ' + err)
+            return
+          }
+
+          if (item) {
+            log.debug('received item from getEachTradeItemFromStream callback with gtin ' + item.gtin)
+
+            var itemDigest = xml_digest.digest(item.xml)
+            item.tradeItem = itemDigest.tradeItem
+
+            tasks.push(function (callback) {
+              trade_item_db.saveTradeItem(item, callback)
+            })
+          }
+          else { // null item is passed when there are no more items in the stream
+            log.debug('no more items from getEachTradeItemFromStream callback')
+            async.parallel(tasks, function (err, results) {
+              log.debug('parallel results: ' + JSON.stringify(results))
+              if (err) {
+                log.error('Error saving trade items for message: ' + err)
+                return
+              }
+              else {
+                results = _.flatten(results) // async.parallel returns an array of results arrays
+                log.info('Saved trade item count: ' + results.length)
+              }
+            })
+          }
+
+        })
+        end old impl */
+        /* end save trade items */
+
+        if (!res.finished) {
+          if (msg_info) {
+            res.jsonp(msg_info)
+          }
+          else {
+            res.jsonp({msg: 'Message not saved'})
+          }
+        }
+      })
     })
-    */
+
   }
 
   // returns pages of msg_info

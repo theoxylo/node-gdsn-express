@@ -59,9 +59,9 @@ module.exports = function (config) {
 
     // db_msg_info representation might not reflect latest parsing logic...
     // so reparse original msg xml to generate parties and trade items
-    //var start_parse = Date.now()
+    //var start_reparse = Date.now()
     //var msg_info = config.gdsn.get_msg_info(db_msg_info.xml)
-    //log.debug('parse of db msg xml took ' + (Date.now() - start_parse) + ' ms for ' + msg_info.xml.length + ' new length')
+    //log.debug('reparse of db msg xml took ' + (Date.now() - start_reparse) + ' ms for ' + msg_info.xml.length + ' new length')
 
     // ... or just trust the object tree as stored in db at message persist time:
     var msg_info = db_msg_info

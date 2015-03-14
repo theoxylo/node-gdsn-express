@@ -52,6 +52,7 @@ var routes_logs     = require(config.routes_dir + '/logs.js')(config)
 var routes_item     = require(config.routes_dir + '/trade_item.js')(config)
 var routes_profile  = require(config.routes_dir + '/profile.js')(config)
 var routes_gdsn_wf  = require(config.routes_dir + '/gdsn_workflow.js')(config)
+var routes_gdsn_cin = require(config.routes_dir + '/gdsn_create_cin.js')(config)
 var app = express()
 config.app = app
 
@@ -144,10 +145,11 @@ router.get('/gdsn-validate/:msg_id',         routes_xsd.lookup_and_validate)
 router.get('/gdsn-validate/:msg_id/:sender', routes_xsd.lookup_and_validate)
 router.get('/gdsn-workflow/:msg_id',         routes_gdsn_wf)
 router.get('/gdsn-workflow/:msg_id/:sender', routes_gdsn_wf)
+router.get('/gdsn-cin',                      routes_gdsn_cin.create_cin)
 
 // POST
 router.post('/msg',                          routes_msg.post_archive)
-router.post('/items',                        routes_item.post_trade_items)
+router.post('/items',                        routes_item.post_trade_items) // used by ECCnet client
 router.post('/item',                         routes_item.post_trade_items)
 router.post('/parties',                      routes_parties.post_parties)
 
