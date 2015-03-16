@@ -57,6 +57,8 @@ module.exports = function (config) {
     items = items.map(function (item) {
       item.href         = item_utils.get_item_href(item, '/items')
       item.history_href = item_utils.get_item_href(item, '/items/history')
+      item.cin_href     = item_utils.get_item_href(item, '/gdsn-cin')
+
       item.item_count_num = item_count++
       populateItemImageUrls(item)
       return item
@@ -153,6 +155,7 @@ module.exports = function (config) {
       items = items.map(function (item) {
         item.href         = item_utils.get_item_href(item, '/items')
         item.history_href = item_utils.get_item_href(item, '/items/history')
+        item.cin_href     = item_utils.get_item_href(item, '/gdsn-cin')
         item.item_count_num = item_count++
         populateItemImageUrls(item)
         return item
@@ -228,6 +231,7 @@ module.exports = function (config) {
             item.client_name = client_config.client_name
             item.href         = item_utils.get_item_href(item, '/items')
             item.history_href = item_utils.get_item_href(item, '/items/history')
+            item.cin_href     = item_utils.get_item_href(item, '/gdsn-cin')
 
             // run digest at request time?
             //var itemDigest = xml_digest.digest(item.xml)

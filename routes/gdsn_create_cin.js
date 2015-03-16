@@ -126,11 +126,12 @@ module.exports = function (config) {
             tasks.push(
               function (callback) {
                 var start = Date.now()
+                var include_xml = true
                 item_utils.fetch_all_children(item, req_id, function (err, item_and_children) {
                   if (err) return callback(err)
                   info('utils found ' + (item_and_children && item_and_children.length) + ' child items for gtin ' + gtin + ' in ' + (Date.now() - start) + 'ms')
                   callback(null, item_and_children)
-                })
+                }, include_xml)
               }
             )
           })
@@ -156,8 +157,11 @@ module.exports = function (config) {
 
               var cin_xml = config.gdsn.create_cin(items)
 
-              if (!res.finished) res.send(cin_xml)
-              res.end()
+              res.set('Content-Type', 'application/xml;charset=utf-8')
+              if (req.param('download')) {
+                res.set('Content-Disposition', 'attachment; filename="gen_cin_' + gtin + '.xml"')
+              }
+              res.end(cin_xml)
 
               log.db(req.url, req.user, (Date.now() - start))
             } // end async.parallel callback
