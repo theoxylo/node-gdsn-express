@@ -32,19 +32,6 @@ module.exports = function (config) {
 
         // attempt to store parties, trade items, pubs, subs...
         var tasks = []
-        msg_info.pub.forEach(function (pub) {
-          console.log('saving pub: ' + JSON.stringify(pub))
-        })
-        msg_info.sub.forEach(function (sub) {
-          console.log('saving sub: ' + JSON.stringify(sub))
-        })
-        msg_info.party.forEach(function (party) {
-          console.log('saving party: ' + party.gln)
-
-          tasks.push(function (callback) {
-            party_db.saveTradeItem(party, callback)
-          })
-        })
         msg_info.item.forEach(function (item) {
           console.log('saving trade item: ' + item.gtin)
 
@@ -58,6 +45,19 @@ module.exports = function (config) {
             trade_item_db.saveTradeItem(item, callback)
           })
         })
+        msg_info.party.forEach(function (party) {
+          console.log('saving party: ' + party.gln)
+          tasks.push(function (callback) {
+            party_db.saveParty(party, callback)
+          })
+        })
+        msg_info.pub.forEach(function (pub) {
+          console.log('saving pub: ' + JSON.stringify(pub))
+        })
+        msg_info.sub.forEach(function (sub) {
+          console.log('saving sub: ' + JSON.stringify(sub))
+        })
+
         async.parallel(tasks, function (err, results) {
           log.debug('parallel results: ' + JSON.stringify(results))
           if (err) {

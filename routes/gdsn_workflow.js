@@ -59,12 +59,13 @@ module.exports = function (config) {
 
     // db_msg_info representation might not reflect latest parsing logic...
     // so reparse original msg xml to generate parties and trade items
-    //var start_reparse = Date.now()
-    //var msg_info = config.gdsn.get_msg_info(db_msg_info.xml)
-    //log.debug('reparse of db msg xml took ' + (Date.now() - start_reparse) + ' ms for ' + msg_info.xml.length + ' new length')
+    var start_reparse = Date.now()
+    var msg_info = config.gdsn.get_msg_info(db_msg_info.xml)
+    log.debug('reparse of db msg xml took ' + (Date.now() - start_reparse) + ' ms for ' + msg_info.xml.length + ' new length')
 
     // ... or just trust the object tree as stored in db at message persist time:
-    var msg_info = db_msg_info
+    //var msg_info = db_msg_info
+    // no, it's too big for large messages
 
     log.info('starting workflow for ' + msg_info.msg_id + ', msg_type: ' + msg_info.msg_type + ', modified: ' + new Date(msg_info.modified_ts))
     log.debug('msg xml: ' + msg_info.xml)
@@ -128,7 +129,7 @@ module.exports = function (config) {
               , partyRole   : party.role
               , name        : party.name
               , address1    : party.address1
-              , address2    : party.address1
+              , address2    : party.address2
               , city        : party.city
               , state       : party.state
               , zip         : party.zip
