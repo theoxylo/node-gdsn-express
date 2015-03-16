@@ -145,6 +145,9 @@ router.get('/gdsn-validate/:msg_id',         routes_xsd.lookup_and_validate)
 router.get('/gdsn-validate/:msg_id/:sender', routes_xsd.lookup_and_validate)
 router.get('/gdsn-workflow/:msg_id',         routes_gdsn_wf)
 router.get('/gdsn-workflow/:msg_id/:sender', routes_gdsn_wf)
+
+// fully qualified path for CIN generation, including recipient
+router.get('/gdsn-cin/:recipient/:gtin/:provider/:tm/:tm_sub', routes_gdsn_cin.create_cin)
 router.get('/gdsn-cin',                      routes_gdsn_cin.create_cin)
 
 // POST
@@ -220,7 +223,20 @@ if (config.https_port) {
   log.info('Express GDSN server listening at https://' + config.https_host + ':' + config.https_port)
 }
 
+// mock GDSN Server for gdsn API calls
+app.use('/gdsn-server/api/', function (req, res, next) {
+  res.json({
+    success: true
+    ,status: '200'
+    ,message: 'mock success'
+    ,ts: Date.now()
+    ,date_time: new Date()
+  })
+})
 
+// test sample all-in-one endpoint:
+// test sample all-in-one endpoint:
+// test sample all-in-one endpoint:
 // test sample all-in-one endpoint:
 var cheerio     = require('cheerio')
 var endsWith = function(str, suffix) {

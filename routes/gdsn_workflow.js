@@ -263,6 +263,7 @@ console.dir(results)
           // don't modify original msg_info object
           msg_info = {
               msg_id: orig_msg_info.msg_id
+            , created_ts: orig_msg_info.created_ts
             , sender: orig_msg_info.sender
             , receiver: orig_msg_info.receiver
             , status: 'ERROR'
@@ -270,6 +271,7 @@ console.dir(results)
           }
         }
 
+console.log('gdsn_workflow before populate response created ts: ' + msg_info.created_ts)
         var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
         res.write(response_xml)
         res.end()
