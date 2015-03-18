@@ -8,450 +8,525 @@ module.exports = function (config) {
     
   return function (req, res, next) {
 
+    log.debug('>>> route handler called with path ' + req.path)
+
     var sender = req.params.sender
     if (!config.gdsn.validateGln(sender)) {
       res.end('sender must be a valid GLN')
       return
     }
   
-    if (req.method != 'POST') {
-      var msg_id = req.params.msg_id
-      var sender = req.params.sender
-      if (msg_id) { // fetch existing msg xml and submit to dp
-        log.debug('gdsn-wf will use existing message with id ' + msg_id)
-        msg_archive_db.findMessage(sender, msg_id, function (err, db_msg_info) {
-          if (err) return next(err)
-          if (db_msg_info.length > 1) return next(Error('found multiple messages with id ' + msg_id))
-          do_gdsn_workflow(db_msg_info[0], res, next)
-        })
-      }
-      else {
-        res.end('msg_id param is required')
-      }
+    var msg_id = req.params.msg_id
+    var sender = req.params.sender
+    if (!msg_id) { 
+      res.end('msg_id param is required')
       return
     }
+    // fetch existing msg xml and submit to dp
+    log.debug('gdsn-wf will use existing message with id ' + msg_id)
+    msg_archive_db.findMessage(sender, msg_id, function (err, db_msg_info) {
 
-    log.debug('>>> route handler called with path ' + req.path)
-    var xml = ''
-    req.setEncoding('utf8')
-    req.on('data', function (chunk) {
-      log.debug('archive_post_chunk.length: ' + (chunk && chunk.length))
-      xml += chunk
-      if (xml.length > 10 * 1000 * 1000) return res.jsonp({msg: 'msg xml too big - larger than 10 MB'})
-    })
-    req.on('end', function () {
-      log.info('Received msg xml POST of length ' + (xml && xml.length || '0'))
-      msg_archive_db.saveMessage(xml, function (err, db_msg_info) {
-        if (err) return next(err)
-        do_gdsn_workflow(db_msg_info, res, next)
-      }) 
-    })
-  }
+      if (err) return next(err)
+      if (db_msg_info.length > 1) return next(Error('found multiple messages with id ' + msg_id))
 
-  function do_gdsn_workflow(db_msg_info, res, next) {
+      db_msg_info = db_msg_info[0]
 
-    if (!db_msg_info || !db_msg_info.msg_id || !db_msg_info.xml) {
-      log.error('msg_info problem with data:' + JSON.stringify(db_msg_info))
-      return next(Error('missing msg_info'))
-    }
-
-    if (db_msg_info.receiver != config.homeDataPoolGln) return next(Error('to initiate workflow, the message receiver must be the datapool'))
-
-    // db_msg_info representation might not reflect latest parsing logic...
-    // so reparse original msg xml to generate parties and trade items
-    var start_reparse = Date.now()
-    var msg_info = config.gdsn.get_msg_info(db_msg_info.xml)
-    log.debug('reparse of db msg xml took ' + (Date.now() - start_reparse) + ' ms for ' + msg_info.xml.length + ' new length')
-
-    // ... or just trust the object tree as stored in db at message persist time:
-    //var msg_info = db_msg_info
-    // no, it's too big for large messages
-
-    log.info('starting workflow for ' + msg_info.msg_id + ', msg_type: ' + msg_info.msg_type + ', modified: ' + new Date(msg_info.modified_ts))
-    log.debug('msg xml: ' + msg_info.xml)
-    log.debug('msg xml length: ' + msg_info.xml.length)
-
-
-    // if it's a response to a previous message, we are done very early
-    if (msg_info.msg_type == 'GDSNResponse') {
-      //gdsn.msg_response(msg_info.requesting_msg_id, msg_info.status == 'ACCEPTED')
-
-      // TODO: call GDSN Server API to record response
-      // CIRR
-      // BPRR
-
-      return res.end('response received to original msg_id ' + msg_info.requesting_msg_id + ' with status ' + msg_info.status)
-    }
-
-    // each message type may or may not have additional downstream messages to generate
-
-    if (msg_info.sender == msg_info.source_dp) { // messages from other data pools
-
-      if (msg_info.msg_type == 'catalogueItemConfirmation') {
-        // TODO: call GDSN Server API to update dp cic status for this published item
-        var cic = config.gdsn.populateCicToTp(config, msg_info)
-        res.write(cic)
-
-        var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
-        res.write(response_xml)
-        return res.end()
+      if (!db_msg_info || !db_msg_info.msg_id || !db_msg_info.xml) {
+        log.error('msg_info problem with data:' + JSON.stringify(db_msg_info))
+        return next(Error('missing msg_info'))
       }
 
-      if (msg_info.msg_type == 'catalogueItemNotification') {
-        // TODO: call GDSN Server API to to inform that GTIN received?
-        var cin = config.gdsn.populateCinToTp(config, msg_info)
-        res.write(rci)
-        return res.end()
+      if (db_msg_info.receiver != config.homeDataPoolGln) {
+        return next(Error('to initiate workflow, the message receiver must be the datapool'))
       }
-      // only CIC and CIN are sent by other data pools
-      return next(Error('wrong message type from other dp? ' + msg_info.sender + ', ' + msg_info.msg_type))
-    }
 
-    // messages from local registered trading parties:
+      // parse original msg xml to generate parties, trade items, etc
+      var start_parse = Date.now()
+      var msg_info = config.gdsn.get_msg_info(db_msg_info.xml)
+      log.debug('reparse of db msg xml took ' + (Date.now() - start_parse) + ' ms for ' + msg_info.xml.length + ' new length')
 
-    if (msg_info.msg_type == 'basicPartyRegistration'
-     || msg_info.msg_type == 'registryPartyDataDump') {
+      log.info('starting workflow for ' + msg_info.msg_id + ', msg_type: ' + msg_info.msg_type + ', modified: ' + new Date(msg_info.modified_ts))
+      //log.debug('msg xml: ' + msg_info.xml)
+      log.debug('msg xml length: ' + msg_info.xml.length)
 
-      var tasks = []
-      msg_info.party.forEach(function (party) {
+      // if it's a response to a previous message, we are done very early
+      if (msg_info.msg_type == 'GDSNResponse') {
+        //gdsn.msg_response(msg_info.requesting_msg_id, msg_info.status == 'ACCEPTED')
 
-        console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> party gln:::::::::::::::: ' + party.gln)
+        // TODO: call GDSN Server API to record response
+        // CIRR
+        // BPRR
 
-        tasks.push(function (callback) {
+        return res.end('response received to original msg_id ' + msg_info.requesting_msg_id + ' with status ' + msg_info.status)
+      }
 
-          console.log('update party data for gln ' + party.gln + ', ' + party.name)
+      // each message type may or may not have additional downstream messages to generate
 
-          var start_party_api_call = Date.now()
-          request.post({
-            url             : config.url_gdsn_api + '/party/' + party.gln 
-            , form          : { 
-                sourcedp    : party.source_dp
-              , partyRole   : party.role
-              , name        : party.name
-              , address1    : party.address1
-              , address2    : party.address2
-              , city        : party.city
-              , state       : party.state
-              , zip         : party.zip
-              , country     : party.tm
-              , contactName : party.contact_name
-              , contactEmail: party.contact_email
-              , contactPhone: party.contact_phone
-              //, status      : 'PTY_IN_PROGRESS' // will require BPRR from GR to activate
-              , status      : 'PTY_REGISTERED' // BPRR from GR is not needed, but might be out of sync
-              , ts          : new Date()
+      if (msg_info.sender == msg_info.source_dp) { // messages from other data pools
+
+        if (msg_info.msg_type == 'catalogueItemConfirmation') {
+
+          // TODO: call GDSN Server API to update dp cic status for this published item
+
+          var cic_xml = config.gdsn.populateCicToTp(config, msg_info)
+          msg_archive_db.saveMessage(cic_xml, function (err, msg_info) {
+            if (err) return next(err)
+            log.info('Generated cic message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
+          })
+          res.write(cic_xml)
+
+          var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
+          msg_archive_db.saveMessage(response_xml, function (err, msg_info) {
+            if (err) return next(err)
+            log.info('Generated response message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
+          })
+          res.write(response_xml)
+
+          return res.end()
+        }
+
+        if (msg_info.msg_type == 'catalogueItemNotification') {
+
+          // TODO: call GDSN Server API to to inform that GTIN received?
+
+          var cin_xml = config.gdsn.populateCinToTp(config, msg_info)
+          msg_archive_db.saveMessage(cin_xml, function (err, msg_info) {
+            if (err) return next(err)
+            log.info('Generated cin message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
+          })
+          res.write(cin_xml)
+          return res.end()
+        }
+
+        // only CIC and CIN are sent by other data pools
+        return next(Error('wrong message type from other dp? ' + msg_info.sender + ', ' + msg_info.msg_type))
+      }
+
+      // messages from local registered trading parties or GR:
+
+      if (msg_info.msg_type == 'basicPartyRegistration'
+        || msg_info.msg_type == 'registryPartyDataDump') {
+
+        msg_info.party.forEach(function (party) { console.dir(party) })
+
+        var tasks = []
+        msg_info.party.forEach(function (party) {
+
+          log.debug('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> rpdd party gln:::::::::::::::: ' + party.gln)
+
+          if (party.source_dp == config.homeDataPoolGln) {
+            if (msg_info.msg_type == 'registryPartyDataDump') {
+              log.debug('skipping rpdd update for own party with gln ' + party.gln)
+              return // don't update our own parties based on rpdd, only bpr
             }
-            , auth: {
+          }
+          else {
+            if (msg_info.msg_type == 'basicPartyRegistration') {
+              log.debug('skipping bpr update for other data pool party with gln ' + party.gln)
+              return // don't update other dp's parties based on bpr, only rpdd
+            }
+          }
+
+          tasks.push(function (callback) {
+
+            log.debug('update party data for gln ' + party.gln + ', ' + party.name)
+
+            var start_party_api_call = Date.now()
+            request.post({
+              url             : config.url_gdsn_api + '/party/' + party.gln 
+              , form          : { 
+                  sourcedp    : party.source_dp
+                , partyRole   : party.role
+                , name        : party.name
+                , address1    : party.address1
+                , address2    : party.address2
+                , city        : party.city
+                , state       : party.state
+                , zip         : party.zip
+                , country     : party.tm
+                , contactName : party.contact_name
+                , contactEmail: party.contact_email
+                , contactPhone: party.contact_phone
+                //, status      : 'PTY_IN_PROGRESS' // will require BPRR from GR to activate
+                , status      : 'PTY_REGISTERED' // BPRR from GR is not needed, but might be out of sync
+                , ts          : new Date()
+              }
+              , auth: {
                 'user': 'admin'
                 , 'pass': 'devadmin'
                 , 'sendImmediately': true
+              }
+            }, 
+            function (err, response, body) {
+              log.info('party api call took ' 
+                + (Date.now() - start_party_api_call) 
+                + ' ms with response: '
+                + (response ? response.statusCode : 'NO_RESPONSE')
+                + ', body: '
+                + body)
+              if (err) return callback(err)
+              if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
+
+              if (msg_info.msg_type == 'basicPartyRegistration') {
+                var bpr_xml = config.gdsn.populateBprToGr(config, msg_info)
+                msg_archive_db.saveMessage(bpr_xml, function (err, msg_info) {
+                  if (err) return next(err)
+                  log.info('Generated bpr to gr message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
+                })
+                res.write(bpr_xml)
+              }
+              callback(null, body)
+            }) // end request.post
+          }) // end tasks.push
+        }) // end msg_info.party.forEach
+
+        async.parallel(tasks, function (err, results) {
+          log.debug('all party submissions complete for msg_id ' + msg_info.msg_id)
+
+          if (err) {
+            log.debug('async party api err: ')
+            console.dir(err)
+            var orig_msg_info = msg_info
+
+            // don't modify original msg_info object
+            msg_info = {
+                msg_id: orig_msg_info.msg_id
+              , sender: orig_msg_info.sender
+              , receiver: orig_msg_info.receiver
+              , status: 'ERROR'
+              , exception: err.toString()
             }
-            , body: config.gdsn.populateBprToGr(config, msg_info)
-          }, 
-          function (err, response, body) {
-            log.info('party api call took ' 
-              + (Date.now() - start_party_api_call) 
-              + ' ms with response: '
-              + (response ? response.statusCode : 'NO_RESPONSE')
-              + ', body: '
-              + body)
-            if (err) return callback(err)
-            if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
-            callback(null, body)
-          }) // end request.post
-        }) // end tasks.push
-      }) // end msg_info.party.forEach
-
-      async.parallel(tasks, function (err, results) {
-        console.log('all party submissions complete for msg_id ' + msg_info.msg_id)
-
-        if (err) {
-          console.log('async party api err: ')
-          console.dir(err)
-          var orig_msg_info = msg_info
-
-          // don't modify original msg_info object
-          msg_info = {
-              msg_id: orig_msg_info.msg_id
-            , sender: orig_msg_info.sender
-            , receiver: orig_msg_info.receiver
-            , status: 'ERROR'
-            , exception: err.toString()
           }
-        }
 
-        var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
-        res.write(response_xml)
-        res.end()
-      }, 10) // concurrency
-      return
-    }
+          var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
+          msg_archive_db.saveMessage(response_xml, function (err, msg_info) {
+            if (err) return next(err)
+            log.info('Generated response message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
+          })
+          res.write(response_xml)
+          res.end()
+        }, 10) // concurrency
+        return
+      }
 
-    // post RCI for GR along with API request
-    if (msg_info.msg_type == 'catalogueItemNotification') {
+      // post RCI for GR along with API request
+      if (msg_info.msg_type == 'catalogueItemNotification') {
 
-      var tasks = []
-      msg_info.item.forEach(function (item) {
+        var tasks = []
+        msg_info.item.forEach(function (item) {
 
-        console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> item gtin:::::::::::::::: ' + item.gtin + ', valid: ' + config.gdsn.validateGtin(item.gtin))
+          log.debug('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> item gtin:::::::::::::::: ' + item.gtin + ', valid: ' + config.gdsn.validateGtin(item.gtin))
 
-        tasks.push(function (callback) {
+          tasks.push(function (callback) {
 
-          console.log('trade item data: ')
-          console.dir(item)
+            log.debug('trade item data: ')
+            console.dir(item)
 
-          if (!item) return next(Error('item data not found for gtin ' + item.gtin + ', please check file or db'))
+            if (!item) return next(Error('item data not found for gtin ' + item.gtin + ', please check file or db'))
 
-          var start_cin_api_call = Date.now()
-          console.log('posting CIN data to GDSN Server API for msg_id  ' + msg_info.msg_id)
+            var start_cin_api_call = Date.now()
+            log.debug('posting CIN data to GDSN Server API for msg_id  ' + msg_info.msg_id)
 
-          //var is_new = (msg_info.status == 'ADD')
-
-          request.post({
-            url        : config.url_gdsn_api + '/ci/' + item.provider + '/' + item.gtin + '/' + item.tm + '/' + item.tm_sub || 'na' 
-            , form       : { 
-                brandName                 : item.brand || 'generic'
+            var form_data = {
+                brandName                 : item.brand
               , classCategoryCode         : item.gpc
               , unitDescriptor            : item.unit_type
-              , documentCommandHeader     : msg_info.status 
-              //, lastChangeDateTime        : new Date().toISOString() // now
-
-              //, skipMatchingProcess       : true              // should probably never skip the matching process...
-              //, status                    : is_new ? 'IN_PROGRESS' : 'REGISTERED'
-              , status                    : 'REGISTERED'
+              , children                  : item.child_gtins
               , ts                        : new Date()
-              //, canceledDate:
-              //, discontinuedDate:
-              //[&isBaseUnit=true]
-              //[&isConsumerUnit=false]
-              //[&isDispatchUnit=true]
-              //[&isInvoiceUnit=false]
-              //[&isMarkedReturnable=true]
-              //[&isOrderableUnit=false]
-              //[&isVariableUnit=true]
+              //, canceledDate: will cause IN_PROGRESS
+              //, discontinuedDate: will cause IN_PROGRESS
             }
-            , auth: {
+            //[&ci_state=REGISTERED]
+            //[&isBaseUnit=true]
+            //[&isConsumerUnit=false]
+            //[&isDispatchUnit=true]
+            //[&isInvoiceUnit=false]
+            //[&isMarkedReturnable=true]
+            //[&isOrderableUnit=false]
+            //[&isVariableUnit=true]
+
+            if (msg_info.status == 'ADD') { // fill in some required values if missing
+              form_data.brand = form_data.brand || 'generic'
+              form_data.classCategoryCode =  form_data.classCategoryCode || '99999999'
+              form_data.unitDescriptor = form_data.unitDescriptor || 'CASE'
+            }
+
+            request.post({
+              url   : config.url_gdsn_api + '/ci/' + item.provider + '/' + item.gtin + '/' + item.tm + '/' + item.tm_sub || 'na' 
+              , form: form_data
+              , auth: {
                 'user': 'admin'
                 , 'pass': 'devadmin'
                 , 'sendImmediately': true
               }
-            , body: config.gdsn.populateRciToGr(config, msg_info)
-          }, 
-          function (err, response, body) {
-            log.info('cin api call took ' 
-              + (Date.now() - start_cin_api_call) 
-              + ' ms with response: '
-              + (response ? response.statusCode : 'NO_RESPONSE')
-              + ', body: '
-              + body)
-            if (err) return callback(err)
-            if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
-            callback(null, body)
-          }) // end request.post
-        }) // end tasks.push
-      }) // end msg_info.party.forEach
+            }, 
+            function (err, response, body) {
+              log.info('cin api call took ' 
+                + (Date.now() - start_cin_api_call) 
+                + ' ms with response: '
+                + (response ? response.statusCode : 'NO_RESPONSE')
+                + ', body: '
+                + body)
+              if (err) return callback(err)
+              if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
 
-      async.parallel(tasks, function (err, results) {
-        log.debug('all item submissions complete for msg_id ' + msg_info.msg_id)
+              //if (getRciIsNeeded(body)) { // TODO send RCI to GR conditional upon api response
+                var rci_xml = config.gdsn.populateRciToGr(config, msg_info)
+                msg_archive_db.saveMessage(rci_xml, function (err, msg_info) {
+                  if (err) return next(err)
+                  log.info('Generated rci message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
+                })
+              //}
 
-console.log('async api ci results: ')
-console.dir(results)
+              callback(null, body)
+            }) // end request.post
+          }) // end tasks.push
+        }) // end msg_info.party.forEach
 
-        if (err) {
-          log.debug('async cin api err: ' + err)
-          var orig_msg_info = msg_info
+        async.parallel(tasks, function (err, results) {
+          log.debug('all item submissions complete for msg_id ' + msg_info.msg_id)
 
-          // don't modify original msg_info object
-          msg_info = {
-              msg_id: orig_msg_info.msg_id
-            , created_ts: orig_msg_info.created_ts
-            , sender: orig_msg_info.sender
-            , receiver: orig_msg_info.receiver
-            , status: 'ERROR'
-            , exception: err.toString()
+  log.debug('async api ci results: ')
+  console.dir(results)
+
+          if (err) {
+            log.debug('async cin api err: ' + err)
+            var orig_msg_info = msg_info
+
+            // don't modify original msg_info object
+            msg_info = {
+                msg_id: orig_msg_info.msg_id
+              , created_ts: orig_msg_info.created_ts
+              , sender: orig_msg_info.sender
+              , receiver: orig_msg_info.receiver
+              , status: 'ERROR'
+              , exception: err.toString()
+            }
           }
-        }
 
-console.log('gdsn_workflow before populate response created ts: ' + msg_info.created_ts)
-        var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
-        res.write(response_xml)
-        res.end()
-      }, 10) // concurrency
+          var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
+          msg_archive_db.saveMessage(response_xml, function (err, msg_info) {
+            if (err) return next(err)
+            log.info('Generated response message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
+          })
+          res.write(response_xml)
+          res.end()
+        }, 10) // concurrency
 
-      return
-    } // end CIN
+        return
+      } // end CIN
 
-    if (msg_info.msg_type == 'catalogueItemPublication') {
+      if (msg_info.msg_type == 'catalogueItemPublication') {
 
-      // call GDSN Server API to publish item:
-      // /gdsn-server/api/publish?gln={\\d13}&dr={\\d13}&gtin={\\d14}&tm={\\d3}[&il=true}][&delete=true}]"
+        // call GDSN Server API to publish item:
+        // /gdsn-server/api/publish?gln={\\d13}&dr={\\d13}&gtin={\\d14}&tm={\\d3}[&il=true][&delete=true]"
 
-      var tasks = []
-      msg_info.pub.forEach(function (pub) {
+        var tasks = []
+        msg_info.pub.forEach(function (pub) {
 
-        console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> pub gln :::::::::::::::: ' + pub.provider)
+          log.debug('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> pub gln :::::::::::::::: ' + pub.provider)
 
-        tasks.push(function (callback) {
+          tasks.push(function (callback) {
 
-          console.log('update pub data for gtin ' + pub.gtin + ', ' + pub.name)
+            log.debug('update pub data for gtin ' + pub.gtin + ', ' + pub.name)
 
-          var start_cip_api_call = Date.now()
-          request.post({
-            url          : config.url_gdsn_api + '/publish'
-            , form       : { 
-                ds       : pub.provider
-              , dr       : pub.recipient
-              , gtin     : pub.gtin
-              , tm       : pub.tm
-              , tms      : pub.tm_sub != 'na' ? pub.tm_sub : ''
-              , il       : pub.initial_load
-              , ts       : new Date()
-            }
-            , auth: {
-                'user': 'admin'
-                , 'pass': 'devadmin'
-                , 'sendImmediately': true
-            }
-          }, 
-          function (err, response, body) {
-            log.info('cip api call took ' 
-              + (Date.now() - start_cip_api_call) 
-              + ' ms with response: '
-              + (response ? response.statusCode : 'NO_RESPONSE')
-              + ', body: '
-              + body)
-            if (err) return callback(err)
-            if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
-            callback(null, body)
-          }) // end request.post
-        }) // end tasks.push
-      }) // end msg_info.pub.forEach
-
-      async.parallel(tasks, function (err, results) {
-        console.log('all cip submissions complete for msg_id ' + msg_info.msg_id)
-
-        if (err) {
-          console.log('async cip api err: ')
-          console.dir(err)
-          var orig_msg_info = msg_info
-
-          // don't modify original msg_info object
-          msg_info = {
-              msg_id: orig_msg_info.msg_id
-            , sender: orig_msg_info.sender
-            , receiver: orig_msg_info.receiver
-            , status: 'ERROR'
-            , exception: err.toString()
-          }
-        }
-
-        var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
-        res.write(response_xml)
-        res.end()
-      }, 10) // concurrency
-      return
-    }
-
-    if (msg_info.msg_type == 'catalogueItemSubscription') {
-
-      var tasks = []
-      msg_info.sub.forEach(function (sub) {
-
-        console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> subscriber gln :::::::::::::::: ' + sub.recipient)
-
-        tasks.push(function (callback) {
-
-          console.log('updating sub data for sub/pub ' + sub.recipient + '/' + sub.provider)
-           
-
-          var start_cis_api_call = Date.now()
-          request.post({
-            url          : config.url_gdsn_api + '/cis/' + sub.recipient + '/' + sub.provider
-            , form       : { 
-                gtin  : ''
-              , gpc   : ''
-              , tm    : ''
-              , ts    : new Date()
-              //, mode: 'unsubscribe'
-              //, is_from_gr: 'true'
-            }
-            , auth: {
-                'user': 'admin'
-                , 'pass': 'devadmin'
-                , 'sendImmediately': true
+            var start_cip_api_call = Date.now()
+            request.post({
+              url          : config.url_gdsn_api + '/publish'
+              , form       : { 
+                  ds       : pub.provider
+                , dr       : pub.recipient
+                , gtin     : pub.gtin
+                , tm       : pub.tm
+                , tms      : pub.tm_sub != 'na' ? pub.tm_sub : ''
+                , il       : pub.initial_load
+                , ts       : new Date()
               }
-            , body: (msg_info.sender != config.gdsn_gr_gln) ? config.gdsn.populateCisToGr(config, msg_info) : ''
-          }, 
-          function (err, response, body) {
-            log.info('cis api call took ' 
-              + (Date.now() - start_cis_api_call) 
-              + ' ms with response: '
-              + (response ? response.statusCode : 'NO_RESPONSE')
-              + ', body: '
-              + body)
-            if (err) return callback(err)
-            if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
-            callback(null, body)
-          }) // end request.post
-        }) // end tasks.push
-      }) // end msg_info.sub.forEach
+              , auth: {
+                  'user': 'admin'
+                  , 'pass': 'devadmin'
+                  , 'sendImmediately': true
+              }
+            }, 
+            function (err, response, body) {
+              log.info('cip api call took ' 
+                + (Date.now() - start_cip_api_call) 
+                + ' ms with response: '
+                + (response ? response.statusCode : 'NO_RESPONSE')
+                + ', body: '
+                + body)
+              if (err) return callback(err)
+              if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
+              callback(null, body)
+            }) // end request.post
+          }) // end tasks.push
+        }) // end msg_info.pub.forEach
 
-      async.parallel(tasks, function (err, results) {
-        console.log('all cis submissions complete for msg_id ' + msg_info.msg_id)
+        async.parallel(tasks, function (err, results) {
+          log.debug('all cip submissions complete for msg_id ' + msg_info.msg_id)
 
-        if (err) {
-          console.log('async cis api err: ')
-          console.dir(err)
-          var orig_msg_info = msg_info
+          if (err) {
+            log.debug('async cip api err: ')
+            console.dir(err)
+            var orig_msg_info = msg_info
 
-          // don't modify original msg_info object
-          msg_info = {
-              msg_id: orig_msg_info.msg_id
-            , sender: orig_msg_info.sender
-            , receiver: orig_msg_info.receiver
-            , status: 'ERROR'
-            , exception: err.toString()
+            // don't modify original msg_info object
+            msg_info = {
+                msg_id: orig_msg_info.msg_id
+              , sender: orig_msg_info.sender
+              , receiver: orig_msg_info.receiver
+              , status: 'ERROR'
+              , exception: err.toString()
+            }
           }
-        }
+
+          var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
+          msg_archive_db.saveMessage(response_xml, function (err, msg_info) {
+            if (err) return next(err)
+            log.info('Generated response message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
+          })
+          res.write(response_xml)
+          res.end()
+        }, 10) // concurrency
+        return
+      } // end CIP
+
+      if (msg_info.msg_type == 'catalogueItemSubscription') {
+
+        var tasks = []
+        msg_info.sub.forEach(function (sub) {
+
+          log.debug('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> subscriber gln :::::::::::::::: ' + sub.recipient)
+
+          tasks.push(function (callback) {
+
+            log.debug('updating sub data for sub/pub ' + sub.recipient + '/' + sub.provider)
+             
+
+            var start_cis_api_call = Date.now()
+            request.post({
+              url          : config.url_gdsn_api + '/cis/' + sub.recipient + '/' + sub.provider
+              , form       : { 
+                  gtin  : ''
+                , gpc   : ''
+                , tm    : ''
+                , ts    : new Date()
+                //, mode: 'unsubscribe'
+                //, is_from_gr: 'true'
+              }
+              , auth: {
+                  'user': 'admin'
+                  , 'pass': 'devadmin'
+                  , 'sendImmediately': true
+                }
+            }, 
+            function (err, response, body) {
+              log.info('cis api call took ' 
+                + (Date.now() - start_cis_api_call) 
+                + ' ms with response: '
+                + (response ? response.statusCode : 'NO_RESPONSE')
+                + ', body: '
+                + body)
+              if (err) return callback(err)
+              if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
+
+              if (msg_info.sender != config.gdsn_gr_gln) {
+                var cis_xml = config.gdsn.populateCisToGr(config, msg_info)
+                msg_archive_db.saveMessage(cis_xml, function (err, msg_info) {
+                  if (err) return next(err)
+                  log.info('Generated cis to gr message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
+                })
+              }
+              callback(null, body)
+            }) // end request.post
+          }) // end tasks.push
+        }) // end msg_info.sub.forEach
+
+        async.parallel(tasks, function (err, results) {
+          log.debug('all cis submissions complete for msg_id ' + msg_info.msg_id)
+
+          if (err) {
+            log.debug('async cis api err: ')
+            console.dir(err)
+            var orig_msg_info = msg_info
+
+            // don't modify original msg_info object
+            msg_info = {
+                msg_id: orig_msg_info.msg_id
+              , sender: orig_msg_info.sender
+              , receiver: orig_msg_info.receiver
+              , status: 'ERROR'
+              , exception: err.toString()
+            }
+          }
+
+          var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
+          msg_archive_db.saveMessage(response_xml, function (err, msg_info) {
+            if (err) return next(err)
+            log.info('Generated response message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
+          })
+          res.write(response_xml)
+          res.end()
+        }, 10) // concurrency
+        return
+      } // end CIS
+
+      if (msg_info.msg_type == 'catalogueItemConfirmation') {
+
+        // TODO: call GDSN Server API to confirm item
+
+        //var cic = config.gdsn.populateCicToOtherDP(config, msg_info)
 
         var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
+        msg_archive_db.saveMessage(response_xml, function (err, msg_info) {
+          if (err) return next(err)
+          log.info('Generated response message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
+        })
         res.write(response_xml)
-        res.end()
-      }, 10) // concurrency
-      return
-    }
+        return res.end()
+      } // end CIC
 
-    if (msg_info.msg_type == 'catalogueItemConfirmation') {
+      if (msg_info.msg_type == 'requestForCatalogueItemNotification') {
+        // TODO: call GDSN Server API to manage subscription
+        //var rfcin = config.gdsn.populateRfcin(config, msg_info)
+        var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
+        msg_archive_db.saveMessage(response_xml, function (err, msg_info) {
+          if (err) return next(err)
+          log.info('Generated response message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
+        })
+        res.write(response_xml)
+        return res.end()
+      } // end RFCIN
 
-      // TODO: call GDSN Server API to confirm item
-
-      //var cic = config.gdsn.populateCicToOtherDP(config, msg_info)
-
-      var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
-      res.write(response_xml)
-      return res.end()
-    }
-
-    if (msg_info.msg_type == 'requestForCatalogueItemNotification') {
-      // TODO: call GDSN Server API to manage subscription
-      //var rfcin = config.gdsn.populateRfcin(config, msg_info)
-      var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
-      res.write(response_xml)
-      return res.end()
-    }
+    })
   }
 
   function getSuccess(body) {
     try {
 
         var obj = JSON.parse(body)
-        console.log('getSuccess debug ' + body)
+        log.debug('getSuccess debug ' + body)
         console.dir(obj)
 
       return JSON.parse(body).success == 'true'
     }
     catch (e) {
-      console.log('json parse error: ' + e)
+      log.debug('json parse error: ' + e)
+    }
+    return false
+  }
+
+  function getRciIsNeeded(body) {
+    try {
+
+        var obj = JSON.parse(body)
+        log.debug('getSuccess debug ' + body)
+        console.dir(obj)
+
+      return JSON.parse(body).rci_is_needed == 'true'
+    }
+    catch (e) {
+      log.debug('json parse error: ' + e)
     }
     return false
   }

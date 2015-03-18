@@ -45,14 +45,14 @@ var routes_subscr   = require(config.routes_dir + '/items_subscribed.js')(config
 var routes_login    = require(config.routes_dir + '/login.js')(config)
 var routes_msg      = require(config.routes_dir + '/msg_archive.js')(config)
 var routes_msg_mig  = require(config.routes_dir + '/msg_migrate.js')(config)
-var routes_gdsn     = require(config.routes_dir + '/gdsn_datapool.js')(config)
-var routes_xsd      = require(config.routes_dir + '/gdsn_xsd.js')(config)
 var routes_parties  = require(config.routes_dir + '/parties.js')(config)
 var routes_logs     = require(config.routes_dir + '/logs.js')(config)
 var routes_item     = require(config.routes_dir + '/trade_item.js')(config)
 var routes_profile  = require(config.routes_dir + '/profile.js')(config)
 var routes_gdsn_wf  = require(config.routes_dir + '/gdsn_workflow.js')(config)
 var routes_gdsn_cin = require(config.routes_dir + '/gdsn_create_cin.js')(config)
+var routes_gdsn     = require(config.routes_dir + '/gdsn_send.js')(config)
+var routes_xsd      = require(config.routes_dir + '/gdsn_xsd.js')(config)
 var app = express()
 config.app = app
 
@@ -135,12 +135,8 @@ log.info('done setting up shutdown ' + config.shut_down_pw)
 
 log.info('setting up routes and URL templates')
 
-// get/post to [GDSN Server] for data pool services
-router.post('/gdsn-submit',                  routes_gdsn.post_to_gdsn)
-router.post('/gdsn-validate',                routes_xsd.post_to_validate)
-router.post('/gdsn-workflow',                routes_gdsn_wf)
-router.get('/gdsn-submit/:msg_id',           routes_gdsn.lookup_and_post_to_gdsn)
-router.get('/gdsn-submit/:msg_id/:sender',   routes_gdsn.lookup_and_post_to_gdsn)
+router.get('/gdsn-send/:msg_id',             routes_gdsn.lookup_and_send)
+router.get('/gdsn-send/:msg_id/:sender',     routes_gdsn.lookup_and_send)
 router.get('/gdsn-validate/:msg_id',         routes_xsd.lookup_and_validate)
 router.get('/gdsn-validate/:msg_id/:sender', routes_xsd.lookup_and_validate)
 router.get('/gdsn-workflow/:msg_id',         routes_gdsn_wf)
@@ -229,137 +225,8 @@ app.use('/gdsn-server/api/', function (req, res, next) {
     success: true
     ,status: '200'
     ,message: 'mock success'
+    ,rci_is_needed: true
     ,ts: Date.now()
     ,date_time: new Date()
   })
-})
-
-// test sample all-in-one endpoint:
-// test sample all-in-one endpoint:
-// test sample all-in-one endpoint:
-// test sample all-in-one endpoint:
-var cheerio     = require('cheerio')
-var endsWith = function(str, suffix) {
-  return str.indexOf(suffix, str.length - suffix.length) !== -1;
-}
-
-router.post('/test_123', function(req, res, next) {
-  try {
-    log.debug('req.url: ' + req.url)
-    log.debug('req.originalUrl: ' + req.originalUrl)
-
-    var xml = ''
-
-    req.setEncoding('utf8')
-
-    req.on('data', function (chunk) {
-      //log.debug('chunk.length: ' + (chunk ? chunk.length : 0))
-      xml += chunk
-    })
-
-    // once XML is POSTed, process entire message in memory at high speed with jQuery (no streaming). e.g. 100mb needs 1.5gb RAM at runtime
-    req.on('end', function () { 
-      log.info('total xml.length ' + (xml ? xml.length : 0))
-
-      var start = Date.now()
-      var $ = cheerio.load(xml, { 
-        _:0
-        , normalizeWhitespace: true
-        , xmlMode: true
-      })
-      var $root = $(':root')
-      if (!$root) {
-        return res.jsonp(Error('error reading xml, no characters found'))
-      }
-
-      var root = $root[0]
-      console.log('Loaded root.name: ' + root.name + ', nodeType: ' + root.type + ' in ' + (Date.now() - start) + ' ms')
-
-      // could switch on 2.8/3.1 here based on root name...
-      // 2.8: *:StandardBusinessDocument
-      // 3.1: *:catalogueItemNotificationMessage or other specific *Message
-
-      var msg_info = {}  // using plain msg_info, not "new MessageInfo(..."
-
-      msg_info.gtins = []
-      msg_info.trade_items = []
-
-      // first
-      $('catalogueItem > tradeItem').each(function () {
-
-        var $ti = $(this)
-        console.log($ti.closest('transaction').text())
-
-        var $ud = $('tradeItemUnitDescriptorCode', this)          // 3.1
-        if (!$ud.length) $ud = $('tradeItemUnitDescriptor', this) // 2.8
-        console.log('unit descriptor: ' + $ud.text())
-
-        var $gtin = $('tradeItem > gtin', this).first()                              // 3.1
-        if (!$gtin.length) $gtin = $('tradeItemIdentification > gtin', this).first() // 2.8
-        var gtin = $gtin.text()
-        console.log('gtin: ' + $gtin.text())
-
-        if (gtin) msg_info.gtins.push(gtin)
-      })
-
-      // second
-      $('*').each(function () {
-
-        // first assume simple element name with no xmlns prefix
-        var prefix = ''
-        var name   = this.name 
-
-        // but check for xmlns prefix and split if present
-        var idx_sep = this.name.indexOf(':')
-        if (idx_sep > 0 && this.name.length > idx_sep + 1) { // e.g. "a:xyz", or "a:z" but NOT "a:", ":z". or ":"
-          var parts = this.name.split(':')
-          prefix = parts[0] || prefix
-          name   = parts[1] || name
-          //if (prefix) console.log('node name: ' + name + ', prefix: ' + prefix)
-          if (!prefix) console.log('WARN: could not parse element name with colon "' + this.name + '", parts: ' + parts.join('|'))
-        }
-
-        // detect msg version only once
-        if (!msg_info.version) {
-          if (endsWith(this.name, ':TypeVersion') && endsWith(this.parent.name, ':DocumentIdentification')) {
-            msg_info.version = $(this).text()
-            console.log('msg_info.version: ' + msg_info.version)
-            return
-          }
-        }
-
-        // detect msg msg_id only once
-        if (!msg_info.msg_id) {
-          if (endsWith(this.name, ':InstanceIdentifier') && endsWith(this.parent.name, ':DocumentIdentification')) {
-            msg_info.msg_id = $(this).text()
-            console.log('msg_info.msg_id: ' + msg_info.msg_id)
-            return
-          }
-        }
-
-        // detect msg msg_type only once
-        if (!msg_info.msg_type) {
-          if (endsWith(this.name, ':Type') && endsWith(this.parent.name, ':DocumentIdentification')) {
-            msg_info.msg_type = $(this).text()
-            console.log('msg_info.msg_type: ' + msg_info.msg_type)
-            return
-          }
-        }
-
-        if (name == 'catalogueItemNotification') {
-          var parent = this.parent                                            // 3.1: documentCommand
-          if (parent.name == 'documentCommandOperand') parent = parent.parent // 2.8: abc:documentCommand
-
-          console.log('found CIN document element parent: ' + parent.name)
-        }
-
-      }) // end *.each
-
-      console.log('saved a total of ' + msg_info.gtins.length + ' gtins in ' + (Date.now() - start) + ' ms')
-      res.jsonp(msg_info)
-    })
-  }
-  catch (err) {
-    next(err)
-  }
 })

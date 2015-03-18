@@ -12,8 +12,8 @@
         , party_url       : app.api + '/party'
         , parties_url     : app.api + '/parties'
         , logs_url        : app.api + '/logs'
-        , gdsn_submit     : app.api + '/gdsn-submit'   // raw xml
-        , gdsn_validate   : app.api + '/gdsn-validate' // xsd and business validation rules
-        , gdsn_workflow   : app.api + '/gdsn-workflow' // generate result messages
+        , gdsn_send       : app.api + '/gdsn-send'     // send xml to dp for routing/as2/t_msg
+        , gdsn_validate   : app.api + '/gdsn-validate' // apply xsd and business validation rules
+        , gdsn_workflow   : app.api + '/gdsn-workflow' // call dp api and generate result messages
       }
     })

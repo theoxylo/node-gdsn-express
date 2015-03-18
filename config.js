@@ -19,9 +19,6 @@ var config = {
   , slow_warn_ms          : 800
   , enable_query_req_id   : false
   , url_gdsn_api          : 'http://localhost:8080/gdsn-server/api'
-  , dp_xsd_url            : 'http://localhost:8080/gdsn-server/api/xmlvalidation'
-  , dp_post_url           : 'http://localhost:8080/gdsn-server/gdsn.ee'
-  // item defaults -
   , item_default_gtin     : '00000000000000'
   , item_default_gpc      : '99999999'
 }

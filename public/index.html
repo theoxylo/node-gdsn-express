@@ -122,8 +122,8 @@
               </td>
               <td>{{msg.sender}}</td>
               <td>
-                <span ng-if="!msg.gdsn_repostable">{{msg.receiver}}</span>
-                <span ng-if="msg.gdsn_repostable"><a ng-href="/cs_api/1.0/gdsn-submit/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Repost to GDSN">{{msg.receiver}}</a></span>
+                <span ng-if="msg.gdsn_repostable">{{msg.receiver}}</span>
+                <span ng-if="!msg.gdsn_repostable"><a ng-href="/cs_api/1.0/gdsn-send/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Send via AS2">{{msg.receiver}}</a></span>
               </td>
               <td>
                 <span><a ng-href="/cs_api/1.0/msg/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="view xml in new tab">xml</a></span>
@@ -190,12 +190,12 @@
       <div>Post Message to GDSN Data Pool</div>
       <div>
         <div ng-controller="thx_file_controller">
-          <input type="file" ng-file-select="onFileSelect($files, 'gdsn_submit')"></input>
-          <button ng-click="uploadFile('gdsn_submit')">Upload File to GDSN</button>
+          <input type="file" ng-file-select="onFileSelect($files, 'gdsn_send')"></input>
+          <button ng-click="uploadFile('gdsn_send')">Upload File to GDSN</button>
         </div>
         <div>
           <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
-          <br/><button ng-click="post_msg('gdsn_submit')">Post XML to GDSN</button>
+          <br/><button ng-click="post_msg('gdsn_send')">Post XML to GDSN</button>
         </div>
       </div>
 

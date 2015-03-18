@@ -11,9 +11,9 @@ module.exports = function (config) {
   var api = {}
 
   api.lookup_and_validate = function(req, res, next) {
-    var url = config.dp_xsd_url
+    var url = config.url_gdsn_api + '/xmlvalidation'
     log.info('dp-xsd target url: ' + url)
-    if (!url) return next('post to GDSN validate is not enabled, please set dp_xsd_url if needed')
+    if (!url) return next('post to GDSN validate is not enabled, please set url_gdsn_api if needed')
 
     var start = Date.now()
     var msg_id = req.params.msg_id
@@ -39,32 +39,6 @@ module.exports = function (config) {
     else {
       if (!res.finished) res.end('msg_id param is required')
     }
-  }
-
-  api.post_to_validate = function(req, res, next) {
-    var url = config.dp_xsd_url
-    log.info('dp-xsd target url: ' + url)
-    if (!url) return next('post to GDSN not enabled, please set dp_xsd_url if needed')
-
-    var start = Date.now()
-    // read posted content and submit to dp
-    var xml = ''
-    req.setEncoding('utf8')
-    req.on('data', function (chunk) {
-      log.debug('dp-xsd chunk.length: ' + (chunk && chunk.length))
-      xml += chunk
-      if (xml.length > 5 * 1000 * 1000) return res.status(500).end('msg xml too big - larger than 5MB')
-    })
-    req.on('end', function () {
-      log.info('post_to_validate xml length from post: ' + xml.length)
-      log.info('post_to_validate xml setup (post) took ' + (Date.now() - start) + ' ms')
-      xml = config.gdsn.trim_xml(xml)
-      do_validation_post(log, url, xml, function(err, post_response) {
-        if (err) return next(err)
-        res.end(post_response)
-        log.info('post_to_validate response took ' + (Date.now() - start) + ' ms')
-      })
-    })
   }
 
   return api
