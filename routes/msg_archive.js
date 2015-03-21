@@ -5,11 +5,13 @@ module.exports = function (config) {
   var request        = require('request')
 
   var log            = require('../lib/Logger')('rt_msg_arch', {debug: true})
-  var msg_archive_db = require('../lib/db/msg_archive.js')(config)
-  var party_db       = require('../lib/db/trading_party.js')(config)
-  var trade_item_db  = require('../lib/db/trade_item.js')(config)
   var xml_digest     = require('../lib/xml_to_json.js')(config)
   var utils          = require('../lib/utils.js')(config)
+  var db_message     = require('../lib/db/msg_archive.js')(config)
+  var db_party       = require('../lib/db/trading_party.js')(config)
+  var db_trade_item  = require('../lib/db/trade_item.js')(config)
+  var db_publication = require('../lib/db/publication.js')(config)
+  var db_subscription= require('../lib/db/subscription.js')(config)
 
 
   var api = {}
@@ -26,7 +28,7 @@ module.exports = function (config) {
     })
     req.on('end', function () {
       log.info('Received msg xml of length ' + (xml && xml.length || '0'))
-      msg_archive_db.saveMessage(xml, function (err, msg_info) {
+      db_message.saveMessage(xml, function (err, msg_info) {
         if (err) return next(err)
         log.info('Message info saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
 
@@ -42,20 +44,26 @@ module.exports = function (config) {
           item.tradeItem = itemDigest.tradeItem
 
           tasks.push(function (callback) {
-            trade_item_db.saveTradeItem(item, callback)
+            db_trade_item.saveTradeItem(item, callback)
           })
         })
         msg_info.party.forEach(function (party) {
           console.log('saving party: ' + party.gln)
           tasks.push(function (callback) {
-            party_db.saveParty(party, callback)
+            db_party.saveParty(party, callback)
           })
         })
         msg_info.pub.forEach(function (pub) {
           console.log('saving pub: ' + JSON.stringify(pub))
+          tasks.push(function (callback) {
+            db_publication.save_pub(pub, callback)
+          })
         })
         msg_info.sub.forEach(function (sub) {
           console.log('saving sub: ' + JSON.stringify(sub))
+          tasks.push(function (callback) {
+            db_subscription.save_sub(sub, callback)
+          })
         })
 
         async.parallel(tasks, function (err, results) {
@@ -84,7 +92,7 @@ module.exports = function (config) {
             item.tradeItem = itemDigest.tradeItem
 
             tasks.push(function (callback) {
-              trade_item_db.saveTradeItem(item, callback)
+              db_trade_item.saveTradeItem(item, callback)
             })
           }
           else { // null item is passed when there are no more items in the stream
@@ -133,7 +141,7 @@ module.exports = function (config) {
     if (!per_page || per_page < 0 || per_page > 10000) per_page = config.per_page_count  // max per_page is 10k
     log.info('per_page ' + per_page)
     
-    msg_archive_db.listMessages(query, page, per_page, function (err, results) {
+    db_message.listMessages(query, page, per_page, function (err, results) {
       if (err) return next(err)
 
       results = results || []
@@ -158,7 +166,7 @@ module.exports = function (config) {
     var msg_id = req.params.msg_id
     var sender = req.params.sender
     log.debug('find_message called with msg_id ' + msg_id)
-    msg_archive_db.findMessage(sender, msg_id, function (err, results) {
+    db_message.findMessage(sender, msg_id, function (err, results) {
       if (err) return next(err)
       var msg = results && results[0]
       if (!msg) return next(new Error('message not found'))

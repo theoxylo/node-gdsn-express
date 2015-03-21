@@ -143,8 +143,16 @@ router.get('/gdsn-workflow/:msg_id',         routes_gdsn_wf)
 router.get('/gdsn-workflow/:msg_id/:sender', routes_gdsn_wf)
 
 // fully qualified path for CIN generation, including recipient
+// also accepts [rdp=gln] // msg receiver, defaults to recipient
+//              [cmd=*ADD|CORRECT|CHANGE_BY_REFRESH|DELETE]
+//              [reload=true|*false]
+
+//              [doc=COPY|*ORIGINAL]
 router.get('/gdsn-cin/:recipient/:gtin/:provider/:tm/:tm_sub', routes_gdsn_cin.create_cin)
-router.get('/gdsn-cin',                      routes_gdsn_cin.create_cin)
+//router.get('/gdsn-cin/:recipient/:gtin/:provider/:tm',         routes_gdsn_cin.create_cin) // default tm_sub is 'na'
+//router.get('/gdsn-cin/:recipient/:gtin',                       routes_gdsn_cin.find_cin)
+//router.get('/gdsn-cin/:recipient/:gtin',                       routes_gdsn_cin.find_cin)
+//router.get('/gdsn-cin/:recipient',                             routes_gdsn_cin.find_cin)
 
 // POST
 router.post('/msg',                          routes_msg.post_archive)

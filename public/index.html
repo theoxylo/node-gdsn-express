@@ -151,13 +151,26 @@
       <div>Post Message</div>
       <div>
         <div ng-controller="thx_file_controller">
-          <span>This form will post messages to CS for party/item parsing and persistence, along with message archival</span>
+          <p class="desc">These forms will post messages to CS for party/item/pub/sub parsing and persistence, along with message archival.</p>
+          <p>Changes and new entries on other tabs may result:</p>
+            <li>BPR and RPDD messages will create/update parties on the Trading Parties tab</li>
+            <li>CIN messages will create/update items on the Catalog Items tab</li>
+            <li>CIP messages will create/update publications on the Publications tab</li>
+            <li>CIS messages will create/update subscriptions on the Subscriptions tab</li>
+          <p class="warn">But messages will not be automatically subject to GDSN data pool validation, workflow, or routing</p>
+         <p>Note: Later and upon request, workflow execution will generate a GS1Response message (transaction success or message exception), persisted as a new message with a referring request_msg_id to this one.</p>
+         <p>Any other new messages required will also be generated and persisted during workflow. These include: gr-BPR, gr-RCI, gr-CIS, gr-RFCIN, tp-CIN, tp-CIC, odp-CIC, odp-CIN, and odp-HWM.</p>
+         <p>These downstream workflow messages can then later be validated and routed in order to advance the GDSN process</p>
+
+          <h4>File Upload</h4>
           <form>
             <input type="file" ng-file-select="onFileSelect($files, 'msg_url')"></input>
             <button ng-click="uploadFile('msg_url')">Upload File</button>
           </form>
+
         </div>
         <div>
+          <h4>Text Upload</h4>
           <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
           <br/><button ng-click="post_msg('msg_url')">Post</button>
         </div>
@@ -172,10 +185,10 @@
         <br/><span ng-if="view_msg_id">[<a ng-href="/cs_api/1.0/msg/{{view_msg_id}}">Link to message {{view_msg_id}}</a>]</span>
       </div>
 
+<!--
       <div>GDSN Workflow Message</div>
       <div>
         <div ng-controller="thx_file_controller">
-          <span>This form will persist messages to CS and generate response or fowarded messages as required for GDSN workflow (not persisted)</span>
           <form>
               <input type="file" ng-file-select="onFileSelect($files, 'gdsn_workflow')"></input>
               <button ng-click="uploadFile('gdsn_workflow')">Upload File</button>
@@ -217,6 +230,7 @@
         <pre id="message_list"></pre>
       </div>
 
+-->
     </div> <!-- end msg accordion -->
   </div> <!-- end msg_tab -->
 
@@ -244,8 +258,8 @@
             <tr class="clickable" ng-repeat="party in parties" ng-click="showPartyDetail(party)">
               <td>{{party.name}}</td>
               <td>{{party.gln}}</td>
-              <td>{{party.country}}</td>
-              <td>{{party.data_pool_gln}}</td>
+              <td>{{party.tm}}</td>
+              <td>{{party.source_dp}}</td>
               <td>{{party.created_ts}}</td>
               <td>{{party.modified_ts}}</td>
               <!-- Raw Data: '{{party}}' -->

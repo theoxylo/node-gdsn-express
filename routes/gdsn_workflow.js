@@ -247,7 +247,7 @@ module.exports = function (config) {
 
             if (msg_info.status == 'ADD') { // fill in some required values if missing
               form_data.brand = form_data.brand || 'generic'
-              form_data.classCategoryCode =  form_data.classCategoryCode || '99999999'
+              form_data.classCategoryCode = form_data.classCategoryCode || '99999999'
               form_data.unitDescriptor = form_data.unitDescriptor || 'CASE'
             }
 
@@ -271,6 +271,8 @@ module.exports = function (config) {
               if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
 
               //if (getRciIsNeeded(body)) { // TODO send RCI to GR conditional upon api response
+console.log('populateRci 8888888888888888888888888888888888888888888888888888888888888888888888888888: ')
+console.dir(msg_info)
                 var rci_xml = config.gdsn.populateRciToGr(config, msg_info)
                 msg_archive_db.saveMessage(rci_xml, function (err, msg_info) {
                   if (err) return next(err)

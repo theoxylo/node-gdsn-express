@@ -14,14 +14,19 @@ module.exports = function (config) {
 
       try {
 
+        // item query to build new CIN message from data pool to local TP or other DP
+        // must only consider publisher data pool items 
+        // cin is built from items received by the home data pool by locat parties ONLY 
         var query = {
-          recipient: config.homeDataPoolGln // cin is built from items received by data pool
+          recipient: config.homeDataPoolGln 
+          
+          // TODO: add support for mulitple data pools or generating private draft CINs?
         }
         
+        // root item gtin is always required
         var gtin = req.param('gtin')
         console.log('create cin gtin: ' + gtin)
         query.gtin = gtin
-
         if (!gtin) {
           var result = utils.get_collection_json([], config.base_url + req.url)
           result.collection.error = {
@@ -32,6 +37,23 @@ module.exports = function (config) {
           if (!res.finished) res.jsonp(result)
           return
         }
+
+        var recipient = req.param('recipient') // the subscriber is the recipient of our new CIN, submitted as the first path param
+
+        // later, this URL format would support retrieval of all CIN messages for a given subscriber!
+        // e.g. /cs_api/1.0/gdsn-cin/1100001011278?
+        // and for any subscriber (local or otherwise) we could also workflow the CIN
+        // to create new catalog items retrievable via /cs_api/1.0/subscribed/gtin/provider
+
+        var receiver = req.param('rdp') || req.param('receiver') // receiver is optional, but should be local tp or other dp
+        if (!receiver || receiver == config.homeDataPoolGln || receiver == config.gdsn_gr_gln) {
+          receiver = recipient // data pool gln for other TP, or our local TP recipient
+        }
+
+        // CIN options (all optional)
+        var command   = req.param('cmd')    || 'ADD'
+        var reload    = req.param('reload') || 'false'
+        var docStatus = req.param('doc')    || 'ORIGINAL'
 
         var provider = req.param('provider')
         if (provider) query.provider = provider
@@ -98,23 +120,22 @@ module.exports = function (config) {
             items = items.concat(results)
             items = item_utils.de_dupe_items(items)
             items = items.map(function (item) {
-              item.recipient = req.param('recipient') // new cin will create new items belonging to subscriber/recipient/dr
-              item.receiver  = req.param('receiver')  // recipient data pool gln, need to look this up somewhere instead or requiring parameter
+              item.recipient = recipient // note we are changing the items to our new recipient, so these may not exist in db yet
               return item
             })
 
-            var cin_xml = config.gdsn.create_cin(items)
+            var cin_xml = config.gdsn.create_cin(items, receiver, command, reload, docStatus)
 
             msg_archive_db.saveMessage(cin_xml, function (err, msg_info) {
               if (err) return next(err)
               log.info('Generated cin message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
             })
 
-            res.set('Content-Type', 'application/xml;charset=utf-8')
-            if (req.param('download')) {
-              res.set('Content-Disposition', 'attachment; filename="gen_cin_' + gtin + '.xml"')
+            if (!res.finished) {
+              res.set('Content-Type', 'application/xml;charset=utf-8')
+              if (req.param('download')) res.set('Content-Disposition', 'attachment; filename="gen_cin_' + gtin + '.xml"')
+              res.end(cin_xml)
             }
-            res.end(cin_xml)
 
             log.db(req.url, req.user, (Date.now() - start))
 
@@ -126,5 +147,17 @@ module.exports = function (config) {
         next(error)
       }
     }
+
+    // requires at least recipient (subscriber or home dp), e.g. /gdsn-cin/1100001011278
+    // additional optional parameters:
+    // /gdsn-cin/1100001011278/provider
+    // /gdsn-cin/1100001011278/provider/gtin
+    // /gdsn-cin/1100001011278/provider/gtin/tm
+    // /gdsn-cin/1100001011278/provider/gtin/tm/tm_sub
+    ,find_cin: function (req, res, next) { // TODO
+      log.debug('find_cin req.path: ' + req.url)
+      if (!res.finished) res.end(500, 'not yet implemented')
+    }
+
   }
 }
