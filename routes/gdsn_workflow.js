@@ -271,8 +271,6 @@ module.exports = function (config) {
               if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
 
               //if (getRciIsNeeded(body)) { // TODO send RCI to GR conditional upon api response
-console.log('populateRci 8888888888888888888888888888888888888888888888888888888888888888888888888888: ')
-console.dir(msg_info)
                 var rci_xml = config.gdsn.populateRciToGr(config, msg_info)
                 msg_archive_db.saveMessage(rci_xml, function (err, msg_info) {
                   if (err) return next(err)
