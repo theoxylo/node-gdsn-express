@@ -16,7 +16,22 @@ module.exports = function (config) {
 
   var api = {}
 
-  api.post_archive = function(req, res, next) {
+  api.archive_msg = function (req, res, next) {
+    log.debug('archive_msg params=' + JSON.stringify(req.query))
+    var msg_id = req.params.msg_id
+    var sender = req.params.sender
+    db_message.findMessage(sender, msg_id, function (err, results) {
+      if (err) return next(err)
+      var msg_info = results && results[0]
+      if (!msg_info) return next(new Error('message not found'))
+      db_message.archiveMessageInfo(msg_info, function (err, archive_result) {
+        if (err) return next(err)
+        res.send(archive_result)
+      })
+    })
+  }
+
+  api.post_archive = function (req, res, next) {
     log.debug('>>>>>>>>>>>>>>>>>>>> post_archive  handler called')
 
     var xml = ''
@@ -78,42 +93,6 @@ module.exports = function (config) {
           }
         })
 
-        /* old impl using stream:
-        config.gdsn.getEachTradeItemFromStream(req, function (err, item) {
-          if (err) {
-            log.error('Error getting trade items from stream: ' + err)
-            return
-          }
-
-          if (item) {
-            log.debug('received item from getEachTradeItemFromStream callback with gtin ' + item.gtin)
-
-            var itemDigest = xml_digest.digest(item.xml)
-            item.tradeItem = itemDigest.tradeItem
-
-            tasks.push(function (callback) {
-              db_trade_item.saveTradeItem(item, callback)
-            })
-          }
-          else { // null item is passed when there are no more items in the stream
-            log.debug('no more items from getEachTradeItemFromStream callback')
-            async.parallel(tasks, function (err, results) {
-              log.debug('parallel results: ' + JSON.stringify(results))
-              if (err) {
-                log.error('Error saving trade items for message: ' + err)
-                return
-              }
-              else {
-                results = _.flatten(results) // async.parallel returns an array of results arrays
-                log.info('Saved trade item count: ' + results.length)
-              }
-            })
-          }
-
-        })
-        end old impl */
-        /* end save trade items */
-
         if (!res.finished) {
           if (msg_info) {
             res.jsonp(msg_info)
@@ -128,7 +107,40 @@ module.exports = function (config) {
   }
 
   // returns pages of msg_info
-  api.list_archive = function(req, res, next) {
+  api.msg_history = function (req, res, next) {
+    log.debug('msg_history req query string: ' + JSON.stringify(req.query))
+    var query = get_query(req)
+    log.debug('query= ' + JSON.stringify(query))
+
+    var page = parseInt(req.param('page'))
+    log.info('page ' + page)
+    if (!page || page < 0) page = 0
+
+    var per_page = parseInt(req.param('per_page'))
+    if (!per_page || per_page < 0 || per_page > 10000) per_page = config.per_page_count  // max per_page is 10k
+    log.info('per_page ' + per_page)
+    
+    db_message.listMessages(query, page, per_page, function (err, results) {
+      if (err) return next(err)
+
+      results = results || []
+      results.forEach(function (msg) {
+        msg.gdsn_repostable = (msg.receiver == config.homeDataPoolGln)
+      })
+
+      var result = utils.get_collection_json(results, null)
+      
+      result.collection.page             = page
+      result.collection.per_page         = per_page
+      result.collection.item_range_start = (page * per_page) + 1
+      result.collection.item_range_end   = (page * per_page) + results.length
+
+      if (!res.finished) res.jsonp(result)
+    }, /* all fields */ true, /* include history */ true)
+  }
+
+  // returns pages of msg_info
+  api.list_archive = function (req, res, next) {
     log.debug('list_archive req query string: ' + JSON.stringify(req.query))
     var query = get_query(req)
     log.debug('query= ' + JSON.stringify(query))
@@ -160,7 +172,8 @@ module.exports = function (config) {
     })
   }
 
-  api.find_archive = function(req, res, next) {
+  // finds single message only
+  api.find_archive = function (req, res, next) {
     log.debug('find_archive params=' + JSON.stringify(req.query))
     
     var msg_id = req.params.msg_id
@@ -192,9 +205,6 @@ module.exports = function (config) {
 function get_query(req) {
   var query = {}
   
-  // note that req.param() method checks req.params, req.body, and req.query
-  // see http://expressjs.com/4x/api.html#req.param
-
   var msg_id       = req.param('msg_id')
   if (msg_id) {
     query.msg_id = {$regex: msg_id}

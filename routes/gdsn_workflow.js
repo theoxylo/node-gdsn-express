@@ -136,7 +136,7 @@ module.exports = function (config) {
               url             : config.url_gdsn_api + '/party/' + party.gln 
               , form          : { 
                   sourcedp    : party.source_dp
-                , partyRole   : party.role
+                , partyRole   : party.role || 'DISTRIBUTOR'
                 , name        : party.name
                 , address1    : party.address1
                 , address2    : party.address2

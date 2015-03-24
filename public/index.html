@@ -117,6 +117,7 @@
               <td>{{msg.version}}</td>
               <td style="text-align: left;">{{msg.msg_type}}</td>
               <td style="text-align: left;">
+                  <span><a ng-href="/cs_api/1.0/msg/archive/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Archive and Hide">xxx</a></span>
                   <span ng-if="msg.exception" class="clickable" ng-click="popupField(msg, 'exception')">{{msg.status}}</span>
                   <span ng-if="!msg.exception">{{msg.status}}</span>
               </td>

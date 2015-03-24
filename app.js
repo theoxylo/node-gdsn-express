@@ -161,6 +161,8 @@ router.post('/item',                         routes_item.post_trade_items)
 router.post('/parties',                      routes_parties.post_parties)
 
 // GET
+router.get('/msg/history/:msg_id/:sender',   routes_msg.msg_history)
+router.get('/msg/archive/:msg_id/:sender',   routes_msg.archive_msg)
 router.get('/msg/migrate',                   routes_msg_mig.migrate_msg_archive)
 router.get('/msg/:msg_id',                   routes_msg.find_archive)
 router.get('/msg/:msg_id/:sender',           routes_msg.find_archive)
