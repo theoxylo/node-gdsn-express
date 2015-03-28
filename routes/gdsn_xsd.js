@@ -23,8 +23,9 @@ module.exports = function (config) {
       msg_archive_db.findMessage(sender, msg_id, function (err, db_msg_info) {
         if (err) return next(err)
         if (db_msg_info.length > 1) return next(Error('found multiple messages with id ' + msg_id))
+        if (db_msg_info.length < 1) return next(Error('no messages with id was found ' + msg_id))
         log.debug('found message for msg_id ' + msg_id)
-        var xml = db_msg_info[0].xml
+        var xml = db_msg_info[0].xml || ''
         if (!xml) return next(new Error('msg and xml not found for msg_id ' + msg_id))
         log.info('lookup_and_validate xml length from msg archive lookup: ' + xml.length)
         log.info('lookup_and_validate xml archive lookup (db) took ' + (Date.now() - start) + ' ms')

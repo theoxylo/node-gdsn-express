@@ -2,10 +2,12 @@ var config = {
     shut_down_pw          : ''                         // for remote server shutdown
   , http_port             : 8080                       // used internally for dashboard and load balanced traffic
   , http_host             : 'localhost'                // hostname used for http redirects/auth
-  //, https_port            : 8443                       // potentially used for public access to dashboard without vpn, TBD
-  //, https_host            : 'localhost'                // hostname used for https redirects/auth
+  //, https_port            : 8443                     // potentially used for public access to dashboard without vpn, TBD
+  //, https_host            : 'localhost'              // hostname used for https redirects/auth
   , homeDataPoolGln       : '1100001011285'            // GLN of home data pool, only single DP is supported for now!
-  , gdsn_gr_gln           : '0614141810017'            // GLN of GS1 GDSN Global Registry (GR)
+  , gdsn_gr_gln           : '0614141810017'             // GLN of GS1 GDSN Global Registry (GR)
+  , gs1_rpdd_url          : 'http://gs1beta2.gs1globalregistry.net/eanucc/dumps/partydump/GS1PartyDump.xml'
+  , gs1_schema_url        : 'http://www.gdsregistry.org/3.1/schemas'
   , debug                 : true                       // additional logging
   , db_url                : 'catalog_services'         // for localhost MongoDb, used by lib/Database.js
   , inbox_dir             : __dirname + '/msg/inbox/'  // watch directory for incoming messages

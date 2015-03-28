@@ -18,8 +18,8 @@ module.exports = function (config) {
 
   api.archive_msg = function (req, res, next) {
     log.debug('archive_msg params=' + JSON.stringify(req.query))
-    var msg_id = req.params.msg_id
-    var sender = req.params.sender
+    var msg_id = req.param('msg_id')
+    var sender = req.param('sender')
     db_message.findMessage(sender, msg_id, function (err, results) {
       if (err) return next(err)
       var msg_info = results && results[0]
@@ -110,6 +110,8 @@ module.exports = function (config) {
   api.msg_history = function (req, res, next) {
     log.debug('msg_history req query string: ' + JSON.stringify(req.query))
     var query = get_query(req)
+    query.msg_id = req.param('msg_id') // change to exact match, getQuery uses a regex
+    query.sender = req.param('sender')
     log.debug('query= ' + JSON.stringify(query))
 
     var page = parseInt(req.param('page'))
@@ -176,8 +178,8 @@ module.exports = function (config) {
   api.find_archive = function (req, res, next) {
     log.debug('find_archive params=' + JSON.stringify(req.query))
     
-    var msg_id = req.params.msg_id
-    var sender = req.params.sender
+    var msg_id = req.param('msg_id')
+    var sender = req.param('sender')
     log.debug('find_message called with msg_id ' + msg_id)
     db_message.findMessage(sender, msg_id, function (err, results) {
       if (err) return next(err)

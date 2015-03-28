@@ -17,8 +17,6 @@
           delete $scope.input_sender
           delete $scope.input_receiver
 
-          delete $scope.input_created_st_date
-          delete $scope.input_created_end_date
           delete $scope.input_modified_st_date
           delete $scope.input_modified_end_date
           delete $scope.input_xml_regex
@@ -55,8 +53,6 @@
             sender:              $scope.input_sender,
             receiver:            $scope.input_receiver,
             
-            created_st_date:     $scope.input_created_st_date,
-            created_end_date:    $scope.input_created_end_date,
             modified_st_date:    $scope.input_modified_st_date,
             modified_end_date:   $scope.input_modified_end_date,
             xml_regex:           $scope.input_xml_regex,
@@ -70,7 +66,6 @@
           
           if (messages.collection.item_count) {
             $scope.messages = _.map(messages.collection.items, function (msg) {
-              msg.created_ts2 = (new Date(msg.created_ts)).toLocaleString()
               msg.modified_ts2 = (new Date(msg.modified_ts)).toLocaleString()
               return msg
             })

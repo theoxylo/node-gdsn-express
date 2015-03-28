@@ -86,11 +86,10 @@
         <span>XML           <input type="text" ng-model="input_xml_regex" size="30" placeholder="foodAndBev"></input></span>
         <span>Exception     <input type="text" ng-model="input_exc_regex" size="30" placeholder="Error"></input></span>
         <br />
-        <span>Created Start Date <input type="text" size="10" ng-model="input_created_st_date"        placeholder="8/21/2014" datepicker></input></span>
-        <span>Created End Date   <input type="text" size="10" ng-model="input_created_end_date"       placeholder="8/24/2014" datepicker></input></span>
         <span>Modified Start Date<input type="text" size="10" ng-model="input_modified_st_date"        placeholder="8/26/2014" datepicker></input></span>
         <span>Modified End Date  <input type="text" size="10" ng-model="input_modified_end_date"       placeholder="8/28/2014" datepicker></input></span>
         <span>Per Page      <input ng-model="input_per_page" placeholder="20" size="3"></input></span>
+        <br/>
         <button ng-click="list_messages()"   >Search</button>
         <button ng-click="reset_search()"    >Reset</button>
       
@@ -106,35 +105,33 @@
               <th><a href="" ng-click="sortField = 'sender';         reverse = !reverse">Sender</a></th>
               <th><a href="" ng-click="sortField = 'receiver';       reverse = !reverse">Receiver</a></th>
               <th>XML</th>
-              <th><a href="" ng-click="sortField = 'created_ts';     reverse = !reverse">Created</a></th>
               <th><a href="" ng-click="sortField = 'modified_ts';    reverse = !reverse">Modified</a></th>
               <th><a href="" ng-click="sortField = 'content_length'; reverse = !reverse">Length</a></th>
             </tr>
             <tr ng-repeat="msg in messages | filter:query | orderBy:sortField:reverse">
-              <td class="clickable" ng-click="showMessageDetail(msg)" style="text-align: left;">{{msg.msg_id}}
-                <br/><span ng-if="msg.request_msg_id">&nbsp;({{msg.request_msg_id}})</span>
-              </td>
-              <td>{{msg.version}}</td>
+              <td style="text-align: left;"><span class="clickable" ng-click="popupField(msg, 'xml')">{{msg.msg_id}}</span></td>
+              <td><span class="clickable" ng-click="showMessageDetail(msg)">{{msg.version}}</span></td>
               <td style="text-align: left;">{{msg.msg_type}}</td>
               <td style="text-align: left;">
-                  <span><a ng-href="/cs_api/1.0/msg/archive/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Archive and Hide">xxx</a></span>
-                  <span ng-if="msg.exception" class="clickable" ng-click="popupField(msg, 'exception')">{{msg.status}}</span>
+                  <span ng-if="msg.exception" class="clickable" ng-click="popupField(msg, 'exception')" title="Show Exception">{{msg.status}}</span>
                   <span ng-if="!msg.exception">{{msg.status}}</span>
+                  <span ng-if="msg.request_msg_id"><a ng-href="/cs_api/1.0/msg/{{msg.request_msg_id}}/{{msg.receiver}}" target="_blank" title="View Request Message">{{msg.request_msg_id}}</a></span>
               </td>
               <td>{{msg.sender}}</td>
               <td>
-                <span ng-if="msg.gdsn_repostable">{{msg.receiver}}</span>
-                <span ng-if="!msg.gdsn_repostable"><a ng-href="/cs_api/1.0/gdsn-send/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Send via AS2">{{msg.receiver}}</a></span>
+                <span ng-if="msg.gdsn_repostable"><a ng-href="/cs_api/1.0/gdsn-workflow/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Submit to Data Pool worflow">{{msg.receiver}}</a></span>
+                <span ng-if="!msg.gdsn_repostable && msg.provider != msg.receiver"><a ng-href="/cs_api/1.0/gdsn-send/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Send via AS2">{{msg.receiver}}</a></span>
               </td>
               <td>
-                <span><a ng-href="/cs_api/1.0/msg/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="view xml in new tab">xml</a></span>
-                <span class="clickable" ng-click="popupField(msg, 'xml')">pop</span>
-                <span><a ng-href="/cs_api/1.0/gdsn-validate/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="GDSN Validate">vld</a></span>
-                <span><a ng-href="/cs_api/1.0/gdsn-workflow/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="XSD Validate">wf</a></span>
+                <span><a ng-href="/cs_api/1.0/gdsn-validate/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Submit for GDSN Validation">Validate</a></span>
+                <span ng-if="msg.gdsn_repostable"></span>
               </td>
-              <td>{{msg.created_ts2}}</td>
               <td>{{msg.modified_ts2}}</td>
-              <td>{{msg.xml_length}}</td>
+              <td>{{msg.xml_length}}
+                  <span><a ng-href="/cs_api/1.0/msg/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="View Raw XML">R</a></span>
+                  <span><a ng-href="/cs_api/1.0/msg/history/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="View History">H</a></span>
+                  <span><a ng-href="/cs_api/1.0/msg/archive/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Archive and Hide">X</a></span>
+              </td>
             </tr>
           </table>
         </div>

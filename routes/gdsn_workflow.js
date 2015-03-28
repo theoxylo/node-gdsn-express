@@ -396,23 +396,19 @@ module.exports = function (config) {
         var tasks = []
         msg_info.sub.forEach(function (sub) {
 
-          log.debug('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> subscriber gln :::::::::::::::: ' + sub.recipient)
-
           tasks.push(function (callback) {
-
             log.debug('updating sub data for sub/pub ' + sub.recipient + '/' + sub.provider)
-             
 
             var start_cis_api_call = Date.now()
             request.post({
               url          : config.url_gdsn_api + '/cis/' + sub.recipient + '/' + sub.provider
               , form       : { 
-                  gtin  : ''
-                , gpc   : ''
-                , tm    : ''
+                  gtin  : sub.gtin || ''
+                , gpc   : sub.gpc  || ''
+                , tm    : sub.tm   || ''
                 , ts    : new Date()
-                //, mode: 'unsubscribe'
-                //, is_from_gr: 'true'
+                , isFromGR: 'true' // always true for testing and to trigger matching process upon local subscription create
+                //, isFromGR: (sub.sender == config.gdsn_gr_gln) ? 'true' : ''
               }
               , auth: {
                   'user': 'admin'

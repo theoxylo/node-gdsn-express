@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>simple view</title>
+    <meta charset="utf-8">
+    <style>
+      body {
+        margin: 0px;
+        background-color: #000000;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+  <p>three_item_view.html</p>
+
+    <script src="../js/jquery-1.10.2.js"></script>
+    <script src="js/three_r68.js"></script>
+    <script src="js/controls/OrbitControls.js"></script>
+    <script src="js/three_item_view.js"></script>
+    <script>
+
+      //init_three_view()
+      //var img_url = 'https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcTG7FeaPGpOkS7pgssTWZvI4vAXxPgZ4nqz-qFuGtuFcR-ylkNjUA'
+      var img_url = ''
+      init_three_view($('p'), [{images:[img_url],gtin:'12345'}])
+
+    </script>
+
+  </body>
+</html>
