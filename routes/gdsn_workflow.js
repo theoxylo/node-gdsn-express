@@ -165,7 +165,7 @@ module.exports = function (config) {
                 + ', body: '
                 + body)
               if (err) return callback(err)
-              if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
+              if (response.statusCode != 200 || !getSuccess(body)) return callback(Error(body))
 
               if (msg_info.msg_type == 'basicPartyRegistration') {
                 var bpr_xml = config.gdsn.populateBprToGr(config, msg_info)
@@ -182,6 +182,11 @@ module.exports = function (config) {
 
         async.parallel(tasks, function (err, results) {
           log.debug('all party submissions complete for msg_id ' + msg_info.msg_id)
+
+console.log('err:')
+console.dir(err)
+console.log('results:')
+console.dir(results)
 
           if (err) {
             log.debug('async party api err: ')
@@ -268,7 +273,7 @@ module.exports = function (config) {
                 + ', body: '
                 + body)
               if (err) return callback(err)
-              if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
+              if (response.statusCode != 200 || !getSuccess(body)) return callback(Error(body))
 
               //if (getRciIsNeeded(body)) { // TODO send RCI to GR conditional upon api response
                 var rci_xml = config.gdsn.populateRciToGr(config, msg_info)
@@ -286,8 +291,10 @@ module.exports = function (config) {
         async.parallel(tasks, function (err, results) {
           log.debug('all item submissions complete for msg_id ' + msg_info.msg_id)
 
-  log.debug('async api ci results: ')
-  console.dir(results)
+console.log('err:')
+console.dir(err)
+console.log('results:')
+console.dir(results)
 
           if (err) {
             log.debug('async cin api err: ' + err)
@@ -356,7 +363,7 @@ module.exports = function (config) {
                 + ', body: '
                 + body)
               if (err) return callback(err)
-              if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
+              if (response.statusCode != 200 || !getSuccess(body)) return callback(Error(body))
               callback(null, body)
             }) // end request.post
           }) // end tasks.push
@@ -364,6 +371,11 @@ module.exports = function (config) {
 
         async.parallel(tasks, function (err, results) {
           log.debug('all cip submissions complete for msg_id ' + msg_info.msg_id)
+
+console.log('err:')
+console.dir(err)
+console.log('results:')
+console.dir(results)
 
           if (err) {
             log.debug('async cip api err: ')
@@ -424,7 +436,7 @@ module.exports = function (config) {
                 + ', body: '
                 + body)
               if (err) return callback(err)
-              if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
+              if (response.statusCode != 200 || !getSuccess(body)) return callback(Error(body))
 
               if (msg_info.sender != config.gdsn_gr_gln) {
                 var cis_xml = config.gdsn.populateCisToGr(config, msg_info)
@@ -441,7 +453,13 @@ module.exports = function (config) {
         async.parallel(tasks, function (err, results) {
           log.debug('all cis submissions complete for msg_id ' + msg_info.msg_id)
 
-          if (err) {
+console.log('err:')
+console.dir(err)
+console.log('results:')
+console.dir(results)
+
+          //if (err) {
+          if (err && err[0]) {
             log.debug('async cis api err: ')
             console.dir(err)
             var orig_msg_info = msg_info
@@ -468,11 +486,8 @@ module.exports = function (config) {
       } // end CIS
 
       if (msg_info.msg_type == 'catalogueItemConfirmation') {
-
         // TODO: call GDSN Server API to confirm item
-
         //var cic = config.gdsn.populateCicToOtherDP(config, msg_info)
-
         var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
         msg_archive_db.saveMessage(response_xml, function (err, msg_info) {
           if (err) return next(err)
@@ -482,8 +497,21 @@ module.exports = function (config) {
         return res.end()
       } // end CIC
 
+      // CIH cih
+      if (msg_info.msg_type == 'catalogueItemHierarchicalWithdrawal') {
+        // TODO: call GDSN Server API to manage children
+        var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
+        msg_archive_db.saveMessage(response_xml, function (err, msg_info) {
+          if (err) return next(err)
+          log.info('Generated response message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
+        })
+        res.write(response_xml)
+        return res.end()
+      } // end RFCIN
+
+      // RFCIN rfcin
       if (msg_info.msg_type == 'requestForCatalogueItemNotification') {
-        // TODO: call GDSN Server API to manage subscription
+        // TODO: call GDSN Server API to manage subscription override
         //var rfcin = config.gdsn.populateRfcin(config, msg_info)
         var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
         msg_archive_db.saveMessage(response_xml, function (err, msg_info) {
