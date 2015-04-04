@@ -230,13 +230,17 @@ if (config.https_port) {
 }
 
 // mock GDSN Server for gdsn API calls
-app.use('/gdsn-server/api/', function (req, res, next) {
-  res.json({
-    success: true
-    ,status: '200'
-    ,message: 'mock success'
-    ,rci_is_needed: true
-    ,ts: Date.now()
-    ,date_time: new Date()
-  })
-})
+app.use('/gdsn-server/api/', (function (counter) {
+  return function (req, res, next) {
+    res.json({
+      success: 'true'
+      ,status: '200'
+      ,message: 'mock success'
+      ,msg: 'short msg'
+      ,counter: counter++
+      ,rci_is_needed: true
+      ,ts: Date.now()
+      ,date_time: new Date()
+    })
+  }
+}(100)))
