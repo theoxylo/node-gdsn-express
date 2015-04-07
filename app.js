@@ -1,12 +1,14 @@
 /*
- * Welcome to Catalog Services API development on Node.js!
+ * Welcome to Catalog Services API Server!
  *
  * The project has the following source locations:
  *  app.js (this file)
  *  lib/
  *  profiles/
  *  routes/
- *  node_modules/gdsn/
+ *
+ * NPM modules are in the usual place, e.g.
+ *  node_modules/gdsn/index.js
  *
  * Client-side code and files are found here:
  *  public/
@@ -32,7 +34,7 @@ var Logger = require('./lib/Logger')
 var log = Logger('gdsnApp', config)
 log.debug('DEBUG logging enabled')
 log.info('INFO logging enabled')
-log.debug('config: ' + JSON.stringify(config))
+log.debug('config: ' + config) // use config.toString impl
 
 var Gdsn = require('gdsn')
 config.gdsn = new Gdsn(config)

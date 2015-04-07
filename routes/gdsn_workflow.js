@@ -36,66 +36,59 @@ module.exports = function (config) {
         return next(Error('missing msg_info'))
       }
 
-      if (db_msg_info.receiver != config.homeDataPoolGln) {
-        return next(Error('to initiate workflow, the message receiver must be the datapool'))
-      }
-
-      // parse original msg xml to generate parties, trade items, etc
+      // RE-parse original msg xml to generate parties, trade items, subscriptions, publications using latest logic
       var start_parse = Date.now()
       var msg_info = config.gdsn.get_msg_info(db_msg_info.xml)
       log.debug('reparse of db msg xml took ' + (Date.now() - start_parse) + ' ms for ' + msg_info.xml.length + ' new length')
+
+      if (msg_info.receiver != config.homeDataPoolGln) {
+        return next(Error('to initiate workflow, the message receiver must be the datapool'))
+      }
+
+      if (!msg_info.source_dp) {
+        return next(Error('msg_id ' + db_msg_info.request_msg_id + ' with no source_dp'))
+      }
 
       log.info('starting workflow for ' + msg_info.msg_id + ', msg_type: ' + msg_info.msg_type + ', modified: ' + new Date(msg_info.modified_ts))
       //log.debug('msg xml: ' + msg_info.xml)
       log.debug('msg xml length: ' + msg_info.xml.length)
 
-      // if it's a response to a previous message, we are done very early
+      // if it's alrelady a response to a previous message, don't generate any new messages or responses and finish early
+      // if it's alrelady a response to a previous message, don't generate any new messages or responses and finish early
+      // if it's alrelady a response to a previous message, don't generate any new messages or responses and finish early
+      // if it's alrelady a response to a previous message, don't generate any new messages or responses and finish early
       if (msg_info.msg_type == 'GDSNResponse') {
-        //gdsn.msg_response(msg_info.requesting_msg_id, msg_info.status == 'ACCEPTED')
 
-        // TODO: call GDSN Server API to record response
+        // TODO: call GDSN Server API to record response? e.g. party or item reg response from gr
         // CIRR
         // BPRR
 
-        return res.end('response received to original msg_id ' + msg_info.requesting_msg_id + ' with status ' + msg_info.status)
+        var msg = 'response received to original msg_id ' + msg_info.request_msg_id + ' with status ' + msg_info.status
+        log.debug(msg)
+        if (!res.finished) res.end(msg)
+        return 
       }
 
-      // each message type may or may not have additional downstream messages to generate
+      // messages from other data pools
+      // messages from other data pools
+      // messages from other data pools
+      // messages from other data pools
+      if (msg_info.sender == msg_info.source_dp) { 
 
-      if (msg_info.sender == msg_info.source_dp) { // messages from other data pools
-
-        if (msg_info.msg_type == 'catalogueItemConfirmation') {
-
+        if (msg_info.msg_type == 'catalogueItemConfirmation') { 
           // TODO: call GDSN Server API to update dp cic status for this published item
-
           var cic_xml = config.gdsn.populateCicToTp(config, msg_info)
-          msg_archive_db.saveMessage(cic_xml, function (err, msg_info) {
+          msg_archive_db.saveMessage(cic_xml, function (err, gen_msg_info) {
             if (err) return next(err)
-            log.info('Generated cic message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
+            log.info('Generated cic message to tp publisher and saved to archive: ' + gen_msg_info.msg_id + ', modified: ' + new Date(gen_msg_info.modified_ts))
           })
-          res.write(cic_xml)
-
-          var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
-          msg_archive_db.saveMessage(response_xml, function (err, msg_info) {
-            if (err) return next(err)
-            log.info('Generated response message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
-          })
-          res.write(response_xml)
-
-          return res.end()
+          return respond(msg_info, res, next)
         }
 
-        if (msg_info.msg_type == 'catalogueItemNotification') {
-
-          // TODO: call GDSN Server API to to inform that GTIN received?
-
-          var cin_xml = config.gdsn.populateCinToTp(config, msg_info)
-          msg_archive_db.saveMessage(cin_xml, function (err, msg_info) {
-            if (err) return next(err)
-            log.info('Generated cin message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
-          })
-          res.write(cin_xml)
-          return res.end()
+        if (msg_info.msg_type == 'catalogueItemNotification') { 
+          // TODO: call GDSN Server API to to inform subscriber that GTIN received?
+          // TODO: generate CIN to local TP
+          return respond(msg_info, res, next)
         }
 
         // only CIC and CIN are sent by other data pools
@@ -103,6 +96,21 @@ module.exports = function (config) {
       }
 
       // messages from local registered trading parties or GR:
+      // messages from local registered trading parties or GR:
+      // messages from local registered trading parties or GR:
+      // messages from local registered trading parties or GR:
+
+      if (msg_info.msg_type == 'catalogueItemConfirmation') {
+        // TODO: call GDSN Server API to confirm item in publication synch list
+        // TODO: generate CIC for other DP
+        return respond(msg_info, res, next)
+      } // end CIC
+
+      if (msg_info.msg_type == 'requestForCatalogueItemNotification') {
+        // TODO: call GDSN Server API to manage one-time faux-subscription
+        // TODO: generate RFCIN for GR
+        return respond(msg_info, res, next)
+      } // end RFCIN
 
       if (msg_info.msg_type == 'basicPartyRegistration'
         || msg_info.msg_type == 'registryPartyDataDump') {
@@ -169,11 +177,10 @@ module.exports = function (config) {
 
               if (msg_info.msg_type == 'basicPartyRegistration') {
                 var bpr_xml = config.gdsn.populateBprToGr(config, msg_info)
-                msg_archive_db.saveMessage(bpr_xml, function (err, msg_info) {
+                msg_archive_db.saveMessage(bpr_xml, function (err, gen_msg_info) {
                   if (err) return next(err)
-                  log.info('Generated bpr to gr message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
+                  log.info('Generated bpr to gr message saved to archive: ' + gen_msg_info.msg_id + ', modified: ' + new Date(gen_msg_info.modified_ts))
                 })
-                res.write(bpr_xml)
               }
               callback(null, body)
             }) // end request.post
@@ -182,37 +189,12 @@ module.exports = function (config) {
 
         async.parallel(tasks, function (err, results) {
           log.debug('all party submissions complete for msg_id ' + msg_info.msg_id)
-
-console.log('err:')
-console.dir(err)
-console.log('results:')
-console.dir(results)
-
-          if (err) {
-            log.debug('async party api err: ')
-            console.dir(err)
-            var orig_msg_info = msg_info
-
-            // don't modify original msg_info object
-            msg_info = {
-                msg_id: orig_msg_info.msg_id
-              , sender: orig_msg_info.sender
-              , receiver: orig_msg_info.receiver
-              , status: 'ERROR'
-              , exception: err.toString()
-            }
-          }
-
-          var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
-          msg_archive_db.saveMessage(response_xml, function (err, msg_info) {
-            if (err) return next(err)
-            log.info('Generated response message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
-          })
-          res.write(response_xml)
-          res.end()
+          if (err) return next(err)
+          respond(msg_info, res, next)
         }, 10) // concurrency
+
         return
-      }
+      } // end BPR and RPDD
 
       // post RCI for GR along with API request
       if (msg_info.msg_type == 'catalogueItemNotification') {
@@ -236,13 +218,12 @@ console.dir(results)
                 brandName                 : item.brand
               , classCategoryCode         : item.gpc
               , unitDescriptor            : item.unit_type
-              , children                  : item.child_gtins
               , ts                        : new Date()
               //, canceledDate: will cause IN_PROGRESS
               //, discontinuedDate: will cause IN_PROGRESS
             }
             //[&ci_state=REGISTERED]
-            //[&isBaseUnit=true]
+            //[&isBaseUnit=true] // removed from api? can be derived from child count
             //[&isConsumerUnit=false]
             //[&isDispatchUnit=true]
             //[&isInvoiceUnit=false]
@@ -251,10 +232,13 @@ console.dir(results)
             //[&isVariableUnit=true]
 
             if (msg_info.status == 'ADD') { // fill in some required values if missing
-              form_data.brand = form_data.brand || 'generic'
+              form_data.brand             = form_data.brand             || 'generic'
               form_data.classCategoryCode = form_data.classCategoryCode || '99999999'
-              form_data.unitDescriptor = form_data.unitDescriptor || 'CASE'
+              form_data.unitDescriptor    = form_data.unitDescriptor    || 'CASE'
             }
+
+            var children = item.child_gtins && item.child_gtins.join(',')
+            if (children) form_data.children = children
 
             request.post({
               url   : config.url_gdsn_api + '/ci/' + item.provider + '/' + item.gtin + '/' + item.tm + '/' + item.tm_sub || 'na' 
@@ -290,34 +274,8 @@ console.dir(results)
 
         async.parallel(tasks, function (err, results) {
           log.debug('all item submissions complete for msg_id ' + msg_info.msg_id)
-
-console.log('err:')
-console.dir(err)
-console.log('results:')
-console.dir(results)
-
-          if (err) {
-            log.debug('async cin api err: ' + err)
-            var orig_msg_info = msg_info
-
-            // don't modify original msg_info object
-            msg_info = {
-                msg_id: orig_msg_info.msg_id
-              , created_ts: orig_msg_info.created_ts
-              , sender: orig_msg_info.sender
-              , receiver: orig_msg_info.receiver
-              , status: 'ERROR'
-              , exception: err.toString()
-            }
-          }
-
-          var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
-          msg_archive_db.saveMessage(response_xml, function (err, msg_info) {
-            if (err) return next(err)
-            log.info('Generated response message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
-          })
-          res.write(response_xml)
-          res.end()
+          if (err) return next(err)
+          respond(msg_info, res, next)
         }, 10) // concurrency
 
         return
@@ -335,7 +293,7 @@ console.dir(results)
 
           tasks.push(function (callback) {
 
-            log.debug('update pub data for gtin ' + pub.gtin + ', ' + pub.name)
+            log.debug('update pub data for gtin ' + pub.gtin + ', pub to: ' + pub.recipient)
 
             var start_cip_api_call = Date.now()
             request.post({
@@ -371,35 +329,10 @@ console.dir(results)
 
         async.parallel(tasks, function (err, results) {
           log.debug('all cip submissions complete for msg_id ' + msg_info.msg_id)
-
-console.log('err:')
-console.dir(err)
-console.log('results:')
-console.dir(results)
-
-          if (err) {
-            log.debug('async cip api err: ')
-            console.dir(err)
-            var orig_msg_info = msg_info
-
-            // don't modify original msg_info object
-            msg_info = {
-                msg_id: orig_msg_info.msg_id
-              , sender: orig_msg_info.sender
-              , receiver: orig_msg_info.receiver
-              , status: 'ERROR'
-              , exception: err.toString()
-            }
-          }
-
-          var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
-          msg_archive_db.saveMessage(response_xml, function (err, msg_info) {
-            if (err) return next(err)
-            log.info('Generated response message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
-          })
-          res.write(response_xml)
-          res.end()
+          if (err) return next(err)
+          respond(msg_info, res, next)
         }, 10) // concurrency
+
         return
       } // end CIP
 
@@ -452,36 +385,10 @@ console.dir(results)
 
         async.parallel(tasks, function (err, results) {
           log.debug('all cis submissions complete for msg_id ' + msg_info.msg_id)
-
-console.log('err:')
-console.dir(err)
-console.log('results:')
-console.dir(results)
-
-          //if (err) {
-          if (err && err[0]) {
-            log.debug('async cis api err: ')
-            console.dir(err)
-            var orig_msg_info = msg_info
-
-            // don't modify original msg_info object
-            msg_info = {
-                msg_id: orig_msg_info.msg_id
-              , sender: orig_msg_info.sender
-              , receiver: orig_msg_info.receiver
-              , status: 'ERROR'
-              , exception: err.toString()
-            }
-          }
-
-          var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
-          msg_archive_db.saveMessage(response_xml, function (err, msg_info) {
-            if (err) return next(err)
-            log.info('Generated response message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
-          })
-          res.write(response_xml)
-          res.end()
+          if (err) return next(err)
+          respond(msg_info, res, next)
         }, 10) // concurrency
+
         return
       } // end CIS
 
@@ -553,5 +460,17 @@ console.dir(results)
       log.debug('json parse error: ' + e)
     }
     return false
+  }
+
+  function respond(req_msg_info, res, next) {
+    var response_xml = config.gdsn.populateResponseToSender(config, req_msg_info)
+    msg_archive_db.saveMessage(response_xml, function (err, req_msg_info) {
+      if (err) return next(err)
+      log.info('Generated response message saved to archive: ' + req_msg_info.msg_id + ', modified: ' + new Date(req_msg_info.modified_ts))
+    })
+    if (!res.finished) {
+      res.write(response_xml)
+      res.end()
+    }
   }
 }

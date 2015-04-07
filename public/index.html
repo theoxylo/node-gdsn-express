@@ -162,7 +162,7 @@
 
           <h4>File Upload</h4>
           <form>
-            <input type="file" ng-file-select="onFileSelect($files, 'msg_url')"></input>
+            <input type="file" multiple="true" ng-file-select="onFileSelect($files, 'msg_url')"></input>
             <button ng-click="uploadFile('msg_url')">Upload File</button>
           </form>
 
@@ -188,7 +188,7 @@
       <div>
         <div ng-controller="thx_file_controller">
           <form>
-              <input type="file" ng-file-select="onFileSelect($files, 'gdsn_workflow')"></input>
+              <input type="file" multiple="true" ng-file-select="onFileSelect($files, 'gdsn_workflow')"></input>
               <button ng-click="uploadFile('gdsn_workflow')">Upload File</button>
           </form>
         </div>
@@ -201,7 +201,7 @@
       <div>Post Message to GDSN Data Pool</div>
       <div>
         <div ng-controller="thx_file_controller">
-          <input type="file" ng-file-select="onFileSelect($files, 'gdsn_send')"></input>
+          <input type="file" multiple="true" ng-file-select="onFileSelect($files, 'gdsn_send')"></input>
           <button ng-click="uploadFile('gdsn_send')">Upload File to GDSN</button>
         </div>
         <div>
@@ -213,7 +213,7 @@
       <div>Validate Message with GDSN Data Pool</div>
       <div>
         <div ng-controller="thx_file_controller">
-          <input type="file" ng-file-select="onFileSelect($files, 'gdsn_validate')"></input>
+          <input type="file" multiple="true" ng-file-select="onFileSelect($files, 'gdsn_validate')"></input>
           <button ng-click="uploadFile('gdsn_validate')">Validate XML File</button>
         </div>
         <div>
@@ -278,7 +278,7 @@
       <div>Post Trading Parties RPDD File</div>
       <div>
         <div ng-controller="thx_file_controller">
-          <input type="file" ng-file-select="onFileSelect($files, 'parties_url')"></input>
+          <input type="file" multiple="true" ng-file-select="onFileSelect($files, 'parties_url')"></input>
           <button ng-click="uploadFile('parties_url')">Upload File</button>
         </div>
         <div>
@@ -438,10 +438,10 @@
       <div>Post Catalog Items</div>
       <div>
         <div ng-controller="thx_file_controller">
-          Multi-item file upload: <input type="file" ng-file-select="onFileSelect($files, 'item_url')"></input>
+          Multi-item file upload: <input type="file" multiple="true" ng-file-select="onFileSelect($files, 'item_url')"></input>
           <button ng-click="uploadFile('item_url')">Upload File</button>
           <br/>
-          Single item file upload: <input type="file" ng-file-select="onFileSelect($files, 'single_item_url')"></input>
+          Single item file upload: <input type="file" multiple="true" ng-file-select="onFileSelect($files, 'single_item_url')"></input>
           <button ng-click="uploadFile('single_item_url')">Upload File</button>
         </div>
         <div>
