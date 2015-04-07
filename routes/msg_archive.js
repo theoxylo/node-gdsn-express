@@ -20,6 +20,8 @@ module.exports = function (config) {
     log.debug('archive_msg params=' + JSON.stringify(req.query))
     var msg_id = req.param('msg_id')
     var sender = req.param('sender')
+    if (!msg_id || !sender) return next(Error('every messages must have a sender and msg_id'))
+
     db_message.findMessage(sender, msg_id, function (err, results) {
       if (err) return next(err)
       var msg_info = results && results[0]
@@ -207,10 +209,17 @@ module.exports = function (config) {
 function get_query(req) {
   var query = {}
   
+  var sender       = req.param('sender')
+  if (sender) {
+    query.sender = {$regex: sender}
+  }
+  else query.sender = {$exists: true} // every message must have a msg_id and sender
+
   var msg_id       = req.param('msg_id')
   if (msg_id) {
     query.msg_id = {$regex: msg_id}
   }
+  else query.msg_id = {$exists: true} // every message must have a msg_id and sender
 
   var req_msg_id       = req.param('req_msg_id')
   if (req_msg_id) {
@@ -233,14 +242,17 @@ function get_query(req) {
   if (source_dp) {
     query.source_dp = {$regex: source_dp}
   }
+
   var recipient       = req.param('recipient')
   if (recipient) {
     query.recipient = {$regex: recipient}
   }
+
   var provider       = req.param('provider')
   if (provider) {
-    query.sender = {$regex: provider}
+    query.provider = {$regex: provider}
   }
+
   var receiver       = req.param('receiver')
   if (receiver) {
     query.receiver = {$regex: receiver}
