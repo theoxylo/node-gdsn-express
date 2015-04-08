@@ -120,7 +120,7 @@
               <td>{{msg.sender}}</td>
               <td>
                 <span ng-if="msg.gdsn_repostable"><a ng-href="/cs_api/1.0/gdsn-workflow/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Submit to Data Pool worflow">{{msg.receiver}}</a></span>
-                <span ng-if="!msg.gdsn_repostable && msg.provider != msg.receiver"><a ng-href="/cs_api/1.0/gdsn-send/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Send via AS2">{{msg.receiver}}</a></span>
+                <span ng-if="!msg.gdsn_repostable"><a ng-href="/cs_api/1.0/gdsn-send/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Send via AS2">{{msg.receiver}}</a></span>
               </td>
               <td>
                 <span><a ng-href="/cs_api/1.0/gdsn-validate/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Submit for GDSN Validation">Validate</a></span>
@@ -131,6 +131,7 @@
                   <span><a ng-href="/cs_api/1.0/msg/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="View Raw XML">R</a></span>
                   <span><a ng-href="/cs_api/1.0/msg/history/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="View History">H</a></span>
                   <span><a ng-href="/cs_api/1.0/msg/archive/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Archive and Hide">X</a></span>
+                  <span><a ng-href="/cs_api/1.0/msg/migrate/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Reparse and Persist">U</a></span>
               </td>
             </tr>
           </table>

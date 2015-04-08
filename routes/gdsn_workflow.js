@@ -42,7 +42,11 @@ module.exports = function (config) {
       log.debug('reparse of db msg xml took ' + (Date.now() - start_parse) + ' ms for ' + msg_info.xml.length + ' new length')
 
       if (msg_info.receiver != config.homeDataPoolGln) {
-        return next(Error('to initiate workflow, the message receiver must be the datapool'))
+        return next(Error('to initiate workflow, the message receiver must be the datapool and not ' + msg_info.receiver))
+      }
+
+      if (msg_info.sender == config.homeDataPoolGln) {
+        return next(Error('the data pool cannot message itself'))
       }
 
       if (!msg_info.source_dp) {
@@ -100,18 +104,6 @@ module.exports = function (config) {
       // messages from local registered trading parties or GR:
       // messages from local registered trading parties or GR:
 
-      if (msg_info.msg_type == 'catalogueItemConfirmation') {
-        // TODO: call GDSN Server API to confirm item in publication synch list
-        // TODO: generate CIC for other DP
-        return respond(msg_info, res, next)
-      } // end CIC
-
-      if (msg_info.msg_type == 'requestForCatalogueItemNotification') {
-        // TODO: call GDSN Server API to manage one-time faux-subscription
-        // TODO: generate RFCIN for GR
-        return respond(msg_info, res, next)
-      } // end RFCIN
-
       if (msg_info.msg_type == 'basicPartyRegistration'
         || msg_info.msg_type == 'registryPartyDataDump') {
 
@@ -119,8 +111,6 @@ module.exports = function (config) {
 
         var tasks = []
         msg_info.party.forEach(function (party) {
-
-          log.debug('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> rpdd party gln:::::::::::::::: ' + party.gln)
 
           if (party.source_dp == config.homeDataPoolGln) {
             if (msg_info.msg_type == 'registryPartyDataDump') {
@@ -173,7 +163,7 @@ module.exports = function (config) {
                 + ', body: '
                 + body)
               if (err) return callback(err)
-              if (response.statusCode != 200 || !getSuccess(body)) return callback(Error(body))
+              if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
 
               if (msg_info.msg_type == 'basicPartyRegistration') {
                 var bpr_xml = config.gdsn.populateBprToGr(config, msg_info)
@@ -202,8 +192,6 @@ module.exports = function (config) {
         var tasks = []
         msg_info.item.forEach(function (item) {
 
-          log.debug('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> item gtin:::::::::::::::: ' + item.gtin + ', valid: ' + config.gdsn.validateGtin(item.gtin))
-
           tasks.push(function (callback) {
 
             log.debug('trade item data: ')
@@ -223,7 +211,6 @@ module.exports = function (config) {
               //, discontinuedDate: will cause IN_PROGRESS
             }
             //[&ci_state=REGISTERED]
-            //[&isBaseUnit=true] // removed from api? can be derived from child count
             //[&isConsumerUnit=false]
             //[&isDispatchUnit=true]
             //[&isInvoiceUnit=false]
@@ -238,7 +225,7 @@ module.exports = function (config) {
             }
 
             var children = item.child_gtins && item.child_gtins.join(',')
-            if (children) form_data.children = children
+            form_data.children = '[' + children + ']'
 
             request.post({
               url   : config.url_gdsn_api + '/ci/' + item.provider + '/' + item.gtin + '/' + item.tm + '/' + item.tm_sub || 'na' 
@@ -257,7 +244,7 @@ module.exports = function (config) {
                 + ', body: '
                 + body)
               if (err) return callback(err)
-              if (response.statusCode != 200 || !getSuccess(body)) return callback(Error(body))
+              if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
 
               //if (getRciIsNeeded(body)) { // TODO send RCI to GR conditional upon api response
                 var rci_xml = config.gdsn.populateRciToGr(config, msg_info)
@@ -321,7 +308,7 @@ module.exports = function (config) {
                 + ', body: '
                 + body)
               if (err) return callback(err)
-              if (response.statusCode != 200 || !getSuccess(body)) return callback(Error(body))
+              if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
               callback(null, body)
             }) // end request.post
           }) // end tasks.push
@@ -369,7 +356,7 @@ module.exports = function (config) {
                 + ', body: '
                 + body)
               if (err) return callback(err)
-              if (response.statusCode != 200 || !getSuccess(body)) return callback(Error(body))
+              if (response.statusCode != '200' || !getSuccess(body)) return callback(Error(body))
 
               if (msg_info.sender != config.gdsn_gr_gln) {
                 var cis_xml = config.gdsn.populateCisToGr(config, msg_info)
@@ -392,53 +379,32 @@ module.exports = function (config) {
         return
       } // end CIS
 
+      // CIC cic
       if (msg_info.msg_type == 'catalogueItemConfirmation') {
-        // TODO: call GDSN Server API to confirm item
-        //var cic = config.gdsn.populateCicToOtherDP(config, msg_info)
-        var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
-        msg_archive_db.saveMessage(response_xml, function (err, msg_info) {
-          if (err) return next(err)
-          log.info('Generated response message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
-        })
-        res.write(response_xml)
-        return res.end()
+        // TODO: call GDSN Server API to confirm item in publication synch list
+        // TODO: generate CIC for other DP
+        return respond(msg_info, res, next)
       } // end CIC
+
+      // RFCIN rfcin
+      if (msg_info.msg_type == 'requestForCatalogueItemNotification') {
+        // TODO: call GDSN Server API to manage one-time faux-subscription
+        // TODO: generate RFCIN for GR
+        return respond(msg_info, res, next)
+      } // end RFCIN
 
       // CIH cih
       if (msg_info.msg_type == 'catalogueItemHierarchicalWithdrawal') {
         // TODO: call GDSN Server API to manage children
-        var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
-        msg_archive_db.saveMessage(response_xml, function (err, msg_info) {
-          if (err) return next(err)
-          log.info('Generated response message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
-        })
-        res.write(response_xml)
-        return res.end()
-      } // end RFCIN
-
-      // RFCIN rfcin
-      if (msg_info.msg_type == 'requestForCatalogueItemNotification') {
-        // TODO: call GDSN Server API to manage subscription override
-        //var rfcin = config.gdsn.populateRfcin(config, msg_info)
-        var response_xml = config.gdsn.populateResponseToSender(config, msg_info)
-        msg_archive_db.saveMessage(response_xml, function (err, msg_info) {
-          if (err) return next(err)
-          log.info('Generated response message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
-        })
-        res.write(response_xml)
-        return res.end()
-      } // end RFCIN
+        //var rfcin = config.gdsn.populateCih(config, msg_info) // ???
+        return respond(msg_info, res, next)
+      } // end CIH
 
     })
   }
 
   function getSuccess(body) {
     try {
-
-        var obj = JSON.parse(body)
-        log.debug('getSuccess debug ' + body)
-        console.dir(obj)
-
       return JSON.parse(body).success == 'true'
     }
     catch (e) {
@@ -449,11 +415,6 @@ module.exports = function (config) {
 
   function getRciIsNeeded(body) {
     try {
-
-        var obj = JSON.parse(body)
-        log.debug('getSuccess debug ' + body)
-        console.dir(obj)
-
       return JSON.parse(body).rci_is_needed == 'true'
     }
     catch (e) {
