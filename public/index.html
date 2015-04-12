@@ -673,12 +673,18 @@
 <script>
   thx_app.directive('thxWorkflow', function () {
     return { // ddo
-      template    : '<div><input type="text" ng-model="cmd" size="3"></input><button ng-click="workflow(cmd + ts)" title="count last modified: {{ts}} ">WF {{count}}</button><ng-transclude/></div>'
+      template    : '<div>'
+                  + ' <input type="text" ng-model="cmd" size="3"></input>'
+                  + ' <button ng-click="workflow(cmd + ts)" title="count last modified: {{ts}} ">WF {{count}}</button>'
+                  + ' <ng-transclude></ng-transclude'
+                  + ' <div>{{result}}</div>'
+                  + '</div>'
       ,restrict   : 'E'
       ,replace    : true
       ,transclude : true
       ,controller : function ($scope, $http) { 
         console.log('workflow controller init function called for msg_id ' + $scope.msg.msg_id)
+        $scope.result   = '...'
         $scope.count    = 0
         $scope.ts       = Date.now()
         $scope.workflow = function (cmd) { 
@@ -688,8 +694,8 @@
           if (cmd == 'thx' + $scope.ts) {
             $http.get('/cs_api/1.0/gdsn-workflow/' + $scope.msg.msg_id + '/' + $scope.msg.sender)
             .then(
-              function (result) { console.log(result.data) }
-             ,function (error) { console.log(error) }
+              function (result) { $scope.result = result.data }
+             ,function (error) { $scope.result = error }
             )
           }
           $scope.ts = Date.now()
