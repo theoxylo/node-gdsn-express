@@ -127,7 +127,14 @@
                 <span ng-if="msg.gdsn_repostable"></span>
               </td>
               <td>{{msg.modified_ts2}}</td>
-              <td>{{msg.xml_length}}
+
+              <!-- per msg utils -->
+              <td>
+                  <span>{{msg.xml_length}}</span>
+
+                  <!-- test angular directive -->
+                  <thx-workflow title="ts">{{msg.msg_id}}</thx-workflow>
+
                   <span><a ng-href="/cs_api/1.0/msg/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="View Raw XML">R</a></span>
                   <span><a ng-href="/cs_api/1.0/msg/history/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="View History">H</a></span>
                   <span><a ng-href="/cs_api/1.0/msg/archive/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Archive and Hide">X</a></span>
@@ -151,6 +158,12 @@
       <div>
         <div ng-controller="thx_file_controller">
           <p class="desc">These forms will post messages to CS for party/item/pub/sub parsing and persistence, along with message archival.</p>
+          <h4>File Upload</h4>
+          <form>
+            <input type="file" multiple="true" ng-file-select="onFileSelect($files, 'msg_url')"></input>
+            <button ng-click="uploadFile('msg_url')">Upload File</button>
+          </form>
+
           <p>Changes and new entries on other tabs may result:</p>
             <li>BPR and RPDD messages will create/update parties on the Trading Parties tab</li>
             <li>CIN messages will create/update items on the Catalog Items tab</li>
@@ -160,12 +173,6 @@
          <p>Note: Later and upon request, workflow execution will generate a GS1Response message (transaction success or message exception), persisted as a new message with a referring request_msg_id to this one.</p>
          <p>Any other new messages required will also be generated and persisted during workflow. These include: gr-BPR, gr-RCI, gr-CIS, gr-RFCIN, tp-CIN, tp-CIC, odp-CIC, odp-CIN, and odp-HWM.</p>
          <p>These downstream workflow messages can then later be validated and routed in order to advance the GDSN process</p>
-
-          <h4>File Upload</h4>
-          <form>
-            <input type="file" multiple="true" ng-file-select="onFileSelect($files, 'msg_url')"></input>
-            <button ng-click="uploadFile('msg_url')">Upload File</button>
-          </form>
 
         </div>
         <div>
@@ -646,7 +653,8 @@
 <script src="js/jquery-1.10.2.js"></script>
 <script src="jqui/jquery-ui-1.10.4.custom.js"></script>
 <script src="js/underscore-1.5.2.js"></script>
-<script src="js/angular-1.2.2.js"></script>
+                  <!-- script src="js/angular-1.2.2.js"></script-->
+                  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular.js"></script>
 <script src="js/file/angular-file-upload.js"></script>
 <script src="js/bp_cs_client.js"></script>
 
@@ -661,6 +669,42 @@
 <script src="js/ang_controller_debug.js"></script>
 <script src="js/ang_directives.js"></script>
 <script src="js/ang_directive_gdsn-sub/directive.js"></script>
+
+<script>
+  thx_app.directive('thxWorkflow', function () {
+    return { // ddo
+      template    : '<div><input type="text" ng-model="cmd" size="3"></input><button ng-click="workflow(cmd + ts)" title="count last modified: {{ts}} ">WF {{count}}</button><ng-transclude/></div>'
+      ,restrict   : 'E'
+      ,replace    : true
+      ,transclude : true
+      ,controller : function ($scope, $http) { 
+        console.log('workflow controller init function called for msg_id ' + $scope.msg.msg_id)
+        $scope.count    = 0
+        $scope.ts       = Date.now()
+        $scope.workflow = function (cmd) { 
+          console.log('thx-workflow.workflow called for msg_id ' + $scope.msg.msg_id + ', cmd: ' + cmd)
+          if (cmd != $scope.cmd + $scope.ts) return console.log('cmd not equal to ' + $scope.cmd + $scope.ts)
+
+          if (cmd == 'thx' + $scope.ts) {
+            $http.get('/cs_api/1.0/gdsn-workflow/' + $scope.msg.msg_id + '/' + $scope.msg.sender)
+            .then(
+              function (result) { console.log(result.data) }
+             ,function (error) { console.log(error) }
+            )
+          }
+          $scope.ts = Date.now()
+          $scope.count++
+        }
+      }
+      /*
+      ,link       : function ($scope, element, attrs) { 
+        console.log('count ' + $scope.count) 
+        element.text($scope.count + ' HELLO THERE') 
+      }
+      */
+    }
+  })
+</script>
 
 <script src="three_view/js/three_r68.js"></script>
 <script src="three_view/js/controls/OrbitControls.js"></script>

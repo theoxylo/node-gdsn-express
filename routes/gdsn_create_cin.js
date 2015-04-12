@@ -72,14 +72,12 @@ module.exports = function (config) {
         var start = Date.now()
         log.debug('fetching all items for gtin ' + gtin + ' at time ' + start)
 
-        var include_xml = true // for db projection
-
-        trade_item_db.getTradeItems(query, 0, 100, include_xml, function process_found_items(err, items) {
+        trade_item_db.getTradeItems(query, 0, 100, /* include_xml */ true, function process_found_items(err, items) {
           if (err) return next(err)
 
-          log.info('db found ' + (items && items.length) + ' items for gtin ' + gtin + ' in ' + (Date.now() - start) + 'ms')
+          log.info('db found ' + (items && items.length) + ' items for gtin ' + gtin + ' in ' + (Date.now() - start) + ' ms')
 
-          items = item_utils.de_dupe_items(items)
+          //items = item_utils.de_dupe_items(items)
 
           if (items.length == 0) {
             var result = utils.get_collection_json([], config.base_url + req.url)
@@ -110,15 +108,18 @@ module.exports = function (config) {
           }
 
           var start = Date.now()
-          var include_xml = true
           items[0].fetch_type = 'match'
+          //console.log('first match: ' + items[0].xml)
 
-          item_utils.fetch_all_children(items[0], 999, function (err, results) {
+          item_utils.fetch_all_children_with_xml(items[0], 999, function (err, results) {
             if (err) return next(err)
-            log.info('utils found ' + (results && results.length) + ' items for gtin ' + gtin + ' in ' + (Date.now() - start) + 'ms')
+            log.info('utils found ' + (results && results.length) + ' child items for gtin ' + gtin + ' in ' + (Date.now() - start) + 'ms')
 
+  results.forEach(function (item) {
+    if (!item.xml) throw Error('missing xml for item query gtin ' + item.gtin)
+  })
             items = items.concat(results)
-            items = item_utils.de_dupe_items(items)
+            //items = item_utils.de_dupe_items(items)
             items = items.map(function (item) {
               item.recipient = recipient // note we are changing the items to our new recipient, so these may not exist in db yet
               return item
@@ -136,10 +137,9 @@ module.exports = function (config) {
               if (req.param('download')) res.set('Content-Disposition', 'attachment; filename="gen_cin_' + gtin + '.xml"')
               res.end(cin_xml)
             }
-
             log.db(req.url, req.user, (Date.now() - start))
 
-          }, include_xml) // end fetch all children and generate cin
+          }) // end: fetch all children and generate cin
         })
       }
       catch (error) {
