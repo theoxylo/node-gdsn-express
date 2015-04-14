@@ -1,4 +1,4 @@
-thx_app.directive('datepicker', function () {
+gdsn_app.directive('datepicker', function () {
   return {
     require : 'ngModel',
     link : function (scope, element, attrs, ngModelCtrl) {

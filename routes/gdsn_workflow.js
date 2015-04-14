@@ -459,18 +459,16 @@ module.exports = function (config) {
   }
 
   function respond(error, req_msg_info, res, next) {
-    if (error) {
-      // persist only error responses:
-      var response_xml = config.gdsn.populateResponseToSender(error, config, req_msg_info)
-      msg_archive_db.saveMessage(response_xml, function (err, saved_resp) {
-        if (err) return next(err)
-        log.info('Generated response to message: ' + saved_resp.requesting_msg_id)
-        log.info('Generated response message saved to archive: ' + saved_resp.msg_id + ', modified: ' + new Date(saved_resp.modified_ts))
-      })
-    }
-    if (!res.finished) {
-      res.write(config.gdsn.populateResponseToSender(null, config, req_msg_info))
-      return res.end()
-    }
+    var response_xml = config.gdsn.populateResponseToSender(error, config, req_msg_info)
+    msg_archive_db.saveMessage(response_xml, function (err, saved_resp) {
+      if (err) return next(err)
+      log.info('Generated response to message: ' + saved_resp.requesting_msg_id)
+      log.info('Generated response message saved to archive: ' + saved_resp.msg_id + ', modified: ' + new Date(saved_resp.modified_ts))
+      if (!res.finished) {
+        //res.write(response_xml) // XML gS1Response ACCEPTED
+        res.json(saved_resp)
+        return res.end()
+      }
+    })
   }
 }

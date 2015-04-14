@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="us">
+<html>
 <head>
   <!-- Version $URL: http://svn.instill.com/repos/instill_dev/Catalog_Services/node-api-server/trunk/public/index.html $ -->
   <meta charset="utf-8">
@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="jqui/jquery-ui-1.10.4.custom.css" />
 </head>
 
-<body ng-app="thx_app">
+<body ng-app="gdsn_app">
 
 <div id="tabs">
 
@@ -58,7 +58,7 @@
   </div>
 
 
-  <div id="msg_tab" ng-controller="thx_msg_controller">
+  <div id="msg_tab" ng-controller="gdsn_msg_controller">
     <div id="msg_accordion">
 
       <div>Search Messages</div>
@@ -119,7 +119,8 @@
               </td>
               <td>{{msg.sender}}</td>
               <td>
-                <span ng-if="msg.gdsn_repostable"><a ng-href="/cs_api/1.0/gdsn-workflow/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Submit to Data Pool worflow">{{msg.receiver}}</a></span>
+                <!--<span ng-if="msg.gdsn_repostable"><a ng-href="/cs_api/1.0/gdsn-workflow/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Submit to Data Pool worflow">{{msg.receiver}}</a></span>-->
+                <span ng-if="msg.gdsn_repostable">{{msg.receiver}}</span>
                 <span ng-if="!msg.gdsn_repostable"><a ng-href="/cs_api/1.0/gdsn-send/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Send via AS2">{{msg.receiver}}</a></span>
               </td>
               <td>
@@ -132,8 +133,9 @@
               <td>
                   <span>{{msg.xml_length}}</span>
 
-                  <!-- test angular directive -->
-                  <thx-workflow title="ts">{{msg.msg_id}}</thx-workflow>
+                  <span ng-if="msg.gdsn_repostable">{{msg.receiver}}
+                    <gdsn-workflow title="dp workflow">{{msg.receiver}}</gdsn-workflow>
+                  </span>
 
                   <span><a ng-href="/cs_api/1.0/msg/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="View Raw XML">R</a></span>
                   <span><a ng-href="/cs_api/1.0/msg/history/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="View History">H</a></span>
@@ -156,7 +158,7 @@
 
       <div>Post Message</div>
       <div>
-        <div ng-controller="thx_file_controller">
+        <div ng-controller="gdsn_file_controller">
           <p class="desc">These forms will post messages to CS for party/item/pub/sub parsing and persistence, along with message archival.</p>
           <h4>File Upload</h4>
           <form>
@@ -194,7 +196,7 @@
 <!--
       <div>GDSN Workflow Message</div>
       <div>
-        <div ng-controller="thx_file_controller">
+        <div ng-controller="gdsn_file_controller">
           <form>
               <input type="file" multiple="true" ng-file-select="onFileSelect($files, 'gdsn_workflow')"></input>
               <button ng-click="uploadFile('gdsn_workflow')">Upload File</button>
@@ -208,7 +210,7 @@
 
       <div>Post Message to GDSN Data Pool</div>
       <div>
-        <div ng-controller="thx_file_controller">
+        <div ng-controller="gdsn_file_controller">
           <input type="file" multiple="true" ng-file-select="onFileSelect($files, 'gdsn_send')"></input>
           <button ng-click="uploadFile('gdsn_send')">Upload File to GDSN</button>
         </div>
@@ -220,7 +222,7 @@
 
       <div>Validate Message with GDSN Data Pool</div>
       <div>
-        <div ng-controller="thx_file_controller">
+        <div ng-controller="gdsn_file_controller">
           <input type="file" multiple="true" ng-file-select="onFileSelect($files, 'gdsn_validate')"></input>
           <button ng-click="uploadFile('gdsn_validate')">Validate XML File</button>
         </div>
@@ -242,7 +244,7 @@
 
 
 
-  <div id="party_tab" ng-controller="thx_party_controller">
+  <div id="party_tab" ng-controller="gdsn_party_controller">
     <div id="party_accordion">
 
       <div>Search Trading Parties</div>
@@ -285,7 +287,7 @@
 
       <div>Post Trading Parties RPDD File</div>
       <div>
-        <div ng-controller="thx_file_controller">
+        <div ng-controller="gdsn_file_controller">
           <input type="file" multiple="true" ng-file-select="onFileSelect($files, 'parties_url')"></input>
           <button ng-click="uploadFile('parties_url')">Upload File</button>
         </div>
@@ -301,7 +303,7 @@
 
 
 
-  <div id="item_tab" ng-controller="thx_item_controller">
+  <div id="item_tab" ng-controller="gdsn_item_controller">
     <div id="item_accordion">
 
       <div>Search Catalog Items</div>
@@ -445,7 +447,7 @@
 
       <div>Post Catalog Items</div>
       <div>
-        <div ng-controller="thx_file_controller">
+        <div ng-controller="gdsn_file_controller">
           Multi-item file upload: <input type="file" multiple="true" ng-file-select="onFileSelect($files, 'item_url')"></input>
           <button ng-click="uploadFile('item_url')">Upload File</button>
           <br/>
@@ -463,7 +465,7 @@
     </div>
   </div> <!-- end item_tab -->
 
-  <div id="pub_tab" ng-controller="thx_pub_controller">
+  <div id="pub_tab" ng-controller="gdsn_pub_controller">
     <div id="pub_accordion">
 
       <div>Search Publications</div>
@@ -507,7 +509,7 @@
   <div id="sub_tab">
     <div id="sub_accordion">
       <div>Fetch Subscribed Items</div>
-      <div ng-controller="thx_sub_controller">
+      <div ng-controller="gdsn_sub_controller">
 
         <div>
           <form id="sub_form">
@@ -568,7 +570,7 @@
 
 
 
-<div id="debug_tab" ng-controller='thx_debug_controller'>
+<div id="debug_tab" ng-controller='gdsn_debug_controller'>
   <div id="debug_accordion">
   
     <div>Search Logging</div>
@@ -653,8 +655,11 @@
 <script src="js/jquery-1.10.2.js"></script>
 <script src="jqui/jquery-ui-1.10.4.custom.js"></script>
 <script src="js/underscore-1.5.2.js"></script>
-                  <!-- script src="js/angular-1.2.2.js"></script-->
-                  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular.js"></script>
+
+<!-- script src="js/angular-1.2.2.js"></script-->
+<script src="js/angular-1.3.15.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.15/angular.js"></script>
+
 <script src="js/file/angular-file-upload.js"></script>
 <script src="js/bp_cs_client.js"></script>
 
@@ -671,35 +676,62 @@
 <script src="js/ang_directive_gdsn-sub/directive.js"></script>
 
 <script>
-  thx_app.directive('thxWorkflow', function () {
+  gdsn_app.directive('gdsnWorkflow', function () {
     return { // ddo
       template    : '<div>'
                   + ' <input type="text" ng-model="cmd" size="3"></input>'
                   + ' <button ng-click="workflow(cmd + ts)" title="count last modified: {{ts}} ">WF {{count}}</button>'
-                  + ' <ng-transclude></ng-transclude'
-                  + ' <div>{{result}}</div>'
+                  + ' <div><ng-transclude/></div>'
+                  + ' <div ng-if="result"><div ng-click="clearResult()>{{result}}</div></div>'
                   + '</div>'
       ,restrict   : 'E'
       ,replace    : true
       ,transclude : true
-      ,controller : function ($scope, $http) { 
-        console.log('workflow controller init function called for msg_id ' + $scope.msg.msg_id)
-        $scope.result   = '...'
+      ,controller : function ($scope, $http, config) { 
+        console.log('workflow controller init for msg_id: ' + $scope.msg.msg_id)
+        $scope.dp_gln = config.homeDataPoolGln
+        $scope.result   = ''
         $scope.count    = 0
         $scope.ts       = Date.now()
         $scope.workflow = function (cmd) { 
-          console.log('thx-workflow.workflow called for msg_id ' + $scope.msg.msg_id + ', cmd: ' + cmd)
-          if (cmd != $scope.cmd + $scope.ts) return console.log('cmd not equal to ' + $scope.cmd + $scope.ts)
+          console.log('gdsn-workflow.workflow called for msg_id ' + $scope.msg.msg_id + ', cmd: ' + cmd)
 
-          if (cmd == 'thx' + $scope.ts) {
-            $http.get('/cs_api/1.0/gdsn-workflow/' + $scope.msg.msg_id + '/' + $scope.msg.sender)
-            .then(
-              function (result) { $scope.result = result.data }
-             ,function (error) { $scope.result = error }
-            )
+          if (cmd != $scope.cmd + $scope.ts) {
+              console.log('cmd not equal to ' + $scope.ts)
+              return
           }
+          if (!$scope.msg.gdsn_repostable) {
+              console.log('only messages to ' + $scope.dp_gln + ' can be submitted for workflow')
+              return 
+          }
+
+          if (cmd != 'gdsn' + $scope.ts) {
+              console.log('cmd not equal to gdsn ' + $scope.ts)
+              return
+          }
+            
+          var url = config.gdsn_workflow + '/' + $scope.msg.msg_id + '/' + $scope.msg.sender // /cs_api/1.0/gdsn-workflow/:msg/:sender
+          console.log('xhr wf url: ' + url)
+          $http.get(url)
+           .then(
+             function (result) { 
+               var resp_msg_id = result && result.data && result.data.request_msg_id
+               console.log('------------------------------------------------------- http workflow result data: ' + resp_msg_id)
+               console.dir(result) 
+               if (resp_msg_id) $scope.result = resp_msg_id
+             }
+           , function (error) { 
+               var data = error && error.data
+               console.log('------------------------------------------------------- http workflow error data: ' + data)
+               console.dir(error)
+               if (data) $scope.result = data
+           }
+          )
           $scope.ts = Date.now()
           $scope.count++
+        }
+        $scope.clearResult = function () { 
+          $scope.result = '' 
         }
       }
       /*

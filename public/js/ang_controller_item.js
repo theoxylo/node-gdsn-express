@@ -1,4 +1,4 @@
-    thx_app.controller('thx_item_controller', function($scope, $http, config) {
+    gdsn_app.controller('gdsn_item_controller', function($scope, $http, config) {
 
       $scope.page = 0
       $scope.per_page = 10

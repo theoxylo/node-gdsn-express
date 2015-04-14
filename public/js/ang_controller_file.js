@@ -1,5 +1,5 @@
 
-    thx_app.controller('thx_file_controller', function($scope, $upload, config) {
+    gdsn_app.controller('gdsn_file_controller', function($scope, $upload, config) {
       $scope.onFileSelect = function($files, url) {
         $scope[url + '_file'] = $files && $files[0]
       }

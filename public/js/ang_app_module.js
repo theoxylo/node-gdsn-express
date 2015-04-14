@@ -1,6 +1,6 @@
-    var thx_app = angular.module('thx_app', ['angularFileUpload'])
+    var gdsn_app = angular.module('gdsn_app', ['angularFileUpload'])
 
-    thx_app.factory('config', function () {
+    gdsn_app.factory('config', function () {
       return {
           sub_url         : app.api + '/subscriptionList'
         , pub_url         : app.api + '/publicationList'
@@ -15,5 +15,6 @@
         , gdsn_send       : app.api + '/gdsn-send'     // send xml to dp for routing/as2/t_msg
         , gdsn_validate   : app.api + '/gdsn-validate' // apply xsd and business validation rules
         , gdsn_workflow   : app.api + '/gdsn-workflow' // call dp api and generate result messages
+        , homeDataPoolGln : '1100001011285'
       }
     })

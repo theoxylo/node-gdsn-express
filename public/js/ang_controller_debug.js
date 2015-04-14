@@ -1,4 +1,4 @@
-    thx_app.controller('thx_debug_controller', function($scope, $http, config) {
+    gdsn_app.controller('gdsn_debug_controller', function($scope, $http, config) {
       $scope.page = 0
       $scope.input_per_page = 10
       $scope.more_items = false

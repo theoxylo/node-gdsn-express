@@ -1,4 +1,4 @@
-    thx_app.controller('thx_msg_controller', function($scope, $http, config) {
+    gdsn_app.controller('gdsn_msg_controller', function($scope, $http, config) {
       $scope.input_per_page_default = 20
       
       $scope.page = 0

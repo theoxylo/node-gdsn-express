@@ -1,6 +1,6 @@
-    thx_app.controller('thx_pub_controller', function($scope, $http, config) {
+    gdsn_app.controller('gdsn_pub_controller', function($scope, $http, config) {
       $scope.timestamp = 'n/a'
-      $scope.thx_controller_test = 'thx_controller_test_value'
+      $scope.gdsn_controller_test = 'gdsn_controller_test_value'
 
       $scope.showPubDetail = function (pub) {
         log('showPubDetail')

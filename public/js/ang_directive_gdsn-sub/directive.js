@@ -1,4 +1,4 @@
-thx_app.directive('gdsnSubscriptions', function () {
+gdsn_app.directive('gdsnSubscriptions', function () {
   log('directive gdsnSubscriptions')
   var api = {
     restrict: 'EA'
@@ -14,7 +14,7 @@ thx_app.directive('gdsnSubscriptions', function () {
 
       console.log('sub directive controller created')
       $scope.timestamp = 'n/a'
-      $scope.thx_controller_test = 'thx_controller_test_value'
+      $scope.gdsn_controller_test = 'gdsn_controller_test_value'
 
       $scope.selectSubscription = function (sub) {
         log('selectSubscription')

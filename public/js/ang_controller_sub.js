@@ -1,6 +1,6 @@
-    thx_app.controller('thx_sub_controller', function ($scope, $http) {
+    gdsn_app.controller('gdsn_sub_controller', function ($scope, $http) {
       $scope.timestamp = 'n/a'
-      $scope.thx_controller_test = 'thx_controller_test_value'
+      $scope.gdsn_controller_test = 'gdsn_controller_test_value'
 
       $scope.selectSubscription = function (sub) {
         log('selectSubscription')
