@@ -1,38 +1,56 @@
 module.exports = function (config) {
 
-  var _              = require('underscore')
-  var async          = require('async')
-  var request        = require('request')
-
   var log            = require('../lib/Logger')('rt_msg_arch', {debug: true})
-  var xml_digest     = require('../lib/xml_to_json.js')(config)
   var utils          = require('../lib/utils.js')(config)
-  var db_message     = require('../lib/db/msg_archive.js')(config)
-  var db_party       = require('../lib/db/trading_party.js')(config)
-  var db_trade_item  = require('../lib/db/trade_item.js')(config)
-  var db_publication = require('../lib/db/publication.js')(config)
-  var db_subscription= require('../lib/db/subscription.js')(config)
-
+  var db_msg_archive = require('../lib/db/msg_archive.js')(config)
 
   var api = {}
 
+  // mark all versions of a msg with an archived_ts, hiding them (soft-delete)
   api.archive_msg = function (req, res, next) {
     log.debug('archive_msg params=' + JSON.stringify(req.query))
     var msg_id = req.param('msg_id')
     var sender = req.param('sender')
-    if (!msg_id || !sender) return next(Error('every messages must have a sender and msg_id'))
+    if (!msg_id || !sender) return next(Error('archive_msg: msg_id and sender are required'))
 
-    db_message.findMessage(sender, msg_id, function (err, results) {
+    db_msg_archive.findMessage(sender, msg_id, function (err, msg) {
       if (err) return next(err)
-      var msg_info = results && results[0]
-      if (!msg_info) return next(new Error('message not found'))
-      db_message.archiveMessageInfo(msg_info, function (err, archive_result) {
+      if (!msg) return next(Error('message xml not found for msg_id: ' + msg_id + ', sender: ' + sender))
+
+      db_msg_archive.saveMessage(msg.xml, function (err, results) {
         if (err) return next(err)
-        res.send(archive_result)
-      })
+        if (!res.finished) {
+          res.jsonp(results)
+          res.end()
+        }
+      }
+      , true) // add archived_ts to latest version of message (all versions are hidden)
     })
   }
 
+  // remove archive_ts from latest version of msg_id/sender, making it available again
+  api.unarchive_msg = function (req, res, next) {
+    log.debug('unarchive_msg params=' + JSON.stringify(req.query))
+    var msg_id = req.param('msg_id')
+    var sender = req.param('sender')
+    if (!msg_id || !sender) return next(Error('archive_msg: msg_id and sender are required'))
+
+    db_msg_archive.findMessage(sender, msg_id, function (err, msg) {
+      if (err) return next(err)
+      if (!msg) return next(Error('message xml not found for msg_id: ' + msg_id + ', sender: ' + sender))
+
+      db_msg_archive.saveMessage(msg.xml, function (err, results) {
+        if (err) return next(err)
+        if (!res.finished) {
+          res.jsonp(results)
+          res.end()
+        }
+      }
+      , false) // add archived_ts to current message
+    })
+  }
+
+  // 
   api.post_archive = function (req, res, next) {
     log.debug('>>>>>>>>>>>>>>>>>>>> post_archive  handler called')
 
@@ -41,67 +59,17 @@ module.exports = function (config) {
     req.on('data', function (chunk) {
       log.debug('archive_post_chunk.length: ' + (chunk && chunk.length))
       xml += chunk
-      if (xml.length > 10 * 1024 * 1024) return res.end('msg xml too big - larger than 10 MB')
+      if (xml.length > 10 * 1024 * 1024 && !res.finished) res.end('msg.xml too big - larger than 10 MB')
     })
     req.on('end', function () {
-      log.info('Received msg xml of length ' + (xml && xml.length || '0'))
-      db_message.saveMessage(xml, function (err, msg_info) {
+      log.info('Received msg.xml of length ' + (xml && xml.length || '0'))
+      db_msg_archive.saveMessage(xml, function (err, msg_info) {
         if (err) return next(err)
         log.info('Message info saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
 
-        // attempt to store parties, trade items, pubs, subs...
-        var tasks = []
-        msg_info.item.forEach(function (item) {
-          console.log('saving trade item: ' + item.gtin)
-
-          // temp fix
-          item.recipient = msg_info.receiver
-
-          var itemDigest = xml_digest.digest(item.xml)
-          item.tradeItem = itemDigest.tradeItem
-
-          tasks.push(function (callback) {
-            db_trade_item.saveTradeItem(item, callback)
-          })
-        })
-        msg_info.party.forEach(function (party) {
-          console.log('saving party: ' + party.gln)
-          tasks.push(function (callback) {
-            db_party.saveParty(party, callback)
-          })
-        })
-        msg_info.pub.forEach(function (pub) {
-          console.log('saving pub: ' + JSON.stringify(pub))
-          tasks.push(function (callback) {
-            db_publication.save_pub(pub, callback)
-          })
-        })
-        msg_info.sub.forEach(function (sub) {
-          console.log('saving sub: ' + JSON.stringify(sub))
-          tasks.push(function (callback) {
-            db_subscription.save_sub(sub, callback)
-          })
-        })
-
-        async.parallel(tasks, function (err, results) {
-          log.debug('parallel results: ' + JSON.stringify(results))
-          if (err) {
-            log.error('Error saving trade items for message: ' + err)
-            return
-          }
-          else {
-            results = _.flatten(results) // async.parallel returns an array of results arrays
-            log.info('Saved trade item count: ' + results.length)
-          }
-        })
-
         if (!res.finished) {
-          if (msg_info) {
-            res.jsonp(msg_info)
-          }
-          else {
-            res.jsonp({msg: 'Message not saved'})
-          }
+          res.jsonp({msg:'Message info saved to archive: ' + msg_info.msg_id + 'sender: ' + msg_info.sender + ', modified: ' + new Date(msg_info.modified_ts)})
+          res.end()
         }
       })
     })
@@ -112,8 +80,8 @@ module.exports = function (config) {
   api.msg_history = function (req, res, next) {
     log.debug('msg_history req query string: ' + JSON.stringify(req.query))
     var query = get_query(req)
-    query.msg_id = req.param('msg_id') // change to exact match, getQuery uses a regex
-    query.sender = req.param('sender')
+    query.msg_id = req.param('msg_id') // change to exact match, 
+    query.sender = req.param('sender') // since getQuery uses a regex
     log.debug('query= ' + JSON.stringify(query))
 
     var page = parseInt(req.param('page'))
@@ -124,7 +92,7 @@ module.exports = function (config) {
     if (!per_page || per_page < 0 || per_page > 10000) per_page = config.per_page_count  // max per_page is 10k
     log.info('per_page ' + per_page)
     
-    db_message.listMessages(query, page, per_page, function (err, results) {
+    db_msg_archive.listMessages(query, page, per_page, function (err, results) {
       if (err) return next(err)
 
       results = results || []
@@ -133,13 +101,15 @@ module.exports = function (config) {
       })
 
       var result = utils.get_collection_json(results, null)
-      
       result.collection.page             = page
       result.collection.per_page         = per_page
       result.collection.item_range_start = (page * per_page) + 1
       result.collection.item_range_end   = (page * per_page) + results.length
 
-      if (!res.finished) res.jsonp(result)
+      if (!res.finished) {
+        res.jsonp(result)
+        res.end()
+      }
     }, /* all fields */ true, /* include history */ true)
   }
 
@@ -157,7 +127,7 @@ module.exports = function (config) {
     if (!per_page || per_page < 0 || per_page > 10000) per_page = config.per_page_count  // max per_page is 10k
     log.info('per_page ' + per_page)
     
-    db_message.listMessages(query, page, per_page, function (err, results) {
+    db_msg_archive.listMessages(query, page, per_page, function (err, results) {
       if (err) return next(err)
 
       results = results || []
@@ -172,7 +142,10 @@ module.exports = function (config) {
       result.collection.item_range_start = (page * per_page) + 1
       result.collection.item_range_end   = (page * per_page) + results.length
 
-      if (!res.finished) res.jsonp(result)
+      if (!res.finished) {
+        res.jsonp(result)
+        res.end()
+      }
     })
   }
 
@@ -182,21 +155,24 @@ module.exports = function (config) {
     
     var msg_id = req.param('msg_id')
     var sender = req.param('sender')
-    log.debug('find_message called with msg_id ' + msg_id)
-    db_message.findMessage(sender, msg_id, function (err, results) {
+    log.debug('find_message called for msg_id: ' + msg_id + ', and sender: ' + sender)
+
+    db_msg_archive.findMessage(sender, msg_id, function (err, msg) {
       if (err) return next(err)
-      var msg = results && results[0]
-      if (!msg) return next(new Error('message not found'))
+      if (!msg) return next(Error('message not found for msg_id: ' + msg_id + ', and sender: ' + sender))
 
       var field = req.param('field')
       if (field) {
           res.send(msg[field])
       } else {
-          res.set('Content-Type', 'application/xml;charset=utf-8')
-          if (req.query.download) {
-            res.set('Content-Disposition', 'attachment; filename="item_' + msg.gtin + '.xml"')
-          }
+        res.set('Content-Type', 'application/xml;charset=utf-8')
+        if (req.query.download) {
+          res.set('Content-Disposition', 'attachment; filename="item_' + msg.gtin + '.xml"')
+        }
+        if (!res.finished) {
           res.send(msg.xml)
+          res.end()
+        }
       }
     })
   }

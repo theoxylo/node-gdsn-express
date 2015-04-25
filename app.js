@@ -45,7 +45,6 @@ require('./lib/db/Database').init(config) // adds config.database
 //var routes_cin      = require(config.routes_dir + '/cin_form.js')(config)
 var routes_subscr   = require(config.routes_dir + '/items_subscribed.js')(config)
 var routes_login    = require(config.routes_dir + '/login.js')(config)
-var routes_msg      = require(config.routes_dir + '/msg_archive.js')(config)
 var routes_msg_mig  = require(config.routes_dir + '/msg_migrate.js')(config)
 var routes_parties  = require(config.routes_dir + '/parties.js')(config)
 var routes_logs     = require(config.routes_dir + '/logs.js')(config)
@@ -55,6 +54,7 @@ var routes_gdsn_wf  = require(config.routes_dir + '/gdsn_workflow.js')(config)
 var routes_gdsn_cin = require(config.routes_dir + '/gdsn_create_cin.js')(config)
 var routes_gdsn     = require(config.routes_dir + '/gdsn_send.js')(config)
 var routes_xsd      = require(config.routes_dir + '/gdsn_xsd.js')(config)
+var routes_msg      = require(config.routes_dir + '/gdsn_msg.js')(config)
 var app = express()
 config.app = app
 
@@ -131,7 +131,7 @@ app.get('/shut_down', function (req, res, next) {
     log.info('Server is process is exiting down via shut_down endpoint...')
     process.exit(0)
   }
-  next(new Error('incorrect shut_down parameter'))
+  next(Error('incorrect shut_down parameter'))
 })
 log.info('done setting up shutdown ' + config.shut_down_pw)
 

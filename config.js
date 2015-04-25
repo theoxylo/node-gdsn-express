@@ -19,8 +19,7 @@ var config = {
   , gpc_file              : __dirname + '/data/gpc/GS1_Combined_Published_as_at_01062014.xml'
   , per_page_count        : 10
   , base_url              : '/cs_api/1.0'
-  , slow_warn_ms          : 800
-  , enable_query_req_id   : false
+  , slow_warn_ms          : 1200
   , url_gdsn_api          : 'http://localhost:8080/gdsn-server/api'
   , item_default_gtin     : '00000000000000'
   , item_default_gpc      : '99999999'

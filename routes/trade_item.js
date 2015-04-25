@@ -7,7 +7,7 @@ module.exports = function (config) {
   var item_utils     = require('../lib/item_utils.js')(config)
   var xml_digest     = require('../lib/xml_to_json.js')(config)
   var trade_item_db  = require('../lib/db/trade_item.js')(config)
-  var msg_archive_db = require('../lib/db/msg_archive.js')(config)
+  var msg_archive    = require('../lib/db/msg_archive.js')(config)
 
   function populateItemImageUrls(item) {
     var urls = []
@@ -279,7 +279,7 @@ module.exports = function (config) {
     })
     req.on('end', function () {
       log.info('Received msg xml of length ' + (xml && xml.length || '0'))
-      msg_archive_db.saveMessage(xml, function (err, msg_info) {
+      msg_archive.saveMessage(xml, function (err, msg_info) {
         if (err) return next(err)
         log.info('Message info saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
       })

@@ -3,8 +3,9 @@ var request = require('request')
 
 module.exports = function (config) {
 
-  var msg_archive_db  = require('../lib/db/msg_archive.js')(config)
-  var log             = require('../lib/Logger')('route_wf', config)
+  var log            = require('../lib/Logger')('route_wf', config)
+  var db_msg_archive = require('../lib/db/msg_archive.js')(config)
+  var db_trade_item  = require('../lib/db/trade_item.js')(config)
     
   return function (req, res, next) {
 
@@ -15,42 +16,32 @@ module.exports = function (config) {
       res.end('sender must be a valid GLN')
       return
     }
-  
     var msg_id = req.params.msg_id
-    var sender = req.params.sender
     if (!msg_id) { 
       res.end('msg_id param is required')
       return
     }
+    var state = req.param('state', 'DEFAULT') // from query string, not url template /:blah
+
     // fetch existing msg xml and submit to dp
-    log.debug('gdsn-wf will use existing message with id ' + msg_id)
-    msg_archive_db.findMessage(sender, msg_id, function (err, db_msg_info) {
+    log.debug('gdsn-wf will try to locate existing message with id: ' + msg_id + ', sender: ' + sender)
 
+    db_msg_archive.findMessage(sender, msg_id, function (err, msg) {
       if (err) return next(err)
-      if (db_msg_info.length > 1) return next(Error('found multiple messages with id ' + msg_id))
 
-      db_msg_info = db_msg_info[0]
-
-      if (!db_msg_info || !db_msg_info.msg_id || !db_msg_info.xml) {
-        log.error('msg_info problem with data:' + JSON.stringify(db_msg_info))
+      if (!msg || !msg.msg_id || !msg.xml) {
+        log.error('msg_info problem with data:' + JSON.stringify(msg))
+        console.dir(arguments)
         return next(Error('missing msg_info'))
       }
 
       // RE-parse original msg xml to generate parties, trade items, subscriptions, publications using latest logic
       var start_parse = Date.now()
-      var msg_info = config.gdsn.get_msg_info(db_msg_info.xml)
+      var msg_info = config.gdsn.get_msg_info(msg.xml)
       log.debug('reparse of db msg xml took ' + (Date.now() - start_parse) + ' ms for ' + msg_info.xml.length + ' new length')
 
       if (msg_info.receiver != config.homeDataPoolGln) {
         return next(Error('to initiate workflow, the message receiver must be the datapool and not ' + msg_info.receiver))
-      }
-
-      if (msg_info.sender == config.homeDataPoolGln) {
-        return next(Error('the data pool cannot message itself'))
-      }
-
-      if (!msg_info.source_dp) {
-        return next(Error('msg_id ' + db_msg_info.request_msg_id + ' with no source_dp'))
       }
 
       log.info('starting workflow for ' + msg_info.msg_id + ', msg_type: ' + msg_info.msg_type + ', modified: ' + new Date(msg_info.modified_ts))
@@ -67,19 +58,20 @@ module.exports = function (config) {
         // CIRR
         // BPRR
 
-        var msg = 'response received to original msg_id ' + msg_info.request_msg_id + ' with status ' + msg_info.status
-        log.debug(msg)
-        if (!res.finished) res.end(msg)
+        var result_msg = 'response received to original msg_id ' + msg_info.request_msg_id + ' with status ' + msg_info.status
+        log.debug(result_msg)
+        if (!res.finished) {
+          res.jsonp({msg:result_msg})
+          res.end()
+        }
         return 
       }
 
       if (msg_info.msg_type == 'basicPartyRegistration'
         || msg_info.msg_type == 'registryPartyDataDump') {
 
-        msg_info.party.forEach(function (party) { console.dir(party) })
-
         var tasks = []
-        msg_info.party.forEach(function (party) {
+        msg_info.data.forEach(function (party) {
 
           if (party.source_dp == config.homeDataPoolGln) {
             if (msg_info.msg_type == 'registryPartyDataDump') {
@@ -132,12 +124,12 @@ module.exports = function (config) {
                 + ', body: '
                 + body)
               if (err) return callback(err)
-              if (response.statusCode != '200') return callback('bad status code ' + response.statusCode)
-              if (!getSuccess(body)) return callback(body)
+              if (response.statusCode != '200') return callback(Error('bad status code ' + response.statusCode))
+              if (!getSuccess(body)) return callback(Error(body))
 
               if (msg_info.msg_type == 'basicPartyRegistration') {
                 var bpr_xml = config.gdsn.populateBprToGr(config, msg_info)
-                msg_archive_db.saveMessage(bpr_xml, function (err, gen_msg_info) {
+                db_msg_archive.saveMessage(bpr_xml, function (err, gen_msg_info) {
                   if (err) return next(err)
                   log.info('Generated bpr to gr message saved to archive: ' + gen_msg_info.msg_id + ', modified: ' + new Date(gen_msg_info.modified_ts))
                 })
@@ -145,9 +137,10 @@ module.exports = function (config) {
               callback(null, body)
             }) // end request.post
           }) // end tasks.push
-        }) // end msg_info.party.forEach
+        }) // end msg_info.data.forEach party
 
         async.parallel(tasks, function (err, results) {
+          log.debug('parallel party results count: ' + results && results.length)
           log.debug('all party submissions complete for msg_id ' + msg_info.msg_id)
           respond(err, msg_info, res, next)
         }, 10) // concurrency
@@ -155,17 +148,24 @@ module.exports = function (config) {
         return
       } // end BPR and RPDD
 
-      if (msg_info.msg_type == 'catalogueItemNotification' && msg_info.sender != msg_info.provider) {
-        //return next(Error('cin from other dp for local subscriber cannot be workflowed, maybe later!'))
-        respond(null, msg_info, res, next)
-        return
-      }
 
-      // update local provider item in DP and post RCI to GR
-      if (msg_info.msg_type == 'catalogueItemNotification' && msg_info.sender == msg_info.provider) {
+      if (msg_info.msg_type == 'catalogueItemNotification') {
+        
+        // sent by SDP, other data pool, so generate gS1Response AND cic RECEIVED back to remote publisher
+        if (msg_info.sender != msg_info.provider) { 
+          log.debug('DP received CIN from other DP with msg_id: ' + msg_info.msg_id)
+          var cic_xml = config.gdsn.populateRdpCicRecForSdpCin(config, msg_info, state)
+          db_msg_archive.saveMessage(cic_xml, function (err, new_cic) {
+            if (err)log.error('Error populating CIC back to SDP for CIN: ' + msg_info.msg_id + ', err: ' + err)
+            log.info('Generated CIC to SDP direct from RDP for CIN: ' + msg_info.msg_id + ', message saved to archive: ' + new_cic.msg_id)
+          })
+          return respond(err, msg_info, res, next)
+        }
 
+        // update local provider item in DP and post RCI to GR
+        // expect(msg_info.sender === msg_info.provider)
         var tasks = []
-        msg_info.item.forEach(function (item) {
+        msg_info.data.forEach(function (item) {
 
           tasks.push(function (callback) {
 
@@ -182,6 +182,7 @@ module.exports = function (config) {
               , classCategoryCode         : item.gpc
               , unitDescriptor            : item.unit_type
               , ts                        : new Date()
+              , cmd                       : msg_info.status // to allow CORRECT value in synch list queue after matching process
               //, canceledDate: will cause IN_PROGRESS
               //, discontinuedDate: will cause IN_PROGRESS
             }
@@ -219,23 +220,24 @@ module.exports = function (config) {
                 + ', body: '
                 + body)
               if (err) return callback(err)
-              if (response.statusCode != '200') return callback('bad status code ' + response.statusCode)
-              if (!getSuccess(body)) return callback(body)
+              if (response.statusCode != '200') return callback(Error('bad status code ' + response.statusCode))
+              if (!getSuccess(body)) return callback(Error(body))
 
-              //if (getRciIsNeeded(body)) { // TODO send RCI to GR conditional upon api response
+              if (getRciIsNeeded(body)) { // TODO generate RCI to GR conditional upon DP API response
                 var rci_xml = config.gdsn.populateRciToGr(config, msg_info)
-                msg_archive_db.saveMessage(rci_xml, function (err, msg_info) {
-                  if (err) return next(err)
+                db_msg_archive.saveMessage(rci_xml, function (err, msg_info) {
+                  if (err) return callback(err)
                   log.info('Generated rci message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
+                  callback(null, body)
                 })
-              //}
-
-              callback(null, body)
+              }
+              else callback(null, body) // no rci needed
             }) // end request.post
           }) // end tasks.push
-        }) // end msg_info.party.forEach
+        }) // end msg_info.data.forEach item
 
         async.parallel(tasks, function (err, results) {
+          log.debug('parallel item submit results count: ' + results && results.length)
           log.debug('all item submissions complete for msg_id ' + msg_info.msg_id)
           respond(err, msg_info, res, next)
         }, 10) // concurrency
@@ -249,7 +251,7 @@ module.exports = function (config) {
         // /gdsn-server/api/publish?gln={\\d13}&dr={\\d13}&gtin={\\d14}&tm={\\d3}[&tms=us-ca][&il=true][&delete=true]"
 
         var tasks = []
-        msg_info.pub.forEach(function (pub) {
+        msg_info.data.forEach(function (pub) {
 
           log.debug('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> pub gln :::::::::::::::: ' + pub.provider)
           var start_cip_api_call = Date.now()
@@ -286,14 +288,15 @@ module.exports = function (config) {
                 + ', body: '
                 + body)
               if (err) return callback(err)
-              if (response.statusCode != '200') return callback('bad status code ' + response.statusCode)
-              if (!getSuccess(body)) return callback(body)
+              if (response.statusCode != '200') return callback(Error('bad status code ' + response.statusCode))
+              if (!getSuccess(body)) return callback(Error(body))
               callback(null, body)
             }) // end request.post
           }) // end tasks.push
-        }) // end msg_info.pub.forEach
+        }) // end msg_info.data.forEach pub
 
         async.parallel(tasks, function (err, results) {
+          log.debug('parallel cip results count: ' + results && results.length)
           log.debug('all cip submissions complete for msg_id ' + msg_info.msg_id)
           respond(err, msg_info, res, next)
         }, 10) // concurrency
@@ -304,7 +307,7 @@ module.exports = function (config) {
       if (msg_info.msg_type == 'catalogueItemSubscription') {
 
         var tasks = []
-        msg_info.sub.forEach(function (sub) {
+        msg_info.data.forEach(function (sub) {
 
           tasks.push(function (callback) {
             log.debug('updating sub data for sub/pub ' + sub.recipient + '/' + sub.provider)
@@ -334,22 +337,23 @@ module.exports = function (config) {
                 + ', body: '
                 + body)
               if (err) return callback(err)
-              if (response.statusCode != '200') return callback('bad status code ' + response.statusCode)
-              if (!getSuccess(body)) return callback(body)
+              if (response.statusCode != '200') return callback(Error('bad status code ' + response.statusCode))
+              if (!getSuccess(body)) return callback(Error(body))
 
               if (msg_info.sender != config.gdsn_gr_gln) {
                 var cis_xml = config.gdsn.populateCisToGr(config, msg_info)
-                msg_archive_db.saveMessage(cis_xml, function (err, msg_info) {
+                db_msg_archive.saveMessage(cis_xml, function (err, msg_info) {
                   if (err) return next(err)
                   log.info('Generated cis to gr message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
+                  callback(null, body)
                 })
               }
-              callback(null, body)
             }) // end request.post
           }) // end tasks.push
-        }) // end msg_info.sub.forEach
+        }) // end msg_info.data.forEach sub
 
         async.parallel(tasks, function (err, results) {
+          log.debug('parallel cis results count: ' + results && results.length)
           log.debug('all cis submissions complete for msg_id ' + msg_info.msg_id)
           respond(err, msg_info, res, next)
         }, 10) // concurrency
@@ -360,83 +364,157 @@ module.exports = function (config) {
       // CIC cic from local TP subscriber or other DP
       if (msg_info.msg_type == 'catalogueItemConfirmation') {
 
+        log.debug('found CIC message for workflow')
+
         var tasks = []
 
-        tasks.push(function (callback) {
+        msg_info.data.forEach(function (cic) {
+        
+          tasks.push(function (callback) {
 
-          if (msg_info.sender != msg_info.recipient) { // process CIC from other DP for local publisher
-            var cic_xml = config.gdsn.populateCic(config, msg_info)
-            msg_archive_db.saveMessage(cic_xml, function (err, new_cic) {
-              if (err) callback(err)
-              log.info('Generated CIC to other DP message saved to archive: ' + new_cic.msg_id + ', modified: ' + new Date(new_cic.modified_ts))
-              callback(null, cic_xml)
-            })
-            return
-          }
+            // from local subscriber TP
+            if (msg_info.sender == cic.recipient) {
 
-          log.debug('updating DP cic synch list data for sub/pub ' + msg_info.recipient + '/' + msg_info.provider)
+              // need to determine source dp for item that will recieve CIC on behalf of publisher
+              // process CIC from local TP subscriber, generate CIC to SDP (could be self dp)
+              db_trade_item.findTradeItem(cic.recipient, cic.gtin, cic.provider, cic.tm, cic.tm_sub, function (err, item) {
+                if (err) {
+                  log.error('Could not locate trade item for cic: ' + JSON.stringify(cic))
+                  return callback(err)
+                }
+                log.debug('found trade item sourceDataPool: ' + item.source_dp)
 
-          var start_cic_api_call = Date.now()
-          request.post({
-            url: config.url_gdsn_api + '/cic/' + msg_info.recipient + '/' + msg_info.gtin + '/' + msg_info.provider + '/' + msg_info.tm + '/' + msg_info.tm_sub
-            , form: { 
-                status   : msg_info.status
-               , reason  : msg_info.exception
-               , ts      : new Date()
-              }
-            , auth: {
-                'user': 'admin'
-                , 'pass': 'devadmin'
-                , 'sendImmediately': true
-              }
-          }, 
-          function (err, response, body) {
-            log.info('cic api call took ' 
-              + (Date.now() - start_cic_api_call) 
-              + ' ms with response: '
-              + (response ? response.statusCode : 'NO_RESPONSE')
-              + ', body: '
-              + body)
-            if (err) return callback(err)
-            if (response.statusCode != '200') return callback('bad status code ' + response.statusCode)
-            if (!getSuccess(body)) return callback(body)
+                cic.source_dp         = item.source_dp
+                msg_info.source_dp    = cic.source_dp
+                msg_info.confirm_code = cic.confirm_code
+                msg_info.confirm_desc = cic.confirm_desc
 
-            var cic_xml = config.gdsn.populateCic(config, msg_info)
-            msg_archive_db.saveMessage(cic_xml, function (err, msg_info) {
-              if (err) return next(err)
-              log.info('Generated cic to gr message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
-            })
+                var cic_xml = config.gdsn.populateCicToSourceDP(config, msg_info)
+                db_msg_archive.saveMessage(cic_xml, function (err, new_cic) {
+                  if (err) return callback(err)
+                  log.info('Generated CIC to publisher DP, message saved to archive: ' + new_cic.msg_id + ', modified: ' + new Date(new_cic.modified_ts))
+                  callback(null, new_cic)
+                })
+              })
+              return
+            }
 
-            callback(null, body)
-          }) // end request.post
+            // process CIC from other DP for local TP publisher, step TT_8.5
+            console.log('expect msg_info.source_dp to be home dp for cic from other dp: ' + msg_info.source_dp)
 
-        }) // end tasks.push
+            // only generate ACCEPTED response and call to update synch list/pub status
+            log.debug('updating DP cic synch list data for sub/pub ' + cic.recipient + '/' + cic.provider)
+            var start_cic_api_call = Date.now()
+            request.post({
+              url: config.url_gdsn_api + '/cic/' + cic.recipient + '/' + cic.gtin + '/' + cic.provider + '/' + cic.tm + '/' + cic.tm_sub
+              , form: { 
+                  status   : (cic.state == 'RECEIVED' ? 'ACCEPTED' : cic.state) // changed from 2.8 to 3.1
+                 , reason  : cic.reason
+                 , ts      : new Date()
+                }
+              , auth: {
+                  'user': 'admin'
+                  , 'pass': 'devadmin'
+                  , 'sendImmediately': true
+                }
+            }, 
+            function (err, response, body) {
+              log.info('cic api call took ' 
+                + (Date.now() - start_cic_api_call) 
+                + ' ms with response: '
+                + (response ? response.statusCode : 'NO_RESPONSE')
+                + ', body: '
+                + body)
+              if (err) return callback(err)
+              if (response.statusCode != '200') return callback(Error('bad status code ' + response.statusCode))
+              if (!getSuccess(body)) return callback(Error(body))
+              callback(null, body)
+            }) // end request.post
+          }) // end tasks.push
+        }) // end data.forEach cic
 
         async.parallel(tasks, function (err, results) {
-          log.debug('cic submission complete for msg_id ' + msg_info.msg_id)
+          log.debug('parallel cic results count: ' + results && results.length)
+          log.debug('all cic submissions complete for msg_id: ' + msg_info.msg_id + ', sender: ' + msg_info.sender)
           respond(err, msg_info, res, next)
         }, 10) // concurrency
 
         return
-
       } // end CIC
+
+
 
       // RFCIN rfcin
       if (msg_info.msg_type == 'requestForCatalogueItemNotification') {
-        // TODO: call GDSN Server API to manage one-time faux-subscription
-        // TODO: generate RFCIN for GR
-        return respond('not yet supported', msg_info, res, next)
+
+        // from local TP to DP...
+        if(msg_info.recipient == msg_info.sender) {
+          
+          msg_info.recipient_dp = config.homeDataPoolGln
+
+          // generate new RFCIN for GR:
+          var xml = config.gdsn.populateRfcinToGr(config, msg_info)
+          db_msg_archive.saveMessage(xml, function (err, new_rfcin) {
+            log.info('Generated RFCIN to GR, message saved to archive: ' + new_rfcin.msg_id + ', modified: ' + new Date(new_rfcin.modified_ts))
+            respond(err, msg_info, res, next)
+          })
+          return
+        }
+
+        // else from GR for this SDP, so call GDSN Server API
+        if (msg_info.sender != config.gdsn_gr_gln) return next(Error('incorrect RFCIN GR sender GLN: ' + msg_info.sender))
+
+        log.debug('updating RFCIN data for sub/pub ' + msg_info.recipient + '/' + msg_info.provider)
+
+        msg_info.source_dp = config.homeDataPoolGln
+
+        var start_rfcin_api_call = Date.now()
+        request.post({
+          url          : config.url_gdsn_api + '/rfcin/' + msg_info.recipient + '/' + msg_info.provider
+          , form: { 
+              gtin  : msg_info.gtin || ''
+            , gpc   : msg_info.gpc  || ''
+            , tm    : msg_info.tm   || ''
+            , isFromGR: 'true' // always true for testing and to trigger matching process upon local subscription create
+            , isReload: msg_info.reload // boolean string
+            , ts    : new Date()
+          }
+          , auth: {
+              user: 'admin'
+            , pass: 'devadmin'
+            , sendImmediately: true
+          }
+        }, 
+        function (err, response, body) {
+          log.info('rfcin api call took ' 
+            + (Date.now() - start_rfcin_api_call) 
+            + ' ms with response: '
+            + (response ? response.statusCode : 'NO_RESPONSE')
+            + ', body: '
+            + body)
+
+          if (!err && response.statusCode != '200') err = Error('bad status code ' + response.statusCode + ' received')
+          if (!err && !getSuccess(body))            err = Error(body) // object, not a string
+
+          respond(err, msg_info, res, next)
+        }) // end request.post
+
+        return
       } // end RFCIN
+
+
+
+
 
       // CIH cih
       if (msg_info.msg_type == 'catalogueItemHierarchicalWithdrawal') {
-        // TODO: call GDSN Server API to manage children
-        //var rfcin = config.gdsn.populateCih(config, msg_info) // ???
-        return respond('not yet supported', msg_info, res, next)
+        // TODO: call GDSN Server API to manage children?
+        return respond(null, msg_info, res, next)
       } // end CIH
 
     })
   }
+  
 
   function getSuccess(body) {
     try {
@@ -459,15 +537,21 @@ module.exports = function (config) {
   }
 
   function respond(error, req_msg_info, res, next) {
-    var response_xml = config.gdsn.populateResponseToSender(error, config, req_msg_info)
-    msg_archive_db.saveMessage(response_xml, function (err, saved_resp) {
-      if (err) return next(err)
-      log.info('Generated response to message: ' + saved_resp.requesting_msg_id)
-      log.info('Generated response message saved to archive: ' + saved_resp.msg_id + ', modified: ' + new Date(saved_resp.modified_ts))
+    var response_xml = config.gdsn.populateResponseToSender(error && error.msg, config, req_msg_info)
+
+    if (!error && req_msg_info.sender == req_msg_info.provider) { // local TP, so don't persist simple ACCEPTED responses from DP
       if (!res.finished) {
-        //res.write(response_xml) // XML gS1Response ACCEPTED
-        res.json(saved_resp)
+        res.jsonp({msg: 'local TP message was processed with msg_id: ' + req_msg_info.msg_id + ', sender: ' + req_msg_info.sender})
         return res.end()
+      }
+    }
+    db_msg_archive.saveMessage(response_xml, function (err, saved_resp) {
+      if (err) return next(err)
+      log.info('Generated response to message: ' + saved_resp.msg_id)
+      log.info('Generated response message saved to archive: ' + saved_resp)
+      if (!res.finished) {
+        res.jsonp(saved_resp)
+        res.end()
       }
     })
   }

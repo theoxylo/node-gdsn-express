@@ -34,8 +34,6 @@ module.exports = function (config) {
 
         var query = {}
         
-        if (config.enable_query_req_id) query['req_id_' + req_id] = {"$exists":false}
-
         var gtin = req.param('gtin')
         if (gtin) query.gtin = gtin
         else {

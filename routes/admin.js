@@ -39,6 +39,6 @@ exports.data = function (req, res, next) {
     })
   }
   else {
-    return next(new Error('command not recognized'))
+    return next(Error('command not recognized'))
   }
 }

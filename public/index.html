@@ -7,6 +7,29 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <link rel="stylesheet" href="css/styles_new.css" />
   <link rel="stylesheet" href="jqui/jquery-ui-1.10.4.custom.css" />
+
+ <style>
+    table
+    {
+      border-collapse: collapse;
+    }
+
+    table, th, td
+    {
+      border: 1px solid #e1e1e1;
+    }
+
+    th, td
+    {
+      padding: 6px;
+    }
+
+    thead
+    {
+      background-color: #fcfcfc;
+    }
+  </style>
+  
 </head>
 
 <body ng-app="gdsn_app">
@@ -88,17 +111,33 @@
         <br />
         <span>Modified Start Date<input type="text" size="10" ng-model="input_modified_st_date"        placeholder="8/26/2014" datepicker></input></span>
         <span>Modified End Date  <input type="text" size="10" ng-model="input_modified_end_date"       placeholder="8/28/2014" datepicker></input></span>
-        <span>Per Page      <input ng-model="input_per_page" placeholder="20" size="3"></input></span>
+        <span>Per Page           <input type="text" size="3"  ng-model="input_per_page" placeholder="99" value="99"></input></span>
         <br/>
         <button ng-click="list_messages()"   >Search</button>
         <button ng-click="reset_search()"    >Reset</button>
       
         <br/>
-        <div ng-if="messages" style="border-style:solid;border-width:1px;border-color:green">
-          Page Filter:<input ng-model="query" type="text" size="22" />
+        <div ng-if="messages" style="border-style:solid;border-width:1px;border-color:green" ng-controller="gdsn_msg_set_controller as save_results">
+
+          <span>View filter:</span><input ng-model="query" type="text" size="22"/>
+
+          <!-- searchresult 'save_results' controller set controls -->
+          <label>Select</label>
+          <button ng-click="save_results.toggleSelected(messages)" value="Toggle">Toggle</button>
+          <label>Set name:</label> <input type="text" ng-model="save_results.newSetName" size="6" placeholder="new set"/>
+          <button ng-if="save_results.newSetName" ng-click="save_results.createSet(messages)">Save</button>
+
+          <button ng-repeat="set in save_results.sets" 
+            ng-click="save_results.do_workflow(set.messages)" 
+            title="submit all messages in set '{{set.name}}' for dp workflow"
+            class="btn">
+            [{{set.name}} ({{set.count}})]
+          </button>
+          
           <table width="100%">
             <tr>
-              <th><a href="" ng-click="sortField = 'msg_id';         reverse = !reverse">Msg Id &nbsp;&nbsp;(Req Msg Id)</a></th>
+              <th><input type="checkbox" ng-model="save_results.selectAll" ng-change="save_results.updateSelectAll(messages)"/></th>
+              <th><a href="" ng-click="sortField = 'msg_id';         reverse = !reverse">Msg Id</a></th>
               <th><a href="" ng-click="sortField = 'version';        reverse = !reverse">Version</a></th>
               <th><a href="" ng-click="sortField = 'msg_type';       reverse = !reverse">Type</a></th>
               <th><a href="" ng-click="sortField = 'status';         reverse = !reverse">Status</a></th>
@@ -109,23 +148,26 @@
               <th><a href="" ng-click="sortField = 'content_length'; reverse = !reverse">Length</a></th>
             </tr>
             <tr ng-repeat="msg in messages | filter:query | orderBy:sortField:reverse">
-              <td style="text-align: left;"><span class="clickable" ng-click="popupField(msg, 'xml')">{{msg.msg_id}}</span></td>
+              <td>
+                <input type="checkbox" ng-model="msg.selected"/>
+              </td>
+              <td style="text-align: left;">
+                <span><a ng-href="/cs_api/1.0/msg/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="View Raw XML">{{msg.msg_id}}</a></span>
+              </td>
               <td><span class="clickable" ng-click="showMessageDetail(msg)">{{msg.version}}</span></td>
               <td style="text-align: left;">{{msg.msg_type}}</td>
               <td style="text-align: left;">
                   <span ng-if="msg.exception" class="clickable" ng-click="popupField(msg, 'exception')" title="Show Exception">{{msg.status}}</span>
                   <span ng-if="!msg.exception">{{msg.status}}</span>
-                  <span ng-if="msg.request_msg_id"><a ng-href="/cs_api/1.0/msg/{{msg.request_msg_id}}/{{msg.receiver}}" target="_blank" title="View Request Message">{{msg.request_msg_id}}</a></span>
+                  <span ng-if="msg.request_msg_id"><a ng-href="/cs_api/1.0/msg/{{msg.request_msg_id}}/{{msg.receiver}}" target="_blank" title="View Request Message">req</a></span>
               </td>
               <td>{{msg.sender}}</td>
               <td>
-                <!--<span ng-if="msg.gdsn_repostable"><a ng-href="/cs_api/1.0/gdsn-workflow/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Submit to Data Pool worflow">{{msg.receiver}}</a></span>-->
                 <span ng-if="msg.gdsn_repostable">{{msg.receiver}}</span>
                 <span ng-if="!msg.gdsn_repostable"><a ng-href="/cs_api/1.0/gdsn-send/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Send via AS2">{{msg.receiver}}</a></span>
               </td>
               <td>
                 <span><a ng-href="/cs_api/1.0/gdsn-validate/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Submit for GDSN Validation">Validate</a></span>
-                <span ng-if="msg.gdsn_repostable"></span>
               </td>
               <td>{{msg.modified_ts2}}</td>
 
@@ -133,19 +175,20 @@
               <td>
                   <span>{{msg.xml_length}}</span>
 
-                  <span ng-if="msg.gdsn_repostable">{{msg.receiver}}
-                    <gdsn-workflow title="dp workflow">{{msg.receiver}}</gdsn-workflow>
-                  </span>
+                  <p ng-if="msg.gdsn_repostable && msg.msg_type != 'gS1Response'">
+                    <gdsn-workflow title="submit msg for dp workflow"><span>Execute:</span></gdsn-workflow>
+                  </p>
 
-                  <span><a ng-href="/cs_api/1.0/msg/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="View Raw XML">R</a></span>
-                  <span><a ng-href="/cs_api/1.0/msg/history/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="View History">H</a></span>
+                  <span class="clickable" ng-click="popupField(msg, 'xml')">P</span>
+                  <span><a ng-href="/cs_api/1.0/msg/history/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="View Message History">H</a></span>
                   <span><a ng-href="/cs_api/1.0/msg/archive/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Archive and Hide">X</a></span>
-                  <span><a ng-href="/cs_api/1.0/msg/migrate/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Reparse and Persist">U</a></span>
+                  <span><a ng-href="/cs_api/1.0/msg/migrate/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Reparse and Refresh">R</a></span>
               </td>
             </tr>
           </table>
         </div>
         
+        <!-- paging controls -->
         <p class="centered">
           <button ng-if="page > 1" ng-click="list_messages(-page)">First</button>
           <button ng-if="page > 0" ng-click="list_messages(-1)" >Prev</button>
@@ -431,7 +474,7 @@
 
         <div ng-if="previousSearches" class="blue_box">
           <p>Search History:</p>
-          <p class="clickable" ng-repeat="search in previousSearches" ng-click="redoPreviousItemSearch(search)">{{ search }}</p>
+          <p class="clickable draggable" ng-repeat="search in previousSearches" ng-click="redoPreviousItemSearch(search)">{{search}}</p>
         </div>
 
       </div>
@@ -556,7 +599,7 @@
           </div>
         </div>
 
-      </div><!-- end ng-controller -->
+      </div><!-- end sub controller -->
 
       <div>Search Subscriptions</div>
       <div>
@@ -657,13 +700,18 @@
 <script src="js/underscore-1.5.2.js"></script>
 
 <!-- script src="js/angular-1.2.2.js"></script-->
+<!-- script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.15/angular.js"></script-->
 <script src="js/angular-1.3.15.js"></script>
-<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.15/angular.js"></script>
 
 <script src="js/file/angular-file-upload.js"></script>
+
 <script src="js/bp_cs_client.js"></script>
 
 <script src="js/cs_page_utils.js"></script>
+
+<script>
+  var gdsn_app = angular.module('gdsn_app', ['angularFileUpload'])
+</script>
 <script src="js/ang_app_module.js"></script>
 <script src="js/ang_controller_file.js"></script>
 <script src="js/ang_controller_msg.js"></script>
@@ -676,74 +724,264 @@
 <script src="js/ang_directive_gdsn-sub/directive.js"></script>
 
 <script>
-  gdsn_app.directive('gdsnWorkflow', function () {
-    return { // ddo
-      template    : '<div>'
-                  + ' <input type="text" ng-model="cmd" size="3"></input>'
-                  + ' <button ng-click="workflow(cmd + ts)" title="count last modified: {{ts}} ">WF {{count}}</button>'
+  gdsn_app.factory('gdsn', ['$http', 'config', function ($http, config) { // service factory
+
+    console.log('gdsn service factory init for home DP (SDP&RDP): ' + config.homeDataPoolGln)
+    var gdsn = this
+
+    gdsn.workflow_attempt_count = 0
+    gdsn.workflow_success_count = 0
+    gdsn.workflow_error_count   = 0
+
+    // gdsn SERVICE API methods for sdo (service def obj) init when called by framework per ng-app
+    gdsn.execute_workflow = function (msg, state) {
+
+      console.log('gdsn.execute_workflow called for msg_id ' + msg.msg_id + ', sender: ' + msg.sender)
+      console.log('workflow config GR gln: ' + config.gdsn_gr_gln)
+
+      var gdsn = this
+      gdsn.workflow_attempt_count++
+      console.log('service workflow attempt count: ' + gdsn.workflow_attempt_count)
+      var result = {req_id: gdsn.workflow_attempt_count}
+
+      if (!msg.gdsn_repostable) {
+        result.success = false
+        result.msg = 'only gdsn_repostable messages to receiver ' + config.homeDataPoolGln + ' can be workflowed, bad msg receiver: ' + msg.receiver
+        result.data = {}
+        console.log(result.msg)
+        return result
+      }
+
+      console.log('GDSN Server URL endpoint from config.js-config.gdsn_workflow: ' + config.gdsn_workflow) //e.g. /cs_api/1.0/gdsn-workflow'
+      var url = config.gdsn_workflow + '/' + msg.msg_id + '/' + msg.sender // += /:msg_id/:sender
+      var ts = Date.now() // <p>{{ ts | iso }}</p>
+      console.log('calling server workflow url: ' + url + ', at time: ' + ts)
+
+      if (['RECEIVED','REVIEW','REJECTED','SYNCHRONISED'].indexOf(state) == -1) {
+        console.log('WARNING unrecognized state: ' + state + ', changing to default RECEIVED')
+        state = 'RECEIVED'
+      }
+
+      //$http({method: 'GET', url: url, params: {ts: new Date, state: $scope.state}})
+      var promise1 = $http.get(url, /* config */ {params: {ts: new Date, state: state}})
+      var promise2 = promise1.then(
+        function (res) { // success
+          console.log('-------------------------------------------------------> http workflow success res status: ' + res.status)
+          console.log('res data msg: ' + res.data.msg)
+          result.success = true
+          gdsn.workflow_success_count++
+          result.msg = 'received SUCCESS service workflow response for req: ' + result.req_id
+          result.data = res.data
+          //console.dir(arguments) 
+        },
+        function (res) { // error 
+          console.log('-------------------------------------------------------> http workflow error res status: ' + res.status)
+          console.log('res data msg: '            + res.data.msg)
+          console.log('res config params state: ' + res.config.params.state)
+          console.log('res config params ts: '    + res.config.params.ts)
+          result.success = false
+          gdsn.workflow_error_count++
+          result.msg = 'received ERROR service workflow response for req: ' + result.req_id
+          result.data = res.data
+          //console.dir(arguments) 
+        }
+      )
+      return promise2
+
+    } // end gdsn.execute_workflow
+
+    // gS1Response to msg.sender
+    gdsn.generate_accepted = function (msg) {
+    }
+    return gdsn
+  }]) // end gdsn service factory
+
+  gdsn_app.directive('gdsnWorkflow', function () { // gdsn_workflow gdsn-workflow
+    return { // ddo when called 
+      //templateUrl: welcome.html // html file url // TODO
+      template    : '<div title="gdsn_workflow">'
                   + ' <div><ng-transclude/></div>'
-                  + ' <div ng-if="result"><div ng-click="clearResult()>{{result}}</div></div>'
+                  + ' <button ng-click="wf.process(msg)">{{msg.status}}</button>'
+                  + ' <div ng-show="msg.msg_type == \'catalogueItemNotification\'"><label>CIC state:</label>'
+                  + '  <input type="text" size="5" ng-model="wf.state"></input></div>'
+                  + ' <div ng-show="wf.result" class="clickable selected" title="workflow success: {{wf.result.status}}"'
+                  + '  ng-click="showMessageDetail(wf.result)">Done! TS: {{wf.result.ts}}</div>'
                   + '</div>'
       ,restrict   : 'E'
       ,replace    : true
       ,transclude : true
-      ,controller : function ($scope, $http, config) { 
-        console.log('workflow controller init for msg_id: ' + $scope.msg.msg_id)
-        $scope.dp_gln = config.homeDataPoolGln
-        $scope.result   = ''
-        $scope.count    = 0
-        $scope.ts       = Date.now()
-        $scope.workflow = function (cmd) { 
-          console.log('gdsn-workflow.workflow called for msg_id ' + $scope.msg.msg_id + ', cmd: ' + cmd)
-
-          if (cmd != $scope.cmd + $scope.ts) {
-              console.log('cmd not equal to ' + $scope.ts)
-              return
-          }
-          if (!$scope.msg.gdsn_repostable) {
-              console.log('only messages to ' + $scope.dp_gln + ' can be submitted for workflow')
-              return 
-          }
-
-          if (cmd != 'gdsn' + $scope.ts) {
-              console.log('cmd not equal to gdsn ' + $scope.ts)
-              return
-          }
-            
-          var url = config.gdsn_workflow + '/' + $scope.msg.msg_id + '/' + $scope.msg.sender // /cs_api/1.0/gdsn-workflow/:msg/:sender
-          console.log('xhr wf url: ' + url)
-          $http.get(url)
-           .then(
-             function (result) { 
-               var resp_msg_id = result && result.data && result.data.request_msg_id
-               console.log('------------------------------------------------------- http workflow result data: ' + resp_msg_id)
-               console.dir(result) 
-               if (resp_msg_id) $scope.result = resp_msg_id
-             }
-           , function (error) { 
-               var data = error && error.data
-               console.log('------------------------------------------------------- http workflow error data: ' + data)
-               console.dir(error)
-               if (data) $scope.result = data
-           }
-          )
-          $scope.ts = Date.now()
-          $scope.count++
-        }
-        $scope.clearResult = function () { 
-          $scope.result = '' 
-        }
+      ,controller : 'gdsn_workflow_directive_controller'
+      ,controllerAs: 'wf'
+      ,link       : function ($scope, $el, attrs, ctrl) { 
+        console.log('directive scope index: ' + $scope.$parent.$index)
+        console.log('directive controller count: ' + ctrl.count)
+        console.log('directive element: ' + $el.text())
+        // api doc debug:
+        //console.log('directive link function arguments: ')
+        //console.dir(arguments)
       }
-      /*
-      ,link       : function ($scope, element, attrs) { 
-        console.log('count ' + $scope.count) 
-        element.text($scope.count + ' HELLO THERE') 
+    }
+  }) // end gdsnWorkflow gdsn_workflow <gdsn-workflow/> directive
+
+  gdsn_app.controller('gdsn_workflow_directive_controller', ['gdsn','config',function (gdsn, config) {
+    var wf = this
+    console.log('init wf dir ctrl')
+
+    wf.note = 'this is a controller instance for a single directive occurrence'
+    wf.dir_ctrl_attempt_count = 0
+    wf.result   = ''
+    wf.state    = ''
+    wf.ts       = Date.now()
+
+    wf.process = function (msg) { 
+      wf.dir_ctrl_attempt_count++
+      console.log('wf dir ctrl - process attempts: ' + wf.dir_ctrl_attempt_count)
+      console.log('wf dir ctrl - process: ' + msg.msg_id)
+      gdsn.execute_workflow(msg, wf.state) 
+    }
+  }])
+
+  gdsn_app.controller('gdsn_msg_set_controller', ['gdsn','config',function (gdsn, config) { // aka 'save_results'
+      var save_results = this
+      save_results.set_count = 0
+      save_results.selectAll = false
+      save_results.sets = []
+      save_results.newSetName = ''
+
+      save_results.getSelected = function (messages) {
+        var sel = messages && messages.filter(function (msg) {
+          return msg.selected
+        })
+        return sel ? sel : []
       }
-      */
+      save_results.updateSelectAll = function (messages) { // select or un-select all
+        messages && messages.forEach(function (msg) {
+          msg.selected = save_results.selectAll
+        })
+      }
+      save_results.toggleSelected = function (messages) {
+        //console.log('toggle at ' + new Date)
+        messages && messages.forEach(function (msg) {
+          msg.selected = !msg.selected
+        })
+      }
+      save_results.createSet = function (messages) {
+        var selected = save_results.getSelected(messages)
+        var new_set = {
+          name: save_results.newSetName || 'set id ' + (++save_results.set_count)
+          ,messages: selected
+          ,count   : selected.length
+          ,ts      : new Date
+        }
+        save_results.sets.push(new_set)
+        console.log('gdsn_msg_set_controller.createSet succeeded for new set: ' + new_set)
+        console.log('total number of saved sets: ' + save_results.sets.length)
+      }
+      save_results.removeSet = function (set) {
+        var idx = save_results.sets.indexOf(set)
+        console.log('TODO: remove set with idx ' + idx)
+        if (idx > -1) save_results.sets.splice(idx, 1)
+      }
+      save_results.do_workflow = function (messages) {
+        messages && messages.forEach(function (msg) {
+          console.log('gdsn_msg_set_controller WORKFLOW TEST, msg_id: ' + msg.msg_id + ', sender: ' + msg.sender)
+          return gdsn.execute_workflow(msg, state)
+        })
+      }
+  }])
+
+
+  gdsn_app.controller('gdsn_location_controller', function ($scope, $location, config) { // TODO
+    function refreshValues()
+    {
+      $scope.locationAbsUrl = $location.absUrl()
+      $scope.locationUrl = $location.url()
+      $scope.locationProtocol = $location.protocol()
+      $scope.locationHost = $location.host()
+      $scope.locationPort = $location.port()
+      $scope.locationPath = $location.path()
+      $scope.locationSearch = $location.search()
+      $scope.locationHash = $location.hash()
+    }
+
+    var urlValueCounter = 0
+    var pathValueCounter = 0
+    var hashValueCounter = 0
+
+    $scope.locationChangeStartCounter = 0
+    $scope.locationChangeSuccessCounter = 0
+
+    refreshValues()
+
+    $scope.$on('$locationChangeStart', function (event)
+    {
+      $scope.locationChangeStartCounter++
+    })
+
+    $scope.$on('$locationChangeSuccess', function (event)
+    {
+      $scope.locationChangeSuccessCounter++
+
+      refreshValues()
+    })
+
+    $scope.setUrl = function ()
+    {
+      $location.url('newurl' + (++urlValueCounter))
+
+      if ($scope.replaceUrl === true)
+      {
+        $location.replace()
+      }
+    }
+
+    $scope.setPath = function ()
+    {
+      $location.path('newpathvalue' + (++pathValueCounter))
+    }
+
+    $scope.setSearch = function (setMode)
+    {
+      switch (setMode)
+      {
+        case 1:
+          // Single parameter and single value
+          $location.search('param3', 'value3')
+          break
+        case 2:
+          // Single parameter and multiple values
+          $location.search('param3', ['value3-1', 'value3-2', 'value3-3'])
+          break
+        case 3:
+          // Remove parameter
+          $location.search('param3', null)
+          break
+        case 4:
+          // Hash object (multiple parameters)
+          $location.search({
+            param1New: 'value1New',
+            param2New: 'value2New',
+            param3New: ['value3-1New', 'value3-2New', 'value3-3New']
+          })
+          break
+        case 5:
+          // Clear search parameters
+          var currParams = $location.search()
+
+          for (var paramName in currParams)
+          {
+            $location.search(paramName, null)
+          }
+
+          break
+      }
+    }
+    $scope.setHash = function ()
+    {
+      $location.hash('newhashvalue' + (++hashValueCounter))
     }
   })
 </script>
-
 <script src="three_view/js/three_r68.js"></script>
 <script src="three_view/js/controls/OrbitControls.js"></script>
 <script src="three_view/js/three_item_view.js"></script>

@@ -6,7 +6,7 @@ module.exports = function (config) {
   return {
 
     profileLoader: function (req, res, next) { // load profile
-      if (!req.user) return next(new Error('must be logged in'))
+      if (!req.user) return next(Error('must be logged in'))
       if (config.user_config[req.user]) {
         log.debug('found existing user_config for user ' + req.user)
         return next()

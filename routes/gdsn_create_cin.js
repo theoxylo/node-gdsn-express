@@ -4,7 +4,7 @@ module.exports = function (config) {
   var utils         = require('../lib/utils.js')(config)
   var item_utils    = require('../lib/item_utils.js')(config)
   var trade_item_db = require('../lib/db/trade_item.js')(config)
-  var msg_archive_db= require('../lib/db/msg_archive.js')(config)
+  var msg_archive   = require('../lib/db/msg_archive.js')(config)
 
   return {
     
@@ -34,7 +34,10 @@ module.exports = function (config) {
             , code   : '596'
             , message: 'please provide a gtin for your search'
           }
-          if (!res.finished) res.jsonp(result)
+          if (!res.finished) {
+              res.jsonp(result)
+              res.end()
+          }
           return
         }
 
@@ -86,7 +89,10 @@ module.exports = function (config) {
               , code   : '598'
               , message: 'no item was found for the given criteria'
             }
-            if (!res.finished) res.jsonp(result)
+            if (!res.finished) {
+              res.jsonp(result)
+              res.end()
+            }
             return
           }
 
@@ -103,7 +109,10 @@ module.exports = function (config) {
               item.href = item_utils.get_item_href(item, '/gdsn-cin')
               result.collection.links.push({rel: 'match', href: item.href})
             })
-            if (!res.finished) res.jsonp(result)
+            if (!res.finished) {
+              res.jsonp(result)
+              res.end()
+            }
             return
           }
 
@@ -115,9 +124,10 @@ module.exports = function (config) {
             if (err) return next(err)
             log.info('utils found ' + (results && results.length) + ' child items for gtin ' + gtin + ' in ' + (Date.now() - start) + 'ms')
 
-  results.forEach(function (item) {
-    if (!item.xml) throw Error('missing xml for item query gtin ' + item.gtin)
-  })
+            results.forEach(function (item) {
+              if (!item.xml) throw Error('missing xml for item query gtin ' + item.gtin)
+            })
+
             items = items.concat(results)
             //items = item_utils.de_dupe_items(items)
             items = items.map(function (item) {
@@ -127,7 +137,7 @@ module.exports = function (config) {
 
             var cin_xml = config.gdsn.create_cin(items, receiver, command, reload, docStatus)
 
-            msg_archive_db.saveMessage(cin_xml, function (err, msg_info) {
+            msg_archive.saveMessage(cin_xml, function (err, msg_info) {
               if (err) return next(err)
               log.info('Generated cin message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
             })

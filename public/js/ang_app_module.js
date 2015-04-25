@@ -1,6 +1,8 @@
-    var gdsn_app = angular.module('gdsn_app', ['angularFileUpload'])
+    var gdsn_app = angular.module('gdsn_app') // lookup only, create module in index.html with di ['angularFileUpload'])
 
-    gdsn_app.factory('config', function () {
+    gdsn_app.factory('config', function () { // create app-wide singleton config object
+      console.log('app obj in config factory method: ') 
+      console.dir(app)
       return {
           sub_url         : app.api + '/subscriptionList'
         , pub_url         : app.api + '/publicationList'
