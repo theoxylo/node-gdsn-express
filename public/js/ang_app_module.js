@@ -7,6 +7,8 @@
           sub_url         : app.api + '/subscriptionList'
         , pub_url         : app.api + '/publicationList'
         , msg_url         : app.api + '/msg'
+        , msg_archive_url : app.api + '/msg/archive'
+        , msg_migrate_url : app.api + '/msg/migrate'
         , item_url        : app.api + '/items'
         , single_item_url : app.api + '/item'
         , items_list_url  : app.api + '/items-list'

@@ -98,8 +98,9 @@
             <option value="catalogueItemSubscription">CIS</option>
             <option value="catalogueItemNotification">CIN</option>
             <option value="catalogueItemConfirmation">CIC</option>
+            <option value="catalogueItemHierarchicalWithdrawal">CIHW</option>
             <option value="requestForCatalogueItemNotification">RFCIN</option>
-            <option value="GDSNResponse">GDSNResponse</option>
+            <option value="GDSNResponse">Responses</option>
           </select>
         </span>
         <span>Type     <input type="text" size="30" ng-model="input_msg_type_regex" placeholder="msg type"></input></span>
@@ -123,9 +124,11 @@
 
           <!-- searchresult 'save_results' controller set controls -->
           <label>Select</label>
-          <button ng-click="save_results.toggleSelected(messages)" value="Toggle">Toggle</button>
+          <button ng-click="save_results.toggleSelected(messages)" class="btn">Toggle</button>
           <label>Set name:</label> <input type="text" ng-model="save_results.newSetName" size="6" placeholder="new set"/>
           <button ng-if="save_results.newSetName" ng-click="save_results.createSet(messages)">Save</button>
+          <button ng-click="save_results.archiveSelected(messages)" class="btn">Archive Selected</button>
+          <button ng-click="save_results.reparseSelected(messages)" class="btn">Reparse Selected</button>
 
           <button ng-repeat="set in save_results.sets" 
             ng-click="save_results.do_workflow(set.messages)" 
@@ -175,7 +178,7 @@
               <td>
                   <span>{{msg.xml_length}}</span>
 
-                  <p ng-if="msg.gdsn_repostable && msg.msg_type != 'gS1Response'">
+                  <p ng-if="msg.gdsn_repostable">
                     <gdsn-workflow title="submit msg for dp workflow"><span>Execute:</span></gdsn-workflow>
                   </p>
 
@@ -733,17 +736,96 @@
     gdsn.workflow_success_count = 0
     gdsn.workflow_error_count   = 0
 
+    gdsn.archive_success_count = 0
+    gdsn.archive_error_count   = 0
+
+    gdsn.migrate_success_count = 0
+    gdsn.migrate_error_count   = 0
+
     // gdsn SERVICE API methods for sdo (service def obj) init when called by framework per ng-app
+    gdsn.reparse_message = function (msg) {
+      var gdsn = this
+      console.log('GDSN Server URL endpoint from config.js -- config.msg_migrate_url: ' + config.msg_migrate_url) //e.g. /cs_api/1.0/msg/archive
+      var url = config.msg_migrate_url + '/' + msg.msg_id + '/' + msg.sender
+      var ts = Date.now() // <p>{{ ts | iso }}</p>
+      console.log('calling server msg migrate url: ' + url + ', at time: ' + ts)
+      var result = {req_id: gdsn.workflow_attempt_count}
+
+      var promise1 = $http.get(url, {params: {ts: new Date}})
+      var promise2 = promise1.then(
+        function (res) { // success
+          console.log('-----------------------------------> http msg migrate success res status: ' + res.status)
+          console.log('res data: ' + res.data)
+          console.dir(res)
+          result.success = true
+          gdsn.migrate_success_count++
+          result.msg = 'received SUCCESS service msg migrate response for req: ' + result.req_id
+          result.data = res.data
+        },
+        function (res) { // error 
+          console.log('-----------------------------------> http msg migrate error res status: ' + res.status)
+          console.log('res data: ' + res.data)
+          console.dir(res)
+          result.success = false
+          gdsn.migrate_error_count++
+          result.msg = 'received ERROR service msg migrate response for req: ' + result.req_id
+          result.data = res.data
+        }
+      )
+      return promise2
+    }
+
+    gdsn.archive_message = function (msg) {
+      var gdsn = this
+      console.log('GDSN Server URL endpoint from config.js -- config.msg_archive_url: ' + config.msg_archive_url) //e.g. /cs_api/1.0/msg/archive
+      var url = config.msg_archive_url + '/' + msg.msg_id + '/' + msg.sender
+      var ts = Date.now() // <p>{{ ts | iso }}</p>
+      console.log('calling server msg archive url: ' + url + ', at time: ' + ts)
+      var result = {req_id: gdsn.workflow_attempt_count}
+
+      var promise1 = $http.get(url, {params: {ts: new Date}})
+      var promise2 = promise1.then(
+        function (res) { // success
+          console.log('-----------------------------------> http msg archive success res status: ' + res.status)
+          console.log('res data: ' + res.data)
+          console.dir(res)
+          result.success = true
+          gdsn.archive_success_count++
+          result.msg = 'received SUCCESS service msg archive response for req: ' + result.req_id
+          result.data = res.data
+        },
+        function (res) { // error 
+          console.log('-----------------------------------> http msg archive error res status: ' + res.status)
+          console.log('res data: ' + res.data)
+          console.dir(res)
+          result.success = false
+          gdsn.archive_error_count++
+          result.msg = 'received ERROR service msg archive response for req: ' + result.req_id
+          result.data = res.data
+        }
+      )
+      return promise2
+    }
+
     gdsn.execute_workflow = function (msg, state) {
 
       console.log('gdsn.execute_workflow called for msg_id ' + msg.msg_id + ', sender: ' + msg.sender)
       console.log('workflow config GR gln: ' + config.gdsn_gr_gln)
+
+      if (!state) state = msg.status
 
       var gdsn = this
       gdsn.workflow_attempt_count++
       console.log('service workflow attempt count: ' + gdsn.workflow_attempt_count)
       var result = {req_id: gdsn.workflow_attempt_count}
 
+      if (msg.msg_type == 'catalogueItemConfirmation' && ['RECEIVED','REVIEW','REJECTED','SYNCHRONISED','MULTI'].indexOf(state) == -1) {
+        result.success = false
+        result.msg = 'unrecognized CIC state: ' + state
+        result.data = {}
+        console.log(result.msg)
+        return result
+      }
       if (!msg.gdsn_repostable) {
         result.success = false
         result.msg = 'only gdsn_repostable messages to receiver ' + config.homeDataPoolGln + ' can be workflowed, bad msg receiver: ' + msg.receiver
@@ -757,13 +839,8 @@
       var ts = Date.now() // <p>{{ ts | iso }}</p>
       console.log('calling server workflow url: ' + url + ', at time: ' + ts)
 
-      if (['RECEIVED','REVIEW','REJECTED','SYNCHRONISED'].indexOf(state) == -1) {
-        console.log('WARNING unrecognized state: ' + state + ', changing to default RECEIVED')
-        state = 'RECEIVED'
-      }
-
       //$http({method: 'GET', url: url, params: {ts: new Date, state: $scope.state}})
-      var promise1 = $http.get(url, /* config */ {params: {ts: new Date, state: state}})
+      var promise1 = $http.get(url, {params: {ts: new Date, state: state}})
       var promise2 = promise1.then(
         function (res) { // success
           console.log('-------------------------------------------------------> http workflow success res status: ' + res.status)
@@ -776,7 +853,7 @@
         },
         function (res) { // error 
           console.log('-------------------------------------------------------> http workflow error res status: ' + res.status)
-          console.log('res data msg: '            + res.data.msg)
+          //console.log('res data msg: '            + res.data.msg)
           console.log('res config params state: ' + res.config.params.state)
           console.log('res config params ts: '    + res.config.params.ts)
           result.success = false
@@ -802,10 +879,14 @@
       template    : '<div title="gdsn_workflow">'
                   + ' <div><ng-transclude/></div>'
                   + ' <button ng-click="wf.process(msg)">{{msg.status}}</button>'
-                  + ' <div ng-show="msg.msg_type == \'catalogueItemNotification\'"><label>CIC state:</label>'
-                  + '  <input type="text" size="5" ng-model="wf.state"></input></div>'
-                  + ' <div ng-show="wf.result" class="clickable selected" title="workflow success: {{wf.result.status}}"'
-                  + '  ng-click="showMessageDetail(wf.result)">Done! TS: {{wf.result.ts}}</div>'
+                  + ' <div ng-show="msg.msg_type == \'catalogueItemNotification\' && msg.sender != msg.provider">'
+                  + '  <label>CIC state:</label>'
+                  + '  <input type="text" size="5" ng-model="wf.state"></input>'
+                  + ' </div>'
+                  + ' <div ng-show="wf.result" class="clickable selected" title="workflow success: {{wf.result}}"'
+                  + '  ng-click="showMessageDetail(wf.result)">'
+                  + '    Done! TS: {{wf.result.status}}'
+                  + ' </div>'
                   + '</div>'
       ,restrict   : 'E'
       ,replace    : true
@@ -837,7 +918,7 @@
       wf.dir_ctrl_attempt_count++
       console.log('wf dir ctrl - process attempts: ' + wf.dir_ctrl_attempt_count)
       console.log('wf dir ctrl - process: ' + msg.msg_id)
-      gdsn.execute_workflow(msg, wf.state) 
+      gdsn.execute_workflow(msg, wf.state || msg.status) 
     }
   }])
 
@@ -860,9 +941,29 @@
         })
       }
       save_results.toggleSelected = function (messages) {
-        //console.log('toggle at ' + new Date)
         messages && messages.forEach(function (msg) {
           msg.selected = !msg.selected
+        })
+      }
+      save_results.archiveSelected = function (messages) {
+        var archived = []
+        messages && messages.forEach(function (msg) {
+          if (msg.selected) {
+            gdsn.archive_message(msg)
+            archived.push(msg)
+          }
+        })
+        archived.forEach(function(msg) {
+          var idx = messages.indexOf(msg);
+          if (idx > -1) messages.splice(idx, 1)
+        })
+      }
+      save_results.reparseSelected = function (messages) {
+        var archived = []
+        messages && messages.forEach(function (msg) {
+          if (msg.selected) {
+            gdsn.reparse_message(msg)
+          }
         })
       }
       save_results.createSet = function (messages) {
@@ -885,7 +986,7 @@
       save_results.do_workflow = function (messages) {
         messages && messages.forEach(function (msg) {
           console.log('gdsn_msg_set_controller WORKFLOW TEST, msg_id: ' + msg.msg_id + ', sender: ' + msg.sender)
-          return gdsn.execute_workflow(msg, state)
+          gdsn.execute_workflow(msg, '')
         })
       }
   }])

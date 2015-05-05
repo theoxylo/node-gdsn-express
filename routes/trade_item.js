@@ -365,16 +365,15 @@ module.exports = function (config) {
 
           try {
             var itemDigest = xml_digest.digest(item.xml)
-            item.tradeItem = itemDigest && itemDigest.tradeItem
+            item.tradeItem = itemDigest.tradeItem
+            tasks.push(function (callback) {
+              trade_item_db.saveTradeItem(item, callback)
+            })
           }
           catch (e) {
             log.debug('failed digest xml: ' + item.xml)
             return next(e)
           }
-
-          tasks.push(function (callback) {
-            trade_item_db.saveTradeItem(item, callback)
-          })
         })
         async.parallel(tasks, function (err, results) {
           log.debug('parallel err: ' + JSON.stringify(err))
