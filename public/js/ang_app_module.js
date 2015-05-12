@@ -19,6 +19,7 @@
         , gdsn_send       : app.api + '/gdsn-send'     // send xml to dp for routing/as2/t_msg
         , gdsn_validate   : app.api + '/gdsn-validate' // apply xsd and business validation rules
         , gdsn_workflow   : app.api + '/gdsn-workflow' // call dp api and generate result messages
+        , gdsn_auto       : app.api + '/gdsn-auto'     // persiste, validate, workflow, response
         , homeDataPoolGln : '1100001011285'
       }
     })

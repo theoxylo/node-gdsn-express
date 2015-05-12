@@ -66,6 +66,7 @@
           
           if (messages.collection.item_count) {
             $scope.messages = _.map(messages.collection.items, function (msg) {
+              msg.created_ts2  = (new Date(msg.created_ts)).toLocaleString()
               msg.modified_ts2 = (new Date(msg.modified_ts)).toLocaleString()
               return msg
             })

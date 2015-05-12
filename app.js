@@ -50,11 +50,12 @@ var routes_parties  = require(config.routes_dir + '/parties.js')(config)
 var routes_logs     = require(config.routes_dir + '/logs.js')(config)
 var routes_item     = require(config.routes_dir + '/trade_item.js')(config)
 var routes_profile  = require(config.routes_dir + '/profile.js')(config)
-var routes_gdsn_wf  = require(config.routes_dir + '/gdsn_workflow.js')(config)
+var gdsn_workflow   = require(config.routes_dir + '/gdsn_workflow.js')(config)
 var routes_gdsn_cin = require(config.routes_dir + '/gdsn_create_cin.js')(config)
 var routes_gdsn     = require(config.routes_dir + '/gdsn_send.js')(config)
 var routes_xsd      = require(config.routes_dir + '/gdsn_xsd.js')(config)
 var routes_msg      = require(config.routes_dir + '/gdsn_msg.js')(config)
+var routes_auto     = require(config.routes_dir + '/auto_gdsn.js')(config)
 var app = express()
 config.app = app
 
@@ -137,12 +138,15 @@ log.info('done setting up shutdown ' + config.shut_down_pw)
 
 log.info('setting up routes and URL templates')
 
-router.get('/gdsn-send/:msg_id',             routes_gdsn.lookup_and_send)
 router.get('/gdsn-send/:msg_id/:sender',     routes_gdsn.lookup_and_send)
-router.get('/gdsn-validate/:msg_id',         routes_xsd.lookup_and_validate)
+router.get('/gdsn-send/:msg_id',             routes_gdsn.lookup_and_send)
 router.get('/gdsn-validate/:msg_id/:sender', routes_xsd.lookup_and_validate)
-router.get('/gdsn-workflow/:msg_id',         routes_gdsn_wf)
-router.get('/gdsn-workflow/:msg_id/:sender', routes_gdsn_wf)
+router.get('/gdsn-validate/:msg_id',         routes_xsd.lookup_and_validate)
+router.get('/gdsn-workflow/:msg_id/:sender', gdsn_workflow.lookup_and_process)
+router.get('/gdsn-workflow/:msg_id',         gdsn_workflow.lookup_and_process)
+
+// automatic message persistence, validation, workflow, and response
+router.post('/gdsn-auto', routes_auto.process)
 
 // fully qualified path for CIN generation, including recipient
 // also accepts [rdp=gln] // msg receiver, defaults to recipient
@@ -203,11 +207,14 @@ log.info('done setting up routes')
 
 // shutdown processing
 process.on('SIGINT', function () {
+  if (1 == 1) log.info('Application shutdown is suppressed')
+  else {
   log.info('Application shutting down...')
   setTimeout(function () {
     log.info('shutdown complete!')
     process.exit(0)
   }, 500) // simulate shutdown activities for .5 seconds
+  }
 })
 log.info('done setting up SIGINT')
 

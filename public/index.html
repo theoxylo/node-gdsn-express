@@ -86,60 +86,62 @@
 
       <div>Search Messages</div>
       <div>
-        <p/>
-        <span>Msg Id         <input type="text" size="40" ng-model="input_msg_id"     placeholder="RESP_52003" ></input></span>
-        <span>Request Msg Id <input type="text" size="40" ng-model="input_req_msg_id" placeholder="RESP_52003" ></input></span>
-        <span>Type
-          <select ng-model="input_msg_type">
-            <option value=""></option>
-            <option value="basicPartyRegistration">BPR</option>
-            <option value="registryCatalogueItem">RCI</option>
-            <option value="catalogueItemPublication">CIP</option>
-            <option value="catalogueItemSubscription">CIS</option>
-            <option value="catalogueItemNotification">CIN</option>
-            <option value="catalogueItemConfirmation">CIC</option>
-            <option value="catalogueItemHierarchicalWithdrawal">CIHW</option>
-            <option value="requestForCatalogueItemNotification">RFCIN</option>
-            <option value="GDSNResponse">Responses</option>
-          </select>
-        </span>
-        <span>Type     <input type="text" size="30" ng-model="input_msg_type_regex" placeholder="msg type"></input></span>
-        <br />
-        <span>Sender        <input type="text" size="13" ng-model="input_sender"         placeholder="1100001011292"></input></span>
-        <span>Receiver      <input type="text" size="13" ng-model="input_receiver"       placeholder="0625199000015"></input></span>
-        <span>XML           <input type="text" ng-model="input_xml_regex" size="30" placeholder="foodAndBev"></input></span>
-        <span>Exception     <input type="text" ng-model="input_exc_regex" size="30" placeholder="Error"></input></span>
-        <br />
-        <span>Modified Start Date<input type="text" size="10" ng-model="input_modified_st_date"        placeholder="8/26/2014" datepicker></input></span>
-        <span>Modified End Date  <input type="text" size="10" ng-model="input_modified_end_date"       placeholder="8/28/2014" datepicker></input></span>
-        <span>Per Page           <input type="text" size="3"  ng-model="input_per_page" placeholder="99" value="99"></input></span>
-        <br/>
-        <button ng-click="list_messages()"   >Search</button>
-        <button ng-click="reset_search()"    >Reset</button>
+        <form id="msg_search_form">
+          <span>Msg Id         <input type="text" size="40" ng-model="input_msg_id"     placeholder="RESP_52003" ></input></span>
+          <span>Request Msg Id <input type="text" size="40" ng-model="input_req_msg_id" placeholder="RESP_52003" ></input></span>
+          <span>Type
+            <select ng-model="input_msg_type">
+              <option value=""></option>
+              <option value="basicPartyRegistration">BPR</option>
+              <option value="registryCatalogueItem">RCI</option>
+              <option value="catalogueItemPublication">CIP</option>
+              <option value="catalogueItemSubscription">CIS</option>
+              <option value="catalogueItemNotification">CIN</option>
+              <option value="catalogueItemConfirmation">CIC</option>
+              <option value="catalogueItemHierarchicalWithdrawal">CIHW</option>
+              <option value="requestForCatalogueItemNotification">RFCIN</option>
+              <option value="GDSNResponse">Responses</option>
+            </select>
+          </span>
+          <span>Type     <input type="text" size="30" ng-model="input_msg_type_regex" placeholder="msg type"></input></span>
+          <br />
+          <span>Sender        <input type="text" size="13" ng-model="input_sender"         placeholder="1100001011292"></input></span>
+          <span>Receiver      <input type="text" size="13" ng-model="input_receiver"       placeholder="0625199000015"></input></span>
+          <span>XML           <input type="text" ng-model="input_xml_regex" size="30" placeholder="foodAndBev"></input></span>
+          <span>Exception     <input type="text" ng-model="input_exc_regex" size="30" placeholder="Error"></input></span>
+          <br />
+          <span>Modified Start Date<input type="text" size="10" ng-model="input_modified_st_date"        placeholder="8/26/2014" datepicker></input></span>
+          <span>Modified End Date  <input type="text" size="10" ng-model="input_modified_end_date"       placeholder="8/28/2014" datepicker></input></span>
+          <span>Per Page           <input type="text" size="3"  ng-model="input_per_page" placeholder="99" value="99"></input></span>
+          <br/>
+          <button ng-click="list_messages()"   >Search</button>
+          <button ng-click="reset_search()"    >Reset</button>
+        </form>
       
         <br/>
-        <div ng-if="messages" style="border-style:solid;border-width:1px;border-color:green" ng-controller="gdsn_msg_set_controller as save_results">
+        <div ng-if="messages" style="border-style:solid;border-width:1px;border-color:green" ng-controller="gdsn_msg_set_controller as rs_ctrl">
 
           <span>View filter:</span><input ng-model="query" type="text" size="22"/>
 
-          <!-- searchresult 'save_results' controller set controls -->
+          <!-- searchresult 'rs_ctrl' controller set controls -->
           <label>Select</label>
-          <button ng-click="save_results.toggleSelected(messages)" class="btn">Toggle</button>
-          <label>Set name:</label> <input type="text" ng-model="save_results.newSetName" size="6" placeholder="new set"/>
-          <button ng-if="save_results.newSetName" ng-click="save_results.createSet(messages)">Save</button>
-          <button ng-click="save_results.archiveSelected(messages)" class="btn">Archive Selected</button>
-          <button ng-click="save_results.reparseSelected(messages)" class="btn">Reparse Selected</button>
+          <button ng-click="rs_ctrl.toggleSelected(messages)" class="btn">Toggle</button>
+          <label>Set name:</label> <input type="text" ng-model="rs_ctrl.newSetName" size="6" placeholder="new set"/>
+          <button ng-click="rs_ctrl.createSet(messages)"        class="btn" ng-if="rs_ctrl.newSetName">Create Set</button>
+          <button ng-click="rs_ctrl.validateSelected(messages)" class="btn"                           >Validate</button>
+          <button ng-click="rs_ctrl.workflowSelected(messages)" class="btn"                           >Workflow</button>
+          <button ng-click="rs_ctrl.reparseSelected(messages)"  class="btn"                           >Reparse</button>
+          <button ng-click="rs_ctrl.sendSelected(messages)"     class="btn"                           >Send AS2</button>
+          <button ng-click="rs_ctrl.archiveSelected(messages)"  class="btn"                           >Archive</button>
 
-          <button ng-repeat="set in save_results.sets" 
-            ng-click="save_results.do_workflow(set.messages)" 
-            title="submit all messages in set '{{set.name}}' for dp workflow"
-            class="btn">
-            [{{set.name}} ({{set.count}})]
-          </button>
+          <button ng-repeat="set in rs_ctrl.sets" 
+            ng-click="rs_ctrl.recallSelected(messages, set.messages)" 
+            title="reselect set '{{set.name}}' for actions"
+            class="btn">{{set.name}} ({{set.count}})</button>
           
           <table width="100%">
             <tr>
-              <th><input type="checkbox" ng-model="save_results.selectAll" ng-change="save_results.updateSelectAll(messages)"/></th>
+              <th><input type="checkbox" ng-model="rs_ctrl.selectAll" ng-change="rs_ctrl.updateSelectAll(messages)"/></th>
               <th><a href="" ng-click="sortField = 'msg_id';         reverse = !reverse">Msg Id</a></th>
               <th><a href="" ng-click="sortField = 'version';        reverse = !reverse">Version</a></th>
               <th><a href="" ng-click="sortField = 'msg_type';       reverse = !reverse">Type</a></th>
@@ -147,10 +149,11 @@
               <th><a href="" ng-click="sortField = 'sender';         reverse = !reverse">Sender</a></th>
               <th><a href="" ng-click="sortField = 'receiver';       reverse = !reverse">Receiver</a></th>
               <th>XML</th>
+              <th><a href="" ng-click="sortField = 'created_ts';     reverse = !reverse">Created</a></th>
               <th><a href="" ng-click="sortField = 'modified_ts';    reverse = !reverse">Modified</a></th>
               <th><a href="" ng-click="sortField = 'content_length'; reverse = !reverse">Length</a></th>
             </tr>
-            <tr ng-repeat="msg in messages | filter:query | orderBy:sortField:reverse">
+            <tr ng-repeat="msg in messages | orderBy:sortField:reverse | filter:query">
               <td>
                 <input type="checkbox" ng-model="msg.selected"/>
               </td>
@@ -170,22 +173,20 @@
                 <span ng-if="!msg.gdsn_repostable"><a ng-href="/cs_api/1.0/gdsn-send/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Send via AS2">{{msg.receiver}}</a></span>
               </td>
               <td>
-                <span><a ng-href="/cs_api/1.0/gdsn-validate/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Submit for GDSN Validation">Validate</a></span>
+                <span><a ng-href="/cs_api/1.0/{{config.gdsn_validate}}/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Submit for GDSN Validation">Validate</a></span>
               </td>
-              <td>{{msg.modified_ts2}}</td>
+                  
+              <td><span class="clickable" ng-click="popupField(msg, 'xml')">{{msg.created_ts2}}</span></td>
+              <td><span ng-if="msg.created_ts2 != msg.modified_ts2"><a ng-href="/cs_api/1.0/msg/history/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="View Message History">{{msg.modified_ts2}}</a></span></td>
 
               <!-- per msg utils -->
               <td>
                   <span>{{msg.xml_length}}</span>
 
                   <p ng-if="msg.gdsn_repostable">
-                    <gdsn-workflow title="submit msg for dp workflow"><span>Execute:</span></gdsn-workflow>
+                    <gdsn-workflow title="submit msg for dp workflow"><span>Workflow:</span></gdsn-workflow>
                   </p>
 
-                  <span class="clickable" ng-click="popupField(msg, 'xml')">P</span>
-                  <span><a ng-href="/cs_api/1.0/msg/history/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="View Message History">H</a></span>
-                  <span><a ng-href="/cs_api/1.0/msg/archive/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Archive and Hide">X</a></span>
-                  <span><a ng-href="/cs_api/1.0/msg/migrate/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Reparse and Refresh">R</a></span>
               </td>
             </tr>
           </table>
@@ -207,7 +208,7 @@
         <div ng-controller="gdsn_file_controller">
           <p class="desc">These forms will post messages to CS for party/item/pub/sub parsing and persistence, along with message archival.</p>
           <h4>File Upload</h4>
-          <form>
+          <form id="file_upload_form">
             <input type="file" multiple="true" ng-file-select="onFileSelect($files, 'msg_url')"></input>
             <button ng-click="uploadFile('msg_url')">Upload File</button>
           </form>
@@ -239,21 +240,21 @@
         <br/><span ng-if="view_msg_id">[<a ng-href="/cs_api/1.0/msg/{{view_msg_id}}">Link to message {{view_msg_id}}</a>]</span>
       </div>
 
-<!--
-      <div>GDSN Workflow Message</div>
+      <div>GDSN Auto Message</div>
       <div>
         <div ng-controller="gdsn_file_controller">
           <form>
-              <input type="file" multiple="true" ng-file-select="onFileSelect($files, 'gdsn_workflow')"></input>
-              <button ng-click="uploadFile('gdsn_workflow')">Upload File</button>
+              <input type="file" multiple="true" ng-file-select="onFileSelect($files, 'gdsn_auto')"></input>
+              <button ng-click="uploadFile('gdsn_auto')">Upload File</button>
           </form>
         </div>
         <div>
           <br/><textarea rows="6" cols="100" ng-model="msg_content_post"></textarea>
-          <br/><button ng-click="post_msg('gdsn_workflow')">Post</button>
+          <br/><button ng-click="post_msg('gdsn_auto')">Post</button>
         </div>
       </div>
 
+<!--
       <div>Post Message to GDSN Data Pool</div>
       <div>
         <div ng-controller="gdsn_file_controller">
@@ -744,46 +745,71 @@
 
     // gdsn SERVICE API methods for sdo (service def obj) init when called by framework per ng-app
     gdsn.reparse_message = function (msg) {
-      var gdsn = this
-      console.log('GDSN Server URL endpoint from config.js -- config.msg_migrate_url: ' + config.msg_migrate_url) //e.g. /cs_api/1.0/msg/archive
-      var url = config.msg_migrate_url + '/' + msg.msg_id + '/' + msg.sender
-      var ts = Date.now() // <p>{{ ts | iso }}</p>
-      console.log('calling server msg migrate url: ' + url + ', at time: ' + ts)
-      var result = {req_id: gdsn.workflow_attempt_count}
+      console.log('GDSN Server URL endpoint from config.js -- config.msg_migrate_url: ' + config.msg_migrate_url) //e.g. /cs_api/1.0/gdsn-send/:msg_id/:sender
+      var url    = config.msg_migrate_url  + '/' + msg.msg_id + '/' + msg.sender
+      var params = {ts: new Date}
+      return gdsn.http_get(url, params)
+    }
 
-      var promise1 = $http.get(url, {params: {ts: new Date}})
-      var promise2 = promise1.then(
-        function (res) { // success
-          console.log('-----------------------------------> http msg migrate success res status: ' + res.status)
-          console.log('res data: ' + res.data)
-          console.dir(res)
-          result.success = true
-          gdsn.migrate_success_count++
-          result.msg = 'received SUCCESS service msg migrate response for req: ' + result.req_id
-          result.data = res.data
-        },
-        function (res) { // error 
-          console.log('-----------------------------------> http msg migrate error res status: ' + res.status)
-          console.log('res data: ' + res.data)
-          console.dir(res)
-          result.success = false
-          gdsn.migrate_error_count++
-          result.msg = 'received ERROR service msg migrate response for req: ' + result.req_id
-          result.data = res.data
-        }
-      )
-      return promise2
+    gdsn.send_message = function (msg) {
+      console.log('GDSN Server URL endpoint from config.js -- config.gdsn_send: ' + config.gdsn_send) //e.g. /cs_api/1.0/gdsn-send/:msg_id/:sender
+      var url    = config.gdsn_send + '/' + msg.msg_id + '/' + msg.sender
+      var params = {ts: new Date}
+      return gdsn.http_get(url, params)
+    }
+
+    gdsn.validate_message = function (msg) {
+      console.log('GDSN Server URL endpoint from config.js -- config.gdsn_validate: ' + config.gdsn_validate) //e.g. /cs_api/1.0/gdsn-validate/:msg_id/:sender
+      var url    = config.gdsn_validate + '/' + msg.msg_id + '/' + msg.sender
+      var params = {ts: new Date}
+      return gdsn.http_get(url, params)
     }
 
     gdsn.archive_message = function (msg) {
-      var gdsn = this
-      console.log('GDSN Server URL endpoint from config.js -- config.msg_archive_url: ' + config.msg_archive_url) //e.g. /cs_api/1.0/msg/archive
-      var url = config.msg_archive_url + '/' + msg.msg_id + '/' + msg.sender
+      console.log('GDSN Server URL endpoint from config.js -- config.msg_archive_url: ' + config.msg_archive_url) //e.g. /cs_api/1.0/msg/archive/:msg_id/:sender
+      var url    = config.msg_archive_url + '/' + msg.msg_id + '/' + msg.sender
+      var params = {ts: new Date}
+      return gdsn.http_get (url, params)
+    }
+    gdsn.execute_workflow = function (msg, state) {
+
+      console.log('gdsn.execute_workflow called for msg_id ' + msg.msg_id + ', sender: ' + msg.sender)
+      console.log('workflow config GR gln: ' + config.gdsn_gr_gln)
+
+      if (!state) state = msg.status
+      this.workflow_attempt_count++
+      console.log('service workflow attempt count: ' + this.workflow_attempt_count)
+      var result = {req_id: this.workflow_attempt_count}
+
+      if (msg.msg_type == 'catalogueItemConfirmation' && ['RECEIVED','REVIEW','REJECTED','SYNCHRONISED','MULTI'].indexOf(state) == -1) {
+        result.success = false
+        result.msg = 'unrecognized CIC state: ' + state
+        result.data = {}
+        console.log(result.msg)
+        return result
+      }
+      if (!msg.gdsn_repostable) {
+        result.success = false
+        result.msg = 'only gdsn_repostable messages to receiver ' + config.homeDataPoolGln + ' can be workflowed, bad msg receiver: ' + msg.receiver
+        result.data = {}
+        console.log(result.msg)
+        return result
+      }
+
+      console.log('GDSN Server URL endpoint from config.js-config.gdsn_workflow: ' + config.gdsn_workflow) //e.g. /cs_api/1.0/gdsn-workflow'
+      var url = config.gdsn_workflow + '/' + msg.msg_id + '/' + msg.sender // += /:msg_id/:sender
       var ts = Date.now() // <p>{{ ts | iso }}</p>
-      console.log('calling server msg archive url: ' + url + ', at time: ' + ts)
+      return gdsn.http_get(url, {params: {ts: new Date, state: state}})
+    } // end gdsn.execute_workflow
+
+    gdsn.http_get = function (url, params) {
+      var ts = Date.now() // <p>{{ ts | iso }}</p>
+      console.log('calling GDSN Server url: ' + url + ', at time: ' + ts)
+
+      var gdsn = this
       var result = {req_id: gdsn.workflow_attempt_count}
 
-      var promise1 = $http.get(url, {params: {ts: new Date}})
+      var promise1 = $http.get(url, {params: params})
       var promise2 = promise1.then(
         function (res) { // success
           console.log('-----------------------------------> http msg archive success res status: ' + res.status)
@@ -807,65 +833,6 @@
       return promise2
     }
 
-    gdsn.execute_workflow = function (msg, state) {
-
-      console.log('gdsn.execute_workflow called for msg_id ' + msg.msg_id + ', sender: ' + msg.sender)
-      console.log('workflow config GR gln: ' + config.gdsn_gr_gln)
-
-      if (!state) state = msg.status
-
-      var gdsn = this
-      gdsn.workflow_attempt_count++
-      console.log('service workflow attempt count: ' + gdsn.workflow_attempt_count)
-      var result = {req_id: gdsn.workflow_attempt_count}
-
-      if (msg.msg_type == 'catalogueItemConfirmation' && ['RECEIVED','REVIEW','REJECTED','SYNCHRONISED','MULTI'].indexOf(state) == -1) {
-        result.success = false
-        result.msg = 'unrecognized CIC state: ' + state
-        result.data = {}
-        console.log(result.msg)
-        return result
-      }
-      if (!msg.gdsn_repostable) {
-        result.success = false
-        result.msg = 'only gdsn_repostable messages to receiver ' + config.homeDataPoolGln + ' can be workflowed, bad msg receiver: ' + msg.receiver
-        result.data = {}
-        console.log(result.msg)
-        return result
-      }
-
-      console.log('GDSN Server URL endpoint from config.js-config.gdsn_workflow: ' + config.gdsn_workflow) //e.g. /cs_api/1.0/gdsn-workflow'
-      var url = config.gdsn_workflow + '/' + msg.msg_id + '/' + msg.sender // += /:msg_id/:sender
-      var ts = Date.now() // <p>{{ ts | iso }}</p>
-      console.log('calling server workflow url: ' + url + ', at time: ' + ts)
-
-      //$http({method: 'GET', url: url, params: {ts: new Date, state: $scope.state}})
-      var promise1 = $http.get(url, {params: {ts: new Date, state: state}})
-      var promise2 = promise1.then(
-        function (res) { // success
-          console.log('-------------------------------------------------------> http workflow success res status: ' + res.status)
-          console.log('res data msg: ' + res.data.msg)
-          result.success = true
-          gdsn.workflow_success_count++
-          result.msg = 'received SUCCESS service workflow response for req: ' + result.req_id
-          result.data = res.data
-          //console.dir(arguments) 
-        },
-        function (res) { // error 
-          console.log('-------------------------------------------------------> http workflow error res status: ' + res.status)
-          //console.log('res data msg: '            + res.data.msg)
-          console.log('res config params state: ' + res.config.params.state)
-          console.log('res config params ts: '    + res.config.params.ts)
-          result.success = false
-          gdsn.workflow_error_count++
-          result.msg = 'received ERROR service workflow response for req: ' + result.req_id
-          result.data = res.data
-          //console.dir(arguments) 
-        }
-      )
-      return promise2
-
-    } // end gdsn.execute_workflow
 
     // gS1Response to msg.sender
     gdsn.generate_accepted = function (msg) {
@@ -922,31 +889,85 @@
     }
   }])
 
-  gdsn_app.controller('gdsn_msg_set_controller', ['gdsn','config',function (gdsn, config) { // aka 'save_results'
-      var save_results = this
-      save_results.set_count = 0
-      save_results.selectAll = false
-      save_results.sets = []
-      save_results.newSetName = ''
+  gdsn_app.controller('gdsn_msg_set_controller', ['gdsn','config', function (gdsn, config) { // aka 'rs_ctrl'
+      var resultset_ctrl = this
+      resultset_ctrl.set_count = 0
+      resultset_ctrl.selectAll = false
+      resultset_ctrl.sets = []
+      resultset_ctrl.newSetName = ''
 
-      save_results.getSelected = function (messages) {
+      resultset_ctrl.createSet = function (messages) {
+        var selected = resultset_ctrl.getSelected(messages)
+        var new_set = {
+          name: resultset_ctrl.newSetName || 'set id ' + (++resultset_ctrl.set_count)
+          ,messages: selected
+          ,count   : selected.length
+          ,ts      : new Date
+        }
+        resultset_ctrl.sets.push(new_set)
+        resultset_ctrl.newSetName = '' // clear input field
+        resultset_ctrl.selectAll = false
+        resultset_ctrl.updateSelectAll(messages)
+
+        console.log('gdsn_msg_set_controller.createSet succeeded for new set: ' + new_set)
+        console.log('total number of saved sets: ' + resultset_ctrl.sets.length)
+      }
+      resultset_ctrl.removeSet = function (set) {
+        var idx = resultset_ctrl.sets.indexOf(set)
+        console.log('TODO: remove set with idx ' + idx)
+        if (idx > -1) resultset_ctrl.sets.splice(idx, 1)
+      }
+      resultset_ctrl.getSelected = function (messages) {
         var sel = messages && messages.filter(function (msg) {
           return msg.selected
         })
         return sel ? sel : []
       }
-      save_results.updateSelectAll = function (messages) { // select or un-select all
+      resultset_ctrl.recallSelected = function (messages, selected_set) {
+        var sel = messages && messages.filter(function (msg) {
+          msg.selected = selected_set.indexOf(msg) > -1
+          return msg.selected
+        })
+        return sel ? sel : []
+      }
+      resultset_ctrl.updateSelectAll = function (messages) { // select or un-select all
         messages && messages.forEach(function (msg) {
-          msg.selected = save_results.selectAll
+          msg.selected = resultset_ctrl.selectAll
         })
       }
-      save_results.toggleSelected = function (messages) {
+      resultset_ctrl.toggleSelected = function (messages) {
         messages && messages.forEach(function (msg) {
           msg.selected = !msg.selected
         })
       }
-      save_results.archiveSelected = function (messages) {
-        var archived = []
+      resultset_ctrl.sendSelected = function (messages) {
+        var sent = []
+        messages && messages.forEach(function (msg) {
+          if (msg.selected) {
+            gdsn.send_message(msg)
+            sent.push(msg)
+          }
+        })
+        sent.forEach(function(msg) {
+          console.log('sent msg with msg_id ' + msg.msg_id)
+          // TODO highlight sent item, update history?
+        })
+      }
+      resultset_ctrl.validateSelected = function (messages) {
+        var validated = []
+        messages && messages.forEach(function (msg) {
+          if (msg.selected) {
+            gdsn.validate_message(msg)
+            validated.push(msg)
+          }
+        })
+        validated.forEach(function(msg) {
+          console.log('validated msg with msg_id ' + msg.msg_id)
+          // TODO highlight validated item, update history?
+        })
+      }
+      resultset_ctrl.archiveSelected = function (messages) {
+        var archived = [] // for immediate removal
         messages && messages.forEach(function (msg) {
           if (msg.selected) {
             gdsn.archive_message(msg)
@@ -958,130 +979,21 @@
           if (idx > -1) messages.splice(idx, 1)
         })
       }
-      save_results.reparseSelected = function (messages) {
-        var archived = []
+      resultset_ctrl.reparseSelected = function (messages) {
         messages && messages.forEach(function (msg) {
           if (msg.selected) {
             gdsn.reparse_message(msg)
           }
         })
       }
-      save_results.createSet = function (messages) {
-        var selected = save_results.getSelected(messages)
-        var new_set = {
-          name: save_results.newSetName || 'set id ' + (++save_results.set_count)
-          ,messages: selected
-          ,count   : selected.length
-          ,ts      : new Date
-        }
-        save_results.sets.push(new_set)
-        console.log('gdsn_msg_set_controller.createSet succeeded for new set: ' + new_set)
-        console.log('total number of saved sets: ' + save_results.sets.length)
-      }
-      save_results.removeSet = function (set) {
-        var idx = save_results.sets.indexOf(set)
-        console.log('TODO: remove set with idx ' + idx)
-        if (idx > -1) save_results.sets.splice(idx, 1)
-      }
-      save_results.do_workflow = function (messages) {
+      resultset_ctrl.workflowSelected = function (messages) {
         messages && messages.forEach(function (msg) {
-          console.log('gdsn_msg_set_controller WORKFLOW TEST, msg_id: ' + msg.msg_id + ', sender: ' + msg.sender)
-          gdsn.execute_workflow(msg, '')
+          if (msg.selected) {
+            gdsn.execute_workflow(msg, '')
+          }
         })
       }
   }])
-
-
-  gdsn_app.controller('gdsn_location_controller', function ($scope, $location, config) { // TODO
-    function refreshValues()
-    {
-      $scope.locationAbsUrl = $location.absUrl()
-      $scope.locationUrl = $location.url()
-      $scope.locationProtocol = $location.protocol()
-      $scope.locationHost = $location.host()
-      $scope.locationPort = $location.port()
-      $scope.locationPath = $location.path()
-      $scope.locationSearch = $location.search()
-      $scope.locationHash = $location.hash()
-    }
-
-    var urlValueCounter = 0
-    var pathValueCounter = 0
-    var hashValueCounter = 0
-
-    $scope.locationChangeStartCounter = 0
-    $scope.locationChangeSuccessCounter = 0
-
-    refreshValues()
-
-    $scope.$on('$locationChangeStart', function (event)
-    {
-      $scope.locationChangeStartCounter++
-    })
-
-    $scope.$on('$locationChangeSuccess', function (event)
-    {
-      $scope.locationChangeSuccessCounter++
-
-      refreshValues()
-    })
-
-    $scope.setUrl = function ()
-    {
-      $location.url('newurl' + (++urlValueCounter))
-
-      if ($scope.replaceUrl === true)
-      {
-        $location.replace()
-      }
-    }
-
-    $scope.setPath = function ()
-    {
-      $location.path('newpathvalue' + (++pathValueCounter))
-    }
-
-    $scope.setSearch = function (setMode)
-    {
-      switch (setMode)
-      {
-        case 1:
-          // Single parameter and single value
-          $location.search('param3', 'value3')
-          break
-        case 2:
-          // Single parameter and multiple values
-          $location.search('param3', ['value3-1', 'value3-2', 'value3-3'])
-          break
-        case 3:
-          // Remove parameter
-          $location.search('param3', null)
-          break
-        case 4:
-          // Hash object (multiple parameters)
-          $location.search({
-            param1New: 'value1New',
-            param2New: 'value2New',
-            param3New: ['value3-1New', 'value3-2New', 'value3-3New']
-          })
-          break
-        case 5:
-          // Clear search parameters
-          var currParams = $location.search()
-
-          for (var paramName in currParams)
-          {
-            $location.search(paramName, null)
-          }
-
-          break
-      }
-    }
-    $scope.setHash = function ()
-    {
-      $location.hash('newhashvalue' + (++hashValueCounter))
-    }
-  })
 </script>
 <script src="three_view/js/three_r68.js"></script>
 <script src="three_view/js/controls/OrbitControls.js"></script>
