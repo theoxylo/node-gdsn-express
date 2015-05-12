@@ -142,8 +142,8 @@ router.get('/gdsn-send/:msg_id/:sender',     routes_gdsn.lookup_and_send)
 router.get('/gdsn-send/:msg_id',             routes_gdsn.lookup_and_send)
 router.get('/gdsn-validate/:msg_id/:sender', routes_xsd.lookup_and_validate)
 router.get('/gdsn-validate/:msg_id',         routes_xsd.lookup_and_validate)
-router.get('/gdsn-workflow/:msg_id/:sender', gdsn_workflow.lookup_and_process)
-router.get('/gdsn-workflow/:msg_id',         gdsn_workflow.lookup_and_process)
+router.get('/gdsn-workflow/:msg_id/:sender', gdsn_workflow)
+router.get('/gdsn-workflow/:msg_id',         gdsn_workflow)
 
 // automatic message persistence, validation, workflow, and response
 router.post('/gdsn-auto', routes_auto.process)

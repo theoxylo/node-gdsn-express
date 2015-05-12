@@ -6,7 +6,7 @@ module.exports = function (config) {
   var log            = require('../lib/Logger')('rt_msg_arch', {debug: true})
   var utils          = require('../lib/utils.js')(config)
   var db_msg_archive = require('../lib/db/msg_archive.js')(config)
-  var gdsn_workflow  = require('./gdsn_workflow.js')(config)
+  var gdsn_workflow_msg  = require('./gdsn_workflow_msg.js')(config)
 
   var api = {}
 
@@ -43,7 +43,7 @@ module.exports = function (config) {
 
             if (err) return next(err)
  
-            gdsn_workflow.process(msg_info, function (err, result) {
+            gdsn_workflow_msg.process(msg_info, 'DEFAULT', function (err, result) {
               if (err) return next(err)
               if (!res.finished) res.end(result)
             })
