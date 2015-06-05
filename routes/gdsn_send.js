@@ -9,12 +9,7 @@ module.exports = function (config) {
 
   api.lookup_and_send = function(req, res, next) {
 
-    var url = config.url_gdsn_api + '/outbox'
-    log.info('dp-outbox target url: ' + url)
-    if (!url) return next('post to GDSN not enabled, please set url_gdsn_api if needed')
-
     var start = Date.now()
-    log.info('starting lookup_and_send to dp url ' + url)
 
     var msg_id = req.params.msg_id
     var sender = req.params.sender
@@ -33,8 +28,12 @@ module.exports = function (config) {
       log.info('lookup_and_send xml length from msg archive lookup: ' + xml.length)
 
       log.info('lookup_and_send xml setup (db) took ' + (Date.now() - start) + ' ms')
+      //var url = config.url_gdsn_api + '/outbox' // orig :)
+      var filename = (msg.gtin || '999') + '_' + msg_id + '_' + sender + '_' + msg.status
+      var url = config.url_gdsn_api + '/outbox?filename=' + encodeURIComponent(filename)
+      log.info('dp-outbox target url: ' + url)
+
       var post_options = {
-        //url: url + '/as2_post_' + Date.now()
         url: url
         , auth: {
             'user': 'admin'

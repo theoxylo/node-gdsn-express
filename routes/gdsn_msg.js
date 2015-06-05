@@ -65,7 +65,7 @@ module.exports = function (config) {
       log.info('Received msg.xml of length ' + (xml && xml.length || '0'))
       db_msg_archive.saveMessage(xml, function (err, msg_info) {
         if (err) return next(err)
-        log.info('Message info saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
+        log.info('Message info saved to archive: ' + msg_info.msg_id + ', sender: ' + msg_info.sender)
 
         if (!res.finished) {
           res.jsonp({msg:'Message info saved to archive: ' + msg_info.msg_id + 'sender: ' + msg_info.sender + ', modified: ' + new Date(msg_info.modified_ts)})
@@ -178,94 +178,94 @@ module.exports = function (config) {
   }
 
   return api
-}
 
-// private utility functions
+  // private utility functions
 
-function get_query(req) {
-  var query = {}
-  
-  var sender       = req.param('sender')
-  if (sender) {
-    query.sender = {$regex: sender}
-  }
-  else query.sender = {$exists: true} // every message must have a msg_id and sender
-
-  var msg_id       = req.param('msg_id')
-  if (msg_id) {
-    query.msg_id = {$regex: msg_id}
-  }
-  else query.msg_id = {$exists: true} // every message must have a msg_id and sender
-
-  var req_msg_id       = req.param('req_msg_id')
-  if (req_msg_id) {
-    query.request_msg_id = {$regex: req_msg_id}
-  }
-
-  // drop down (exact match) is 1st choice
-  var msg_type     = req.param('msg_type')
-  if (msg_type) {
-    query.msg_type = msg_type
-  } else {
-    // free text is 2nd choice
-    var msg_type_regex     = req.param('msg_type_regex')
-    if (msg_type_regex) {
-      query.msg_type = {$regex: msg_type_regex}
+  function get_query(req) {
+    var query = {}
+    
+    var sender       = req.param('sender')
+    if (sender) {
+      query.sender = {$regex: sender}
     }
-  }
+    else query.sender = {$exists: true} // every message must have a msg_id and sender
 
-  var source_dp       = req.param('source_dp')
-  if (source_dp) {
-    query.source_dp = {$regex: source_dp}
-  }
-
-  var recipient       = req.param('recipient')
-  if (recipient) {
-    query.recipient = {$regex: recipient}
-  }
-
-  var provider       = req.param('provider')
-  if (provider) {
-    query.provider = {$regex: provider}
-  }
-
-  var receiver       = req.param('receiver')
-  if (receiver) {
-    query.receiver = {$regex: receiver}
-  }
-  
-  var created_st_date       = req.param('created_st_date')
-  var created_end_date       = req.param('created_end_date')
-  if (created_st_date || created_end_date) {
-    query.created_ts = {}
-    if (created_st_date) {
-      query.created_ts.$gt = utils.getDateTime(created_st_date)
+    var msg_id       = req.param('msg_id')
+    if (msg_id) {
+      query.msg_id = {$regex: msg_id}
     }
-    if (created_end_date) {
-      query.created_ts.$lt = utils.getDateTime(created_end_date) + utils.MILLIS_PER_DAY
+    else query.msg_id = {$exists: true} // every message must have a msg_id and sender
+
+    var req_msg_id       = req.param('req_msg_id')
+    if (req_msg_id) {
+      query.request_msg_id = {$regex: req_msg_id}
     }
-  }
-  var modified_st_date       = req.param('modified_st_date')
-  var modified_end_date       = req.param('modified_end_date')
-  if (modified_st_date || modified_end_date) {
-    query.modified_ts = {}
-      if (modified_st_date) {
-        query.modified_ts.$gt = utils.getDateTime(modified_st_date)
+
+    // drop down (exact match) is 1st choice
+    var msg_type     = req.param('msg_type')
+    if (msg_type) {
+      query.msg_type = msg_type
+    } else {
+      // free text is 2nd choice
+      var msg_type_regex     = req.param('msg_type_regex')
+      if (msg_type_regex) {
+        query.msg_type = {$regex: msg_type_regex}
       }
-      if (modified_end_date) {
-        query.modified_ts.$lt = utils.getDateTime(modified_end_date) + utils.MILLIS_PER_DAY
-      }
-  }
-  
-  var xml_regex       = req.param('xml_regex')
-  if (xml_regex) {
-    query.xml = {$regex: xml_regex}
-  }
-  var exc_regex       = req.param('exc_regex')
-  if (exc_regex) {
-    query.exception = {$regex: exc_regex}
-  }
-  
-  return query
-}
+    }
 
+    var source_dp       = req.param('source_dp')
+    if (source_dp) {
+      query.source_dp = {$regex: source_dp}
+    }
+
+    var recipient       = req.param('recipient')
+    if (recipient) {
+      query.recipient = {$regex: recipient}
+    }
+
+    var provider       = req.param('provider')
+    if (provider) {
+      query.provider = {$regex: provider}
+    }
+
+    var receiver       = req.param('receiver')
+    if (receiver) {
+      query.receiver = {$regex: receiver}
+    }
+    
+    var created_st_date       = req.param('created_st_date')
+    var created_end_date       = req.param('created_end_date')
+    if (created_st_date || created_end_date) {
+      query.created_ts = {}
+      if (created_st_date) {
+        query.created_ts.$gt = utils.getDateTime(created_st_date)
+      }
+      if (created_end_date) {
+        query.created_ts.$lt = utils.getDateTime(created_end_date) + utils.MILLIS_PER_DAY
+      }
+    }
+    var modified_st_date       = req.param('modified_st_date')
+    var modified_end_date       = req.param('modified_end_date')
+    if (modified_st_date || modified_end_date) {
+      query.modified_ts = {}
+        if (modified_st_date) {
+          query.modified_ts.$gt = utils.getDateTime(modified_st_date)
+        }
+        if (modified_end_date) {
+          query.modified_ts.$lt = utils.getDateTime(modified_end_date) + utils.MILLIS_PER_DAY
+        }
+    }
+    
+    var xml_regex       = req.param('xml_regex')
+    if (xml_regex) {
+      query.xml = {$regex: xml_regex}
+    }
+    var exc_regex       = req.param('exc_regex')
+    if (exc_regex) {
+      query.exception = {$regex: exc_regex}
+    }
+    
+    return query
+  }
+
+}

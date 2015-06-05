@@ -50,12 +50,13 @@ var routes_parties  = require(config.routes_dir + '/parties.js')(config)
 var routes_logs     = require(config.routes_dir + '/logs.js')(config)
 var routes_item     = require(config.routes_dir + '/trade_item.js')(config)
 var routes_profile  = require(config.routes_dir + '/profile.js')(config)
-var gdsn_workflow   = require(config.routes_dir + '/gdsn_workflow.js')(config)
+var routes_gdsn_wf  = require(config.routes_dir + '/gdsn_workflow.js')(config)
 var routes_gdsn_cin = require(config.routes_dir + '/gdsn_create_cin.js')(config)
 var routes_gdsn     = require(config.routes_dir + '/gdsn_send.js')(config)
 var routes_xsd      = require(config.routes_dir + '/gdsn_xsd.js')(config)
 var routes_msg      = require(config.routes_dir + '/gdsn_msg.js')(config)
 var routes_auto     = require(config.routes_dir + '/auto_gdsn.js')(config)
+var routes_publish  = require(config.routes_dir + '/gdsn_publish.js')(config)
 var app = express()
 config.app = app
 
@@ -142,8 +143,8 @@ router.get('/gdsn-send/:msg_id/:sender',     routes_gdsn.lookup_and_send)
 router.get('/gdsn-send/:msg_id',             routes_gdsn.lookup_and_send)
 router.get('/gdsn-validate/:msg_id/:sender', routes_xsd.lookup_and_validate)
 router.get('/gdsn-validate/:msg_id',         routes_xsd.lookup_and_validate)
-router.get('/gdsn-workflow/:msg_id/:sender', gdsn_workflow)
-router.get('/gdsn-workflow/:msg_id',         gdsn_workflow)
+router.get('/gdsn-workflow/:msg_id/:sender', routes_gdsn_wf.lookup_and_process)
+router.get('/gdsn-workflow/:msg_id',         routes_gdsn_wf.lookup_and_process)
 
 // automatic message persistence, validation, workflow, and response
 router.post('/gdsn-auto', routes_auto.process)
@@ -178,6 +179,10 @@ router.get('/msg/:msg_id/:sender',           routes_msg.find_archive)
 router.get('/msg/:msg_id',                   routes_msg.find_archive)
 router.get('/msg',                           routes_msg.list_archive)
 
+router.post('/publish/:publisher',            routes_publish.process) // post json {"gln":["123"],gtin:["456"]}
+router.get('/publish/:publisher/:subscriber', routes_publish.get_publication_list) // active pubs for pub/sub pair
+router.get('/publish/:publisher',             routes_publish.get_publication_list) // all pubs for publisher gln
+
 router.get('/subscribed/:gtin/:provider/:tm/:tm_sub', routes_subscr.get_subscribed_item)
 router.get('/subscribed/:gtin/:provider/:tm', routes_subscr.get_subscribed_item)
 router.get('/subscribed/:gtin/:provider',    routes_subscr.get_subscribed_item)
@@ -207,14 +212,11 @@ log.info('done setting up routes')
 
 // shutdown processing
 process.on('SIGINT', function () {
-  if (1 == 1) log.info('Application shutdown is suppressed')
-  else {
   log.info('Application shutting down...')
   setTimeout(function () {
     log.info('shutdown complete!')
     process.exit(0)
   }, 500) // simulate shutdown activities for .5 seconds
-  }
 })
 log.info('done setting up SIGINT')
 
@@ -241,6 +243,38 @@ if (config.https_port) {
   require('https').createServer(https_options, app).listen(config.https_port)
   log.info('Express GDSN server listening at https://' + config.https_host + ':' + config.https_port)
 }
+
+// mock GDSN Server outbox on local file system, good for export
+app.use('/gdsn-server/api/outbox', (function (counter) {
+  return function (req, res, next) {
+    if (res.finished) return
+
+    var content = ''
+    req.setEncoding('utf8')
+    req.on('data', function (chunk) {
+      log.debug('archive_post_chunk.length: ' + (chunk && chunk.length))
+      content += chunk
+      if (content.length > 10 * 1024 * 1024 && !res.finished) res.end('content too big - larger than 10 MB')
+    })
+    req.on('end', function () {
+
+      var filename = encodeURIComponent(req.query.filename || 'gdsn31-msg_' + '-' + Date.now())
+      console.log('req.query string for dp-outbox target url: ' + filename)
+      filename = __dirname + '/outbox/' + filename + '-' + (counter++) + '.xml'
+
+      fs.writeFile(filename, content, function (err) {
+        if (err) return next(err)
+        console.log('wrote file: ' + filename + ' (' + Buffer.byteLength(content) + ' bytes)')
+        if (!res.finished) {
+          res.set('Content-Type', 'text/xml; charset=utf-8')
+          res.send(content)
+          res.end()
+        }
+      })
+    })
+    console.log('saving outbox messages to file ' + counter)
+  }
+}(100)))
 
 // mock GDSN Server for gdsn API calls
 app.use('/gdsn-server/api/', (function (counter) {

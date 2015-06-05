@@ -6,7 +6,7 @@ module.exports = function (config) {
   var log            = require('../lib/Logger')('rt_msg_arch', {debug: true})
   var utils          = require('../lib/utils.js')(config)
   var db_msg_archive = require('../lib/db/msg_archive.js')(config)
-  var gdsn_workflow_msg  = require('./gdsn_workflow_msg.js')(config)
+  var process_msg    = require('../lib/process_msg.js')(config)
 
   var api = {}
 
@@ -24,9 +24,13 @@ module.exports = function (config) {
     req.on('end', function () {
 
       log.info('Received msg.xml of length ' + (xml && xml.length || '0'))
-      db_msg_archive.saveMessage(xml, function (err, msg_info) {
+
+      db_msg_archive.saveMessage(xml, function (err, msg) {
+
         if (err) return next(err)
-        log.info('Message info saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
+
+        log.info('Message info saved to archive: ' + msg.msg_id + ', sender: ' + msg.sender)
+        log.info('Message info saved to archive: ' + msg)
 
         try {
           request.post({
@@ -36,19 +40,38 @@ module.exports = function (config) {
                 , 'pass': 'devadmin'
                 , 'sendImmediately': true
               }
-            , body: xml
-            }, function (err, response, body) {
-
-            log.debug('body: ' + body)
+            , body: msg.xml
+          }, 
+          function (err, response, body) {
 
             if (err) return next(err)
+
+            if (!getSuccess(body)) {
+              log.debug('body: ' + body)
+              var response_xml = config.gdsn.populateResponseToSender('validation error', config, msg, msg.provider || msg.recipient)
+              if (response_xml) {
+                db_msg_archive.saveMessage(response_xml, function (err, saved_resp) {
+                  if (err) return next(err)
+                  log.info('Saved generated response to original message: ' + msg.msg_id)
+                  log.info('Saved generated response: ' + saved_resp.msg_id)
+                  if (!res.finished) {
+                    res.jsonp({note:'validation error for msg ' + msg.msg_id, body: body})
+                    res.end()
+                  }
+                })
+              }
+              return
+            }
  
-            gdsn_workflow_msg.process(msg_info, 'DEFAULT', function (err, result) {
+            process_msg.workflow(msg, 'DEFAULT', function (err, result) {
               if (err) return next(err)
-              if (!res.finished) res.end(result)
+              if (!res.finished) {
+                res.jsonp(result)
+                res.end()
+              }
             })
 
-          })
+          }) // end request.post
         }
         catch (err) {
           return next(err)
@@ -59,4 +82,16 @@ module.exports = function (config) {
   }
 
   return api
+}
+
+function getSuccess(body) {
+  try {
+    var success = JSON.parse(body).success
+    console.log('success: ' + success)
+    return success && success != 'false'
+  }
+  catch (e) {
+    log.debug('json parse error: ' + e)
+  }
+  return false
 }

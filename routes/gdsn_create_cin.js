@@ -5,6 +5,7 @@ module.exports = function (config) {
   var item_utils    = require('../lib/item_utils.js')(config)
   var trade_item_db = require('../lib/db/trade_item.js')(config)
   var msg_archive   = require('../lib/db/msg_archive.js')(config)
+  var process_msg   = require('../lib/process_msg.js')(config)
 
   return {
     
@@ -140,6 +141,8 @@ module.exports = function (config) {
             msg_archive.saveMessage(cin_xml, function (err, msg_info) {
               if (err) return next(err)
               log.info('Generated cin message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
+
+              process_msg.send_by_as2(cin_xml, receiver)
             })
 
             if (!res.finished) {

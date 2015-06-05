@@ -131,7 +131,7 @@
           <button ng-click="rs_ctrl.validateSelected(messages)" class="btn"                           >Validate</button>
           <button ng-click="rs_ctrl.workflowSelected(messages)" class="btn"                           >Workflow</button>
           <button ng-click="rs_ctrl.reparseSelected(messages)"  class="btn"                           >Reparse</button>
-          <button ng-click="rs_ctrl.sendSelected(messages)"     class="btn"                           >Send AS2</button>
+          <button ng-click="rs_ctrl.sendSelected(messages)"     class="btn"                           >Send to File</button>
           <button ng-click="rs_ctrl.archiveSelected(messages)"  class="btn"                           >Archive</button>
 
           <button ng-repeat="set in rs_ctrl.sets" 
@@ -173,11 +173,11 @@
                 <span ng-if="!msg.gdsn_repostable"><a ng-href="/cs_api/1.0/gdsn-send/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Send via AS2">{{msg.receiver}}</a></span>
               </td>
               <td>
-                <span><a ng-href="/cs_api/1.0/{{config.gdsn_validate}}/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Submit for GDSN Validation">Validate</a></span>
+                <span><a ng-href="/cs_api/1.0/gdsn-validate/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="Submit for GDSN Validation">Validate</a></span>
               </td>
                   
               <td><span class="clickable" ng-click="popupField(msg, 'xml')">{{msg.created_ts2}}</span></td>
-              <td><span ng-if="msg.created_ts2 != msg.modified_ts2"><a ng-href="/cs_api/1.0/msg/history/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="View Message History">{{msg.modified_ts2}}</a></span></td>
+              <td><a ng-href="/cs_api/1.0/msg/history/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="View Message History">{{msg.modified_ts2}}</a></td>
 
               <!-- per msg utils -->
               <td>
