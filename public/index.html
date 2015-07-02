@@ -108,6 +108,7 @@
           <span>Sender        <input type="text" size="13" ng-model="input_sender"         placeholder="1100001011292"></input></span>
           <span>Receiver      <input type="text" size="13" ng-model="input_receiver"       placeholder="0625199000015"></input></span>
           <span>XML           <input type="text" ng-model="input_xml_regex" size="30" placeholder="foodAndBev"></input></span>
+          <span>!XML          <input type="text" ng-model="input_xmlnot_regex" size="30" placeholder="foodAndBev"></input></span>
           <span>Exception     <input type="text" ng-model="input_exc_regex" size="30" placeholder="Error"></input></span>
           <br />
           <span>Modified Start Date<input type="text" size="10" ng-model="input_modified_st_date"        placeholder="8/26/2014" datepicker></input></span>
@@ -198,8 +199,10 @@
           <button ng-if="page > 0" ng-click="list_messages(-1)" >Prev</button>
             <span>Page:{{ page + 1 }}</span>
           <button ng-if="messages && messages.length == per_page" ng-click="list_messages(1)" >Next</button>
-          <div class="centered">Displaying items <span>{{ item_range_start }}</span> to {{ item_range_end }}</div>
-          <div class="centered" ng-if="!(more_items)">No more items to display</div>
+          <div class="centered" ng-if="num_items > 0">
+          	<div class="centered">Displaying items <span>{{ item_range_start }}</span> to {{ item_range_end }}</div>
+          </div>
+          <div class="centered" ng-if="num_items == 0">No items to display</div>
         </p>
       </div>
 
@@ -463,7 +466,7 @@
                     <p>XML: <a ng-href="{{selectedItem.href}}?" target="_blank">View</a> <a ng-href="{{selectedItem.href}}?download=true">Download</a></p>
                     <p>JSON: <a ng-href="{{selectedItem.href}}?json=true" target="_blank">View</a> <a ng-href="{{selectedItem.href}}?json=true&download=true">Download</a></p>
                     <p>History: <a ng-href="{{selectedItem.history_href}}?json=true" target="_blank">View</a> <a ng-href="{{selectedItem.history_href}}?json=true&download=true">Download</a></p>
-                    <p>Generate CIN: <a ng-href="{{selectedItem.cin_href}}?" target="_blank">View</a> <a ng-href="{{selectedItem.cin_href}}?download=true">Download</a></p>
+                    <p>Generate and validate CIN: <a ng-href="{{selectedItem.cin_href}}?" target="_blank">View</a></p>
                     <p><a class="clickable" ng-click="prettyPrintItem(selectedItem)">PrettyPrint Item</a></p>
                     <p><a class="clickable" ng-click="showItemHierarchy(selectedItem)">Hierarchy</a></p>
                   </th>

@@ -39,7 +39,7 @@ log.debug('config: ' + config) // use config.toString impl
 var Gdsn = require('gdsn')
 config.gdsn = new Gdsn(config)
 
-require('./lib/db/Database').init(config) // adds config.database
+require('./lib/db/database').init(config) // adds config.database
 
 //var routes          = require(config.routes_dir + '/index.js')
 //var routes_cin      = require(config.routes_dir + '/cin_form.js')(config)
@@ -52,11 +52,13 @@ var routes_item     = require(config.routes_dir + '/trade_item.js')(config)
 var routes_profile  = require(config.routes_dir + '/profile.js')(config)
 var routes_gdsn_wf  = require(config.routes_dir + '/gdsn_workflow.js')(config)
 var routes_gdsn_cin = require(config.routes_dir + '/gdsn_create_cin.js')(config)
+var routes_validate = require(config.routes_dir + '/validate_temp_cin.js')(config)
 var routes_gdsn     = require(config.routes_dir + '/gdsn_send.js')(config)
 var routes_xsd      = require(config.routes_dir + '/gdsn_xsd.js')(config)
-var routes_msg      = require(config.routes_dir + '/gdsn_msg.js')(config)
+var routes_msg      = require(config.routes_dir + '/msg_archive.js')(config)
 var routes_auto     = require(config.routes_dir + '/auto_gdsn.js')(config)
 var routes_publish  = require(config.routes_dir + '/gdsn_publish.js')(config)
+var routes_register = require(config.routes_dir + '/mds_register.js')(config)
 var app = express()
 config.app = app
 
@@ -141,8 +143,10 @@ log.info('setting up routes and URL templates')
 
 router.get('/gdsn-send/:msg_id/:sender',     routes_gdsn.lookup_and_send)
 router.get('/gdsn-send/:msg_id',             routes_gdsn.lookup_and_send)
+
 router.get('/gdsn-validate/:msg_id/:sender', routes_xsd.lookup_and_validate)
 router.get('/gdsn-validate/:msg_id',         routes_xsd.lookup_and_validate)
+
 router.get('/gdsn-workflow/:msg_id/:sender', routes_gdsn_wf.lookup_and_process)
 router.get('/gdsn-workflow/:msg_id',         routes_gdsn_wf.lookup_and_process)
 
@@ -153,7 +157,6 @@ router.post('/gdsn-auto', routes_auto.process)
 // also accepts [rdp=gln] // msg receiver, defaults to recipient
 //              [cmd=*ADD|CORRECT|CHANGE_BY_REFRESH|DELETE]
 //              [reload=true|*false]
-
 //              [doc=COPY|*ORIGINAL]
 router.get('/gdsn-cin/:recipient/:gtin/:provider/:tm/:tm_sub', routes_gdsn_cin.create_cin)
 //router.get('/gdsn-cin/:recipient/:gtin/:provider/:tm',         routes_gdsn_cin.create_cin) // default tm_sub is 'na'
@@ -163,8 +166,12 @@ router.get('/gdsn-cin/:recipient/:gtin/:provider/:tm/:tm_sub', routes_gdsn_cin.c
 
 // POST
 router.post('/msg',                          routes_msg.post_archive)
-router.post('/items',                        routes_item.post_trade_items) // used by ECCnet client
-router.post('/item',                         routes_item.post_trade_items)
+router.post('/save',                         routes_msg.post_archive) // same as /msg
+router.post('/items',                        routes_msg.post_archive) // used by ECCnet client
+router.post('/item',                         routes_msg.post_archive)
+router.post('/persist/gdsn',                 routes_msg.post_archive)
+router.post('/persist/nongdsn',              routes_msg.post_archive)
+
 router.post('/parties',                      routes_parties.post_parties)
 
 // GET
@@ -207,6 +214,18 @@ router.get('/parties',                       routes_parties.list_parties)
 router.get('/login',                         routes_login.authenticate)
 
 router.get('/logs',                          routes_logs.list_logs)
+
+router.post('/register',                     routes_register.register_trade_items)
+router.post('/validate_register/:provider',  routes_register.register_saved_trade_items)
+
+router.get('/item_status/:provider/:gtin',   routes_register.get_registered_items)
+router.get('/item_status/:provider',         routes_register.get_registered_items)
+
+router.post('/validate',                            routes_validate.validate_trade_items)
+
+router.get('/validate/:provider/:gtin',             routes_validate.validate_hierarchy)
+router.get('/validate/:provider/:gtin/:tm',         routes_validate.validate_hierarchy)
+router.get('/validate/:provider/:gtin/:tm/:tm_sub', routes_validate.validate_hierarchy)
 
 log.info('done setting up routes')
 

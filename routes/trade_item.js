@@ -57,7 +57,8 @@ module.exports = function (config) {
     items = items.map(function (item) {
       item.href         = item_utils.get_item_href(item, '/items')
       item.history_href = item_utils.get_item_href(item, '/items/history')
-      item.cin_href     = item_utils.get_item_href(item, '/gdsn-cin')
+      //item.cin_href     = item_utils.get_item_href(item, '/validate')
+      item.cin_href     = config.base_url + '/validate/' + item.provider + '/' + item.gtin + '/' + item.tm
 
       item.item_count_num = item_count++
       populateItemImageUrls(item)
@@ -155,7 +156,8 @@ module.exports = function (config) {
       items = items.map(function (item) {
         item.href         = item_utils.get_item_href(item, '/items')
         item.history_href = item_utils.get_item_href(item, '/items/history')
-        item.cin_href     = item_utils.get_item_href(item, '/gdsn-cin')
+        //item.cin_href     = item_utils.get_item_href(item, '/validate')
+        item.cin_href     = config.base_url + '/validate/' + item.provider + '/' + item.gtin + '/' + item.tm
         item.item_count_num = item_count++
         populateItemImageUrls(item)
         return item
@@ -231,7 +233,8 @@ module.exports = function (config) {
             item.client_name = client_config.client_name
             item.href         = item_utils.get_item_href(item, '/items')
             item.history_href = item_utils.get_item_href(item, '/items/history')
-            item.cin_href     = item_utils.get_item_href(item, '/gdsn-cin')
+            //item.cin_href     = item_utils.get_item_href(item, '/validate')
+            item.cin_href     = config.base_url + '/validate/' + item.provider + '/' + item.gtin + '/' + item.tm
 
             // run digest at request time?
             //var itemDigest = xml_digest.digest(item.xml)
@@ -267,77 +270,6 @@ module.exports = function (config) {
       log.db(req.url, req.user, (Date.now() - start) )
     }) // end getTradeItems callback
   }
-
-  api.post_trade_items = function (req, res, next) {
-    log.debug('))))))))))))))))))))))) post_trade_items handler called')
-    var xml = ''
-    req.setEncoding('utf8')
-    req.on('data', function (chunk) {
-      log.debug('post_trade_items chunk.length: ' + (chunk && chunk.length) || 0)
-      xml += chunk
-      if (xml.length > 5 * 1000 * 1000) return res.end('msg xml too big - larger than 5 MB')
-    })
-    req.on('end', function () {
-      log.info('Received msg xml of length ' + (xml && xml.length || '0'))
-      msg_archive.saveMessage(xml, function (err, msg_info) {
-        if (err) return next(err)
-        log.info('Message info saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
-      })
-    })
-
-    var unique_items = []
-    var tasks = []
-
-    config.gdsn.getEachTradeItemFromStream(req, function (err, item) {
-      if (err) return next(err)
-
-      if (item) {
-        if (!item.gtin) item.gtin = config.item_default_gtin
-        if (!item.gpc)  item.gpc  = config.item_default_gpc
-
-        log.debug('received item from stream callback with gtin ' + item.gtin)
-
-        item.slug = item_utils.get_item_slug(item)
-        log.debug('item slug: ' + item.slug)
-
-        if (unique_items.indexOf(item.slug) == -1) {
-          unique_items.push(item.slug)
-
-          try {
-            var itemDigest = xml_digest.digest(item.xml)
-            item.tradeItem = itemDigest && itemDigest.tradeItem
-          }
-          catch (e) {
-            log.debug('failed digest xml: ' + item.xml)
-            return next(e)
-          }
-
-          tasks.push(function (callback) {
-            trade_item_db.saveTradeItem(item, callback)
-          })
-        }
-        else {
-          // skip duplicate item
-          log.warn('skipping apparent item duplicate: ' + item.slug)
-        }
-      }
-      else { // null item is passed when there are no more items in the stream
-        log.debug('no more items from stream callback, final item count: ' + tasks.length)
-        if (!tasks.length) return res.jsonp({msg: 'No items were found or created'})
-
-        async.parallel(tasks, function (err, async_results) { // async_results is an array of results arrays, one per task
-          log.debug('parallel async_err,     if any: ' + JSON.stringify(err))
-          log.debug('parallel async_results, if any: ' + JSON.stringify(async_results))
-          if (err) return next(err)
-          if (!async_results || !async_results.length) return res.jsonp({msg: 'No items were found or created'})
-          var results = _.flatten(async_results) // _.flatten will always return at least an empty array http://underscorejs.org/#flatten
-          if (!results.length) return res.jsonp({msg: 'No items were found or created'})
-          //return res.jsonp({ msg: 'Created ' + results.length + ' items with GTINs: ' + results.join(', ') , gtins: results }) 
-          return res.jsonp({ msg: 'Created ' + results.length + ' items with GTINs: ' + results.join(', ')}) 
-        }) // end if async.parallel
-      } // end else
-    }) // end gdsn.getTradeItemsFromStream
-  } // end api.post_trade_items
 
   api.migrate_trade_items = function (req, res, next) {
     log.debug('migrate_trade_items handler called')

@@ -13,9 +13,9 @@ module.exports = function (config) {
   api.process = function (req, res, next) {
     log.debug('>>>>>>>>>>>>>>>>>>>> gdsn publish  handler called')
 
-    var publisher = req.params.publisher
-    if (!publisher) { 
-      return next(Error('publisher gln is required, e.g. /mds/publish/1100001111000'))
+    var provider = req.params.provider
+    if (!provider) { 
+      return next(Error('provider gln is required, e.g. /validate_register/1100001111000'))
     }
 
     var content = ''
@@ -43,6 +43,7 @@ module.exports = function (config) {
         }
         // do async api calls:
         var tasks = []
+        var errorCount = 0
         body.gtin.forEach(function (gtin) {
           body.gln.forEach(function (gln) {
             try {
@@ -78,7 +79,7 @@ module.exports = function (config) {
                     + ', body: '
                     + res_body)
 
-                  if (err) return task_done(err)
+                  //if (err) return task_done(err)
 
                   /*
                   if (!getSuccess(body, log)) {
@@ -87,15 +88,25 @@ module.exports = function (config) {
                   }
                   */
      
-                  if (response.statusCode != '200') return task_done(Error('bad status code ' + response.statusCode))
+                  //if (response.statusCode != '200') return task_done(Error('bad status code ' + response.statusCode))
 
-                  task_done(null, response.statusCode)
+
+                  var error = getError(res_body, log)
+                  if (error) errorCount++
+
+                  //task_done(null, response.statusCode)
+                  task_done(null, {
+                    success   : !err && response.statusCode == '200'
+                    ,error    : error
+                    ,gln      : gln
+                    ,gtin     : gtin
+                  })
 
                 }) // end request.post
               }) // end tasks.push
             }
             catch (err) {
-              task_done(Error('non-successful or unsupported status code ' + response.statusCode))
+              task_done(err)
             }
           }) // end forEach gln
         }) // end forEach gtin
@@ -103,7 +114,11 @@ module.exports = function (config) {
         async.parallel(tasks, function (err, results) {
           log.debug('parallel cip results count: ' + results && results.length)
           if (!res.finished) {
-            res.json({err:err,results:results})
+            res.json({
+                error_count: errorCount
+                ,provider  : provider
+                ,results   : results
+            })
             res.end()
             return
           }
@@ -166,4 +181,18 @@ function getSuccess(body, log) {
     log.debug('json parse error: ' + e)
   }
   return false
+}
+function getError(body, log) {
+  try {
+    var res = JSON.parse(body)
+    console.log('error: ' + res.error)
+    return res.error ? JSON.stringify([res.error]) : ''
+  }
+  catch (e) {
+    log.debug('json parse error: ' + e)
+    log.debug('json parse text: ' + body)
+    console.dir(body)
+    return body
+  }
+  return ''
 }

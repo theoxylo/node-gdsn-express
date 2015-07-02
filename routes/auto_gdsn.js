@@ -3,7 +3,7 @@ var request = require('request')
 
 module.exports = function (config) {
 
-  var log            = require('../lib/Logger')('rt_msg_arch', {debug: true})
+  var log            = require('../lib/Logger')('rt_autogdsn', {debug: true})
   var utils          = require('../lib/utils.js')(config)
   var db_msg_archive = require('../lib/db/msg_archive.js')(config)
   var process_msg    = require('../lib/process_msg.js')(config)
@@ -11,7 +11,7 @@ module.exports = function (config) {
   var api = {}
 
   api.process = function (req, res, next) {
-    log.debug('>>>>>>>>>>>>>>>>>>>> process message  handler called')
+    log.debug('>>>>>>>>>>>>>>>>>>>> auto_gdsn process message  handler called')
 
     var xml = ''
     req.setEncoding('utf8')

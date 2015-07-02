@@ -53,23 +53,6 @@ module.exports = function (config) {
           res.end()
         }
 
-
-        // save AS2 send info below not working yet
-        /*
-        msg.as2 = msg.as2 || []
-        msg.as2.push(response)
-        db_msg_archive.saveMessageInfo(msg, function (err, msg) {
-          if (err) return next(err)
-          if (!msg) return next(Error('msg undefined'))
-          log.debug('***************** version : ' + msg.version)
-          log.debug('***************** xml length : ' + msg.xml && (msg.xml && msg.xml.length))
-          if (!res.finished) {
-            res.json(msg)
-            res.end()
-          }
-        })
-        */
-
       }) // end request.post
     }) // end db_msg.findMessage
   } // end api.lookup_and_send

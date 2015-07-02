@@ -3,7 +3,6 @@
       
       $scope.page = 0
       $scope.input_per_page = $scope.input_per_page_default
-      $scope.more_items = false
       $scope.item_range_start = 0 
       $scope.item_range_end   = 0
       $scope.reset_search = function () {
@@ -20,10 +19,10 @@
           delete $scope.input_modified_st_date
           delete $scope.input_modified_end_date
           delete $scope.input_xml_regex
+          delete $scope.input_xmlnot_regex
           delete $scope.input_exc_regex
           
           delete $scope.messages
-          delete $scope.more_items
           delete $scope.item_range_start 
           delete $scope.item_range_end
           $scope.page = 0
@@ -56,6 +55,7 @@
             modified_st_date:    $scope.input_modified_st_date,
             modified_end_date:   $scope.input_modified_end_date,
             xml_regex:           $scope.input_xml_regex,
+            xmlnot_regex:        $scope.input_xmlnot_regex,
             exc_regex:           $scope.input_exc_regex,
             
             page:                $scope.page,
@@ -73,10 +73,9 @@
             console.log('found ' + $scope.messages.length + ' rows')
             console.log('Per page ', $scope.per_page, ' rows')
             console.log('page ', $scope.page)
-            $scope.more_items = (messages.collection.item_count == messages.collection.per_page)
+            $scope.num_items = messages.collection.item_count
           } else {
-              if ($scope.page > 0) $scope.page--
-              $scope.more_items = false
+              $scope.num_items = 0
               delete $scope.messages
           }
           if (messages.collection.item_range_start) $scope.item_range_start = messages.collection.item_range_start 

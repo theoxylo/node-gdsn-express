@@ -40,7 +40,7 @@ module.exports = function (config) {
 }
     
 function do_validation_post(log, url, xml, cb) {
-  url += '?bus_vld=true'
+  //url += '?bus_vld=true'
   var post_options = {
     url: url
     , auth: {

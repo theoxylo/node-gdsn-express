@@ -17,14 +17,13 @@ module.exports = function (config) {
       if (err) return next(err)
       if (!msg) return next(Error('message xml not found for msg_id: ' + msg_id + ', sender: ' + sender))
 
-      db_msg_archive.saveMessage(msg.xml, function (err, results) {
+      db_msg_archive.archiveMessageInfo(msg, function (err, results) {
         if (err) return next(err)
         if (!res.finished) {
           res.jsonp(results)
           res.end()
         }
-      }
-      , true) // add archived_ts to latest version of message (all versions are hidden)
+      })
     })
   }
 
@@ -45,15 +44,13 @@ module.exports = function (config) {
           res.jsonp(results)
           res.end()
         }
-      }
-      , false) // add archived_ts to current message
+      })
     })
   }
 
-  // 
+  // save msg xml to archive and store biz objects e.g. trade_items
   api.post_archive = function (req, res, next) {
-    log.debug('>>>>>>>>>>>>>>>>>>>> post_archive  handler called')
-
+    log.debug('-------------------------------------------------->>> post_archive handler called')
     var xml = ''
     req.setEncoding('utf8')
     req.on('data', function (chunk) {
@@ -62,18 +59,33 @@ module.exports = function (config) {
       if (xml.length > 10 * 1024 * 1024 && !res.finished) res.end('msg.xml too big - larger than 10 MB')
     })
     req.on('end', function () {
+      if (res.finished) return
       log.info('Received msg.xml of length ' + (xml && xml.length || '0'))
       db_msg_archive.saveMessage(xml, function (err, msg_info) {
         if (err) return next(err)
         log.info('Message info saved to archive: ' + msg_info.msg_id + ', sender: ' + msg_info.sender)
 
+        log.info('biz objects: ' + msg_info.data && msg_info.data.join())
+
         if (!res.finished) {
-          res.jsonp({msg:'Message info saved to archive: ' + msg_info.msg_id + 'sender: ' + msg_info.sender + ', modified: ' + new Date(msg_info.modified_ts)})
-          res.end()
+            res.json({
+                error_count: 0
+                ,provider : msg_info.provider
+                ,results   : msg_info.data && msg_info.data.map(function (element) {
+                  return {
+                    success: true
+                    ,gtin  : element.gtin
+                    ,tm    : element.tm
+                    ,tm_sub: element.tm_sub
+                    ,errors: []
+                  }
+                }) // end results map
+                ,msg       :'Message info saved to archive: ' + msg_info.msg_id + 'sender: ' + msg_info.sender + ', modified: ' + new Date(msg_info.modified_ts)
+            })
+            res.end()
         }
       })
     })
-
   }
 
   // returns pages of msg_info
@@ -256,16 +268,35 @@ module.exports = function (config) {
         }
     }
     
+    // $and $not
+	var exprs = []
     var xml_regex       = req.param('xml_regex')
     if (xml_regex) {
-      query.xml = {$regex: xml_regex}
+    	var tokens = xml_regex.split(/\s+/)
+    	for (var i = 0; i < tokens.length; i++) {
+    		exprs.push( {"xml":{"$regex":tokens[i]}} )
+    	}
+    }
+    var xmlnot_regex       = req.param('xmlnot_regex')
+    if (xmlnot_regex) {
+    	var tokens = xmlnot_regex.split(/\s+/)
+    	for (var i = 0; i < tokens.length; i++) {
+    		eval("exprs.push( {xml:{ $not: /" +escSlash(tokens[i])+ "/ }} )")
+    	}
     }
     var exc_regex       = req.param('exc_regex')
     if (exc_regex) {
       query.exception = {$regex: exc_regex}
     }
-    
-    return query
-  }
+    exprs.push( query )
 
+    var andExpr = {"$and" : exprs }
+    log.debug('get_query()=' + JSON.stringify(andExpr))
+    return andExpr
+  }
+  
+  // escape forward slash
+  function escSlash(str) {
+	return str.replace(/\//g, '\\/')
+  }
 }

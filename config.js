@@ -7,7 +7,7 @@ var config = {
   , gs1_rpdd_url          : 'http://gs1beta2.gs1globalregistry.net/eanucc/dumps/partydump/GS1PartyDump.xml'
   , gs1_schema_url        : 'http://www.gdsregistry.org/3.1/schemas'
   , debug                 : true                       // additional logging
-  , db_url                : 'catalog_services'         // for localhost MongoDb, used by lib/Database.js
+  , db_url                : 'catalog_services'         // for localhost MongoDb, used by lib/database.js
   , inbox_dir             : __dirname + '/msg/inbox/'  // watch directory for incoming messages
   , outbox_dir            : __dirname + '/msg/outbox/' // for outgoing messages sent by the data pool
   , routes_dir            : __dirname + '/routes'
