@@ -39,7 +39,7 @@ log.debug('config: ' + config) // use config.toString impl
 var Gdsn = require('gdsn')
 config.gdsn = new Gdsn(config)
 
-require('./lib/db/database').init(config) // adds config.database
+require('./lib/db/Database.js').init(config) // adds config.database
 
 //var routes          = require(config.routes_dir + '/index.js')
 //var routes_cin      = require(config.routes_dir + '/cin_form.js')(config)
