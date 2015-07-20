@@ -1,3 +1,10 @@
+// GDSN Server DP API example usage:
+//
+//GLN lookup: http://plt-gdsn01.itradenetwork.com:8080/gdsn-server/bpr-update.mvc?mode=query&gln=1100001011483&submit=Find+Party+by+GLN&name=MDS+Test+Publisher&partyRole=SUPPLIER&address1=123+Main+St&address2=Suite+1&city=Pleasanton&state=CA&zip=94588&contactName=JB&contactEmail=mds%40itradenetwork.com&contactPhone=9256601100&_addNew=on
+//
+//Party name search: http://plt-gdsn01.itradenetwork.com:8080/gdsn-server/bpr-update.mvc?mode=search&gln=1100001011483&name=MDS+Test+Publisher&submit=Find+Parties+by+Name&partyRole=SUPPLIER&address1=123+Main+St&address2=Suite+1&city=Pleasanton&state=CA&zip=94588&contactName=JB&contactEmail=mds%40itradenetwork.com&contactPhone=9256601100&_addNew=on
+
+
 module.exports = function (config) {
   
   var api = {}

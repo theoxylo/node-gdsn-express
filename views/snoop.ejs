@@ -2,13 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title><%= title %></title>
+  <title><%= new Date %></title>
   <% include css.ejs %>
 </head>
 <body>
 <% var prop %>
-
-<h1><%= title %></h1>
+<% var req = res.request %>
 
 <h2>Session Info</h2>
 <ul>

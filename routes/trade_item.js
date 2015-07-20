@@ -1,5 +1,5 @@
 module.exports = function (config) {
-  
+
   var _              = require('underscore')
   var async          = require('async')
   var log            = require('../lib/Logger')('rt_items', config)
@@ -11,7 +11,7 @@ module.exports = function (config) {
 
   function populateItemImageUrls(item) {
     var urls = []
-    if (item 
+    if (item
         && item.tradeItem
         && item.tradeItem.tradeItemInformation
         && item.tradeItem.tradeItemInformation.tradeItemDescriptionInformation
@@ -29,7 +29,7 @@ module.exports = function (config) {
       }
       catch (e) {console.log(e)}
     }
-    if (item 
+    if (item
         && item.tradeItem
         && item.tradeItem.extension
         && item.tradeItem.extension.foodAndBeverageTradeItemExtension
@@ -354,6 +354,49 @@ module.exports = function (config) {
       log.db(req.url, req.user, (Date.now() - start2) )
     }) // end trade_item_db.getTradeItems
   }
+
+  api.get_gdsn_registered_items = function (req, res, next) {
+    var provider = req.params.provider || ''
+    if (!provider) {
+      return next(Error('provider gln is required'))
+    }
+    var gtin = req.params.gtin || ''
+
+    var url = config.url_gdsn_api + '/tradeItemList?gln=' + provider
+    if (gtin) {
+      log.debug('fetching item data for provider ' + provider + ', gtin ' + gtin)
+      url += '&gtin=' + gtin
+    }
+    else {
+      log.debug('fetching all item data for provider ' + provider)
+    }
+
+    var start_get_reg_list = Date.now()
+    request.get({
+      url   : url + '&ts=' + Date.now()
+      , auth: {
+          user: 'admin'
+          , pass: 'devadmin'
+          , sendImmediately: true
+      }
+    },
+    function get_complete(err, response, body) {
+      log.info('get item list api call took '
+        + (Date.now() - start_get_reg_list )
+        + ' ms with response: '
+        + (response ? response.statusCode : 'NO_RESPONSE')
+        + ', body: '
+        + body)
+
+      if (err || response.statusCode != '200') next(Error('failed with status code ' + response.statusCode))
+
+      if (!res.finished) {
+        res.send(body)
+        res.end()
+      }
+    }) // end request.get
+    log.debug('get item list request initiated')
+  }// end get_registered_list
 
   return api
 }

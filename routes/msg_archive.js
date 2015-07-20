@@ -50,6 +50,7 @@ module.exports = function (config) {
 
   // save msg xml to archive and store biz objects e.g. trade_items
   api.post_archive = function (req, res, next) {
+
     log.debug('-------------------------------------------------->>> post_archive handler called')
     var xml = ''
     req.setEncoding('utf8')
@@ -64,28 +65,56 @@ module.exports = function (config) {
       db_msg_archive.saveMessage(xml, function (err, msg_info) {
         if (err) return next(err)
         log.info('Message info saved to archive: ' + msg_info.msg_id + ', sender: ' + msg_info.sender)
-
-        log.info('biz objects: ' + msg_info.data && msg_info.data.join())
-
+        log.info('biz objects: ' + (msg_info.data && msg_info.data.join()))
         if (!res.finished) {
-            res.json({
-                error_count: 0
-                ,provider : msg_info.provider
-                ,results   : msg_info.data && msg_info.data.map(function (element) {
-                  return {
-                    success: true
-                    ,gtin  : element.gtin
-                    ,tm    : element.tm
-                    ,tm_sub: element.tm_sub
-                    ,errors: []
-                  }
-                }) // end results map
-                ,msg       :'Message info saved to archive: ' + msg_info.msg_id + 'sender: ' + msg_info.sender + ', modified: ' + new Date(msg_info.modified_ts)
-            })
-            res.end()
+          res.json(formatResults(msg_info))
+          res.end()
         }
-      })
-    })
+      }) // end saveMessage
+    }) // end req.on end
+  } // end api.post_archive
+
+  function formatResults(msg_info) {
+    var result = {
+      error_count: 0
+      ,result_count: (msg_info && msg_info.data && msg_info.data.length)
+      ,provider    : msg_info.provider
+      ,sender      : msg_info.sender
+      ,msg         : ('Message info saved to archive: ' + msg_info.msg_id)
+    }
+    result.results = msg_info.data && msg_info.data.map(function (item) {
+        try {
+          return {
+            success: true
+            ,gdsn                : item.gdsn
+            ,gtin                : item.gtin
+            ,tm                  : item.tm
+            ,tm_sub              : item.tm_sub
+            ,itemOwnerProductCode: item.itemOwnerProductCode || ''
+            ,vendorId            : item.vendorId             || ''
+            ,buyerId             : item.buyerId              || ''
+            ,portalChar          : item.portalChar           || ''
+            ,errors: []
+          }
+        }
+        catch (err) {
+          result.error_count++
+          return {
+            success: false
+            ,gdsn                : ''
+            ,gtin                : ''
+            ,tm                  : ''
+            ,tm_sub              : ''
+            ,itemOwnerProductCode: ''
+            ,vendorId            : ''
+            ,buyerId             : ''
+            ,portalChar          : ''
+            , errors: [err]
+          }
+        }
+      }
+    ) // end result.results map
+    return result
   }
 
   // returns pages of msg_info

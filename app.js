@@ -16,8 +16,7 @@
  *
  * SVN Tag: $URL: $
  */
-
-console.log('start app.js')
+console.log('start app.js at ' + new Date)
 
 var config  = require('./config.js')
 config.user_config     = {}
@@ -39,7 +38,7 @@ log.debug('config: ' + config) // use config.toString impl
 var Gdsn = require('gdsn')
 config.gdsn = new Gdsn(config)
 
-require('./lib/db/Database.js').init(config) // adds config.database
+require('./lib/db/database.js').init(config) // adds config.database
 
 //var routes          = require(config.routes_dir + '/index.js')
 //var routes_cin      = require(config.routes_dir + '/cin_form.js')(config)
@@ -83,7 +82,9 @@ log.info('Loading ITN Passport google OAuth2 connector...')
 require('./lib/passport').init(config)
 
 
-// api doc renders
+//app.use('/snoop', function (req, res, next) { res.render('snoop') }) // views/snoop.ejs
+
+// api doc renders - ejs examples
 app.get('/docs' + config.base_url + '/parties',    function (req, res, next) { res.render('parties_api_docs_10')   })
 app.get('/docs' + config.base_url + '/items',      function (req, res, next) { res.render('items_api_docs_10')     })
 app.get('/docs' + config.base_url + '/login',      function (req, res, next) { res.render('login_api_docs_10')     })
@@ -141,6 +142,25 @@ log.info('done setting up shutdown ' + config.shut_down_pw)
 
 log.info('setting up routes and URL templates')
 
+// POST json
+router.post('/publish/:provider',            routes_publish.publish) // JSON {"gln":["123"],gtin:["456"]}
+router.post('/validate_register/:provider',  routes_register.register_existing_items) // JSON
+
+// POST xml
+router.post('/gdsn-auto',                    routes_auto.process) // message persistence, validation, workflow, and response
+
+router.post('/items',                        routes_msg.post_archive) // used by ECCnet client
+router.post('/item',                         routes_msg.post_archive)
+router.post('/msg',                          routes_msg.post_archive)
+router.post('/persist',                      routes_msg.post_archive)
+router.post('/save',                         routes_msg.post_archive)
+
+router.post('/parties',                      routes_parties.post_parties) //
+
+router.post('/validate',                     routes_validate.validate_trade_items)
+
+
+// GET /gdsn
 router.get('/gdsn-send/:msg_id/:sender',     routes_gdsn.lookup_and_send)
 router.get('/gdsn-send/:msg_id',             routes_gdsn.lookup_and_send)
 
@@ -149,9 +169,6 @@ router.get('/gdsn-validate/:msg_id',         routes_xsd.lookup_and_validate)
 
 router.get('/gdsn-workflow/:msg_id/:sender', routes_gdsn_wf.lookup_and_process)
 router.get('/gdsn-workflow/:msg_id',         routes_gdsn_wf.lookup_and_process)
-
-// automatic message persistence, validation, workflow, and response
-router.post('/gdsn-auto', routes_auto.process)
 
 // fully qualified path for CIN generation, including recipient
 // also accepts [rdp=gln] // msg receiver, defaults to recipient
@@ -163,16 +180,6 @@ router.get('/gdsn-cin/:recipient/:gtin/:provider/:tm/:tm_sub', routes_gdsn_cin.c
 //router.get('/gdsn-cin/:recipient/:gtin',                       routes_gdsn_cin.find_cin)
 //router.get('/gdsn-cin/:recipient/:gtin',                       routes_gdsn_cin.find_cin)
 //router.get('/gdsn-cin/:recipient',                             routes_gdsn_cin.find_cin)
-
-// POST
-router.post('/msg',                          routes_msg.post_archive)
-router.post('/save',                         routes_msg.post_archive) // same as /msg
-router.post('/items',                        routes_msg.post_archive) // used by ECCnet client
-router.post('/item',                         routes_msg.post_archive)
-router.post('/persist/gdsn',                 routes_msg.post_archive)
-router.post('/persist/nongdsn',              routes_msg.post_archive)
-
-router.post('/parties',                      routes_parties.post_parties)
 
 // GET
 router.get('/msg/history/:msg_id/:sender',   routes_msg.msg_history)
@@ -186,9 +193,9 @@ router.get('/msg/:msg_id/:sender',           routes_msg.find_archive)
 router.get('/msg/:msg_id',                   routes_msg.find_archive)
 router.get('/msg',                           routes_msg.list_archive)
 
-router.post('/publish/:publisher',            routes_publish.process) // post json {"gln":["123"],gtin:["456"]}
-router.get('/publish/:publisher/:subscriber', routes_publish.get_publication_list) // active pubs for pub/sub pair
-router.get('/publish/:publisher',             routes_publish.get_publication_list) // all pubs for publisher gln
+router.get('/publish/:provider/:subscriber', routes_publish.get_publication_list) // active pubs for pub/sub pair
+router.get('/publish/:provider',             routes_publish.get_publication_list) // all pubs for publisher gln
+router.get('/publish',                       routes_publish.get_publication_list) // all pubs
 
 router.get('/subscribed/:gtin/:provider/:tm/:tm_sub', routes_subscr.get_subscribed_item)
 router.get('/subscribed/:gtin/:provider/:tm', routes_subscr.get_subscribed_item)
@@ -215,13 +222,8 @@ router.get('/login',                         routes_login.authenticate)
 
 router.get('/logs',                          routes_logs.list_logs)
 
-router.post('/register',                     routes_register.register_trade_items)
-router.post('/validate_register/:provider',  routes_register.register_saved_trade_items)
-
-router.get('/item_status/:provider/:gtin',   routes_register.get_registered_items)
-router.get('/item_status/:provider',         routes_register.get_registered_items)
-
-router.post('/validate',                            routes_validate.validate_trade_items)
+router.get('/item_status/:provider/:gtin',   routes_item.get_gdsn_registered_items)
+router.get('/item_status/:provider',         routes_item.get_gdsn_registered_items)
 
 router.get('/validate/:provider/:gtin',             routes_validate.validate_hierarchy)
 router.get('/validate/:provider/:gtin/:tm',         routes_validate.validate_hierarchy)
@@ -310,3 +312,4 @@ app.use('/gdsn-server/api/', (function (counter) {
     })
   }
 }(100)))
+
