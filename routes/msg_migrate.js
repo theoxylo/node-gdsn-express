@@ -1,5 +1,7 @@
 module.exports = function (config) {
 
+  var Promise = require('q').Promise
+
   var _              = require('underscore')
   var async          = require('async')
 
@@ -9,6 +11,59 @@ module.exports = function (config) {
   var api = {}
 
   api.reparse_msg = function (req, res, next) {
+    log.debug('>>> reparse_msg called with path ' + req.path)
+
+    var sender = req.params.sender
+    if (!config.gdsn.validateGln(sender)) {
+      res.end('sender must be a valid GLN')
+      return
+    }
+  
+    var msg_id = req.params.msg_id
+    var sender = req.params.sender
+    if (!msg_id) { 
+      res.end('msg_id param is required')
+      return
+    }
+    // fetch existing msg xml and submit to dp
+    log.debug('gdsn-wf will use existing msg with id ' + msg_id)
+
+    Promise(function (resolve, reject) {
+      msg_archive.findMessage(sender, msg_id, function (err, msg) {
+        if (err) {
+          reject(err)
+        }
+        else if (!msg || !msg.msg_id || !msg.xml) {
+          reject('missing msg_info for msg_id: ' + msg_id)
+        }
+        else {
+          resolve(msg.xml)
+        }
+      })
+    })
+    .then(function (msg_xml) {
+      log.debug('promised msg_xml.length: ' + msg_xml.length)
+      return Promise(function (resolve, reject) {
+        msg_archive.saveMessage(msg_xml, function (err, msg) {
+          if (err) reject(err)
+          else resolve(msg)
+        })
+      })
+    })
+    .then(function (msg) {
+      log.debug('then msg id: ' + msg.msg_id)
+      res.jsonp(msg)
+    })
+    .catch(function (err) {
+      log.debug('catch err: ' + err)
+      res.jsonp(err)
+    })
+  }
+
+  api.reparse_msg_old = function (req, res, next) {
+
+    // test Promise availability
+    Promise.resolve(23).then(function (result) { console.log('promise: ' + result) })
 
     log.debug('>>> reparse_msg called with path ' + req.path)
 
@@ -26,6 +81,7 @@ module.exports = function (config) {
     }
     // fetch existing msg xml and submit to dp
     log.debug('gdsn-wf will use existing msg with id ' + msg_id)
+
     msg_archive.findMessage(sender, msg_id, function (err, msg) {
 
       if (err) return next(err)

@@ -1,6 +1,6 @@
 {
   "name": "node-gdsn-express",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "An express server for GDSN",
   "main": "app.js",
   "engines": {
@@ -27,7 +27,8 @@
     "basic-auth": "1.0.0",
     "serve-favicon": "2.1.5",
     "request": "2.39.0",
-    "diff-json": "0.1.8"
+    "diff-json": "0.1.8",
+    "q": "^1.4.1"
   },
   "repository": {
     "type": "git",

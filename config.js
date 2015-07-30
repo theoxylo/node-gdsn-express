@@ -24,6 +24,7 @@ var config = {
   , item_default_gtin     : '00000000000000'
   , item_default_gpc      : '99999999'
   , as2_gln_list          : ['9501101020641','0850522001029','4049111180016','7300027777712','5210047000047','0614141810017']
+  , send_rci              : true
 }
 
 // config methods

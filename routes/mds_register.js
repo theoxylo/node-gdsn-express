@@ -9,6 +9,7 @@ module.exports = function get_api(x_config) {
   config = x_config
   log               = require('../lib/Logger')('rt_mdsreg', config)
   var trade_item_db = require('../lib/db/trade_item.js')(config)
+  var process_msg   = require('../lib/process_msg.js')(config)
 
   var api = {}
 
@@ -57,7 +58,7 @@ module.exports = function get_api(x_config) {
       }
       if (!req_body.items.length) return next(Error('no item definitions found in request'))
 
-      validate_register_items(trade_item_db, req_body.items, function format_response(err, results) {
+      validate_register_items(process_msg, trade_item_db, req_body.items, function format_response(err, results) {
 
         log.debug('>>>>>>>>>>>>>>>>>>>> validate_register_items (' + (results ? results.length : '0') + ' results) took ' + (Date.now() - start) + ' ms')
 
@@ -87,11 +88,11 @@ module.exports = function get_api(x_config) {
 
 // private worker functions:
 
-function validate_register_items(db, items, all_done) {
+function validate_register_items(as2, db, items, all_done) {
   var tasks = []
   items.forEach(function (item_query) {
     tasks.push(function (task_done) {
-      validate_and_register_item(db, item_query, function (result) {
+      validate_and_register_item(as2, db, item_query, function (result) {
         task_done(null, result) // result will wrap any errors
       })
     })
@@ -99,10 +100,10 @@ function validate_register_items(db, items, all_done) {
   async.parallel(tasks, all_done, 5) // concurrency
 }
 
-function validate_and_register_item(trade_item_db, query, done) {
+function validate_and_register_item(msg_as2, ti_db, query, done) {
   console.log('item query: ' + (query && query.gtin))
 
-  trade_item_db.findTradeItemFromItem(query, function (err, item) {
+  ti_db.findTradeItemFromItem(query, function (err, item) {
 
     if (err) return done(format_result(err, null, null, query))
 
@@ -114,14 +115,15 @@ function validate_and_register_item(trade_item_db, query, done) {
         return done(format_result(Error('mds attributes do not match, no item found'), null, null, item))
     }
     if (query.validate == 'false') return register_item(item, done)
-    validate_single_item(item, register_item, done)
+    validate_single_item(msg_as2, item, register_item, done)
   })
 } // end validate_and_register_item
 
-function validate_single_item(item, do_success, done) {
+function validate_single_item(as2, item, do_success, done) {
   log.debug('validate_single_item, gtin: ' + item.gtin)
   var start = Date.now()
   var cin_xml = config.gdsn.create_tp_item_cin_28(item)
+  log.debug('CIN: ' + cin_xml)
   request.post({
     url: config.url_gdsn_api + '/xmlvalidation' // + '?bus_vld=true'
     , auth: {
@@ -136,11 +138,11 @@ function validate_single_item(item, do_success, done) {
     if (err || !get_success(res_body)) {
       return done(format_result(err, response, res_body, item))
     }
-    do_success(item, done)
+    do_success(as2, item, done)
   }) // end request.post
 } // end validate_single_item
 
-function register_item(item, done) {
+function register_item(as2, item, done) {
   var form_data = {
       brandName                 : item.brand
     , classCategoryCode         : item.gpc
@@ -170,7 +172,28 @@ function register_item(item, done) {
       }
   }, function post_complete(err, response, res_body) {
     log.debug('post single item register dp result: ' + res_body)
+
+    // conditional logic to send RCI if needed (as indicated by /ci response)
+    var rci_xml = config.gdsn.create_tp_item_rci_28(config, item)
+    log.debug('RCI: ' + rci_xml)
+    try {
+      var send_rci = config.send_rci // (JSON.parse(res_body).info.p_sendRciMsg == 'false' /*'true'*/)
+      if (send_rci) {
+        var start = Date.now()
+        as2.send_by_as2_new(rci_xml, config.gdsn_gr_gln, function(err, result) {
+          log.debug('process_msg.send_by_as2_new completed in ' + (Date.now() - start) + ' ms')
+          if (err) log.error(err)
+          if (result) log.info(result)
+        })
+      }
+    }
+    catch (err) {
+      log.warn('error parsing gdsn server response for RCI logic: ' + err)
+      console.log(err)
+    }
+
     done(format_result(err, response, res_body, item, 'Registration')) // end of processing for each item
+
   }) // end request.post
 } // end register_item
 
@@ -200,6 +223,7 @@ function format_result(err, response, res_body, item, errorType) {
       msg = JSON.parse(res_body).error
     }
     catch (err) {
+      console.log('error parsing res_body:')
       console.log(res_body)
     }
     result.errors.push({message: msg, xPath:'', attributename:''})
