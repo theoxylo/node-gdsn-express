@@ -60,49 +60,6 @@ module.exports = function (config) {
     })
   }
 
-  api.reparse_msg_old = function (req, res, next) {
-
-    // test Promise availability
-    Promise.resolve(23).then(function (result) { console.log('promise: ' + result) })
-
-    log.debug('>>> reparse_msg called with path ' + req.path)
-
-    var sender = req.params.sender
-    if (!config.gdsn.validateGln(sender)) {
-      res.end('sender must be a valid GLN')
-      return
-    }
-  
-    var msg_id = req.params.msg_id
-    var sender = req.params.sender
-    if (!msg_id) { 
-      res.end('msg_id param is required')
-      return
-    }
-    // fetch existing msg xml and submit to dp
-    log.debug('gdsn-wf will use existing msg with id ' + msg_id)
-
-    msg_archive.findMessage(sender, msg_id, function (err, msg) {
-
-      if (err) return next(err)
-
-      if (!msg || !msg.msg_id || !msg.xml) {
-        log.error('msg_info problem with data:' + JSON.stringify(msg))
-        return next(Error('missing msg_info for msg_id: ' + msg_id))
-      }
-
-      msg_archive.saveMessage(msg.xml, function (err, msg) {
-        log.debug('migrate reparse xml with modified ts: ' + (msg && msg.modified_ts))
-        if (err) return next(err)
-        if (!res.finished) {
-          res.json(msg)
-          res.end
-        }
-      })
-    })
-
-  }
-
   api.migrate_msg_archive = function (req, res, next) {
     log.debug('migrate_msg_archive handler called at ' + new Date)
 
@@ -111,10 +68,10 @@ module.exports = function (config) {
     function migrateMessageBatch(batch_num) {
 
       var query = {
-        msg_type: 'catalogueItemNotification'
+        sender   : '1100001011339'
+        //,msg_type: 'catalogueItemNotification'
         //,source_dp: '1100001011285'
-        ,version  : '3.1'
-        ,sender   : '9501101020641'
+        //,version  : '3.1'
         //source_dp: {$exists: false}
         //version: {$exists: false}
         //status: "REVIEW"
@@ -152,11 +109,11 @@ module.exports = function (config) {
           results = _.flatten(results) // async.parallel returns an array of results arrays
           msgsMigrated = msgsMigrated.concat(results)
 
-          // repeat after 0.5 seconds
+          // repeat after 0.5 seconds sleep
           setTimeout(function () {
             migrateMessageBatch(batch_num + 1)
           }, 500)
-        })
+        }, 5)
 
       })
     }
