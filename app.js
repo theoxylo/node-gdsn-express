@@ -281,7 +281,8 @@ app.use('/gdsn-server/api/outbox', (function (counter) {
 
       var filename = encodeURIComponent(req.query.filename || 'gdsn31-msg_' + '-' + Date.now())
       console.log('req.query string for dp-outbox target url: ' + filename)
-      filename = __dirname + '/outbox/' + filename + '-' + (counter++) + '.xml'
+      //filename = __dirname + '/outbox/' + filename + '-' + (counter++) + '.xml'
+      filename = config.outbox_dir + '/' + filename + '-' + (counter++) + '.xml'
 
       fs.writeFile(filename, content, function (err) {
         if (err) return next(err)
