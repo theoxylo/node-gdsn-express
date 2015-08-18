@@ -28,7 +28,7 @@
     "serve-favicon": "2.1.5",
     "request": "2.39.0",
     "diff-json": "0.1.8",
-    "q": "^1.4.1"
+    "q": "1.4.1"
   },
   "repository": {
     "type": "git",
