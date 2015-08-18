@@ -8,8 +8,8 @@ var config = {
   , gs1_schema_url        : 'http://www.gdsregistry.org/3.1/schemas'
   , debug                 : true                       // additional logging
   , db_url                : 'catalog_services'         // for localhost MongoDb, used by lib/database.js
-  , inbox_dir             : __dirname + '/msg/inbox/'  // watch directory for incoming messages
-  , outbox_dir            : __dirname + '/msg/outbox/' // for outgoing messages sent by the data pool
+  , inbox_dir             : __dirname + '/msg/inbox'   // watch directory for incoming messages
+  , outbox_dir            : __dirname + '/msg/outbox'  // for outgoing messages sent by the data pool
   , routes_dir            : __dirname + '/routes'
   //  Optional HTTPS/TLS/SSL:
   //, https_port            : 8443                     // potentially used for public access to dashboard without vpn, TBD
@@ -24,7 +24,7 @@ var config = {
   , item_default_gtin     : '00000000000000'
   , item_default_gpc      : '99999999'
   , as2_gln_list          : ['9501101020641','0850522001029','4049111180016','7300027777712','5210047000047','0614141810017']
-  , send_rci              : true
+  //, send_rci              : true
 }
 
 // config methods
