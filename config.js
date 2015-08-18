@@ -8,8 +8,8 @@ var config = {
   , gs1_schema_url        : 'http://www.gdsregistry.org/3.1/schemas'
   , debug                 : true                       // additional logging
   , db_url                : 'catalog_services'         // for localhost MongoDb, used by lib/database.js
-  , inbox_dir             : __dirname + '/msg/inbox/'  // watch directory for incoming messages
-  , outbox_dir            : __dirname + '/msg/outbox/' // for outgoing messages sent by the data pool
+  , inbox_dir             : __dirname + '/msg/inbox'   // watch directory for incoming messages
+  , outbox_dir            : __dirname + '/msg/outbox'  // for outgoing messages sent by the data pool
   , routes_dir            : __dirname + '/routes'
   //  Optional HTTPS/TLS/SSL:
   //, https_port            : 8443                     // potentially used for public access to dashboard without vpn, TBD
