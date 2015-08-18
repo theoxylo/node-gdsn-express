@@ -187,7 +187,7 @@ router.get('/msg/archive/:msg_id/:sender',   routes_msg.archive_msg)
 
 router.get('/msg/migrate/:msg_id/:sender',   routes_msg_mig.reparse_msg)
 router.get('/msg/migrate/:msg_id',           routes_msg_mig.reparse_msg)
-router.get('/msg/migrate',                   routes_msg_mig.migrate_msg_archive)
+//router.get('/msg/migrate',                   routes_msg_mig.migrate_msg_archive)
 
 router.get('/msg/:msg_id/:sender',           routes_msg.find_archive)
 router.get('/msg/:msg_id',                   routes_msg.find_archive)
@@ -206,7 +206,7 @@ router.get('/subscribed/',                   routes_subscr.get_subscribed_item)
 router.get('/items/history/:recipient/:gtin/:provider/:tm/:tm_sub', routes_item.get_trade_item_history)
 
 router.get('/items-list',                    routes_item.list_trade_items)
-router.get('/items/migrate',                 routes_item.migrate_trade_items)
+//router.get('/items/migrate',                 routes_item.migrate_trade_items)
 router.get('/items/:recipient/:gtin/:provider/:tm/:tm_sub', routes_item.get_trade_item) // return exact item with optional children
 router.get('/items/:recipient/:gtin/:provider/:tm', routes_item.find_trade_items)
 router.get('/items/:recipient/:gtin/:provider', routes_item.find_trade_items)
@@ -279,9 +279,9 @@ app.use('/gdsn-server/api/outbox', (function (counter) {
     })
     req.on('end', function () {
 
-      var filename = encodeURIComponent(req.query.filename || 'gdsn31-msg_' + '-' + Date.now())
+      var filename = encodeURIComponent(req.query.filename || ('nofile_' + Date.now()))
       console.log('req.query string for dp-outbox target url: ' + filename)
-      filename = __dirname + '/outbox/' + filename + '-' + (counter++) + '.xml'
+      filename = config.outbox_dir + '/' + filename + '-' + (counter++) + '-' + (Date.now()) + '.xml'
 
       fs.writeFile(filename, content, function (err) {
         if (err) return next(err)
@@ -312,4 +312,37 @@ app.use('/gdsn-server/api/', (function (counter) {
     })
   }
 }(100)))
+
+// test for using filesystem inbox
+fs.watch(config.inbox_dir, function (event, filename) {
+  if (event == 'change') {
+    console.log('fs.watch change: ' + filename || '<unnamed>')
+    if (!filename) return
+
+    var archive_file = config.inbox_dir + '-archive/' + filename + '.' + Date.now()
+    filename = config.inbox_dir + '/' + filename
+
+    console.log('readFile ' + filename)
+    fs.readFile(filename, {encoding:'utf8'}, function (err, content) {
+      if (err) return console.log(err)
+      //console.log(content)
+      if (content) try {
+        var msg = config.gdsn.get_msg_info(content)
+        delete msg.data
+        delete msg.xml
+        console.log('msg_info:::::::::::::::::::::: ' + msg)
+        fs.rename(filename, archive_file, function (err) {
+          if (err) {
+            console.log('err archiving file ' + filename + ' to ' + archive_file)
+            return console.log(err)
+          }
+          console.log('file processed and moved to archive: ' + archive_file)  
+        })
+      }
+      catch (err) {
+        console.log(err)
+      }
+    })
+  }
+})
 
