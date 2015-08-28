@@ -9,48 +9,6 @@ module.exports = function (config) {
   var trade_item_db  = require('../lib/db/trade_item.js')(config)
   var msg_archive    = require('../lib/db/msg_archive.js')(config)
 
-  function populateItemImageUrls(item) {
-    var urls = []
-    if (item
-        && item.tradeItem
-        && item.tradeItem.tradeItemInformation
-        && item.tradeItem.tradeItemInformation.tradeItemDescriptionInformation
-        && item.tradeItem.tradeItemInformation.tradeItemDescriptionInformation.tradeItemExternalInformation
-    ) {
-      try {
-        var dUrls = item.tradeItem.tradeItemInformation.tradeItemDescriptionInformation.tradeItemExternalInformation.map(function (extInfo) {
-          return extInfo.uniformResourceIdentifier
-        })
-        if (dUrls && dUrls.length) {
-          dUrls.unshift(0)
-          dUrls.unshift(dUrls.length -1)
-          Array.prototype.splice.apply(urls, dUrls)
-        }
-      }
-      catch (e) {console.log(e)}
-    }
-    if (item
-        && item.tradeItem
-        && item.tradeItem.extension
-        && item.tradeItem.extension.foodAndBeverageTradeItemExtension
-        && item.tradeItem.extension.foodAndBeverageTradeItemExtension.tradeItemExternalInformation
-    ) {
-      try {
-        var fUrls = item.tradeItem.extension.foodAndBeverageTradeItemExtension.tradeItemExternalInformation.map(function (extInfo) {
-          return extInfo.uniformResourceIdentifier
-        })
-        if (fUrls && fUrls.length) {
-          fUrls.unshift(0)
-          fUrls.unshift(fUrls.length -1)
-          Array.prototype.splice.apply(urls, fUrls)
-        }
-      }
-      catch (e) {console.log(e)}
-    }
-    if (urls.length) log.debug('all item external file urls: ' + urls.join(' '))
-    item.images = urls
-  }
-
   function serveCollection(req, res, items, href) {
 
     var item_count = 1
@@ -82,84 +40,35 @@ module.exports = function (config) {
 
   var api = {} // for return
 
-  // retrieve single trade item, and conditionally its children
-  api.get_trade_item = function (req, res, next) {
-    log.debug('get_trade_item ')
-
-    var req_id = req.param('req_id')
-    log.debug('using req_id ' + req_id)
-    if (!req_id) req_id = item_utils.get_auto_req_id()
-
-    var info = item_utils.get_info_logger(log, req_id)
-    info('get_trade_item req.path: ' + req.url)
-    info('req query params: ' + JSON.stringify(req.query))
-
-    var children = (req.param('children') == 'true')
-    info('include children ' + children)
-
-    var db_query = item_utils.get_query(req)
-    info('db query: ' + JSON.stringify(db_query))
-
-    var start = Date.now()
-    trade_item_db.getTradeItems(db_query, 0, 5, false, function (err, items) {
-      if (err) return next(err)
-
-      info('found ' + items.length + ' total items for gtin ' + db_query.gtin + ' in ' + (Date.now() - start) + 'ms')
-
-      items.forEach(function (item) {
-        item.fetch_type = 'match'
-      })
-
-      var start2 = Date.now()
-      var href = config.base_url + req.url
-
-      if (children && items.length == 1) { // only get children for first item match
-        var item = items[0]
-        item_utils.fetch_all_children(item, req_id, function(err, items) {
-          if (err) return next(err)
-          items.unshift(item)
-          info('found ' + items.length + ' total items for gtin ' + item.gtin + ' (with children) in ' + (Date.now() - start2) + 'ms')
-          serveCollection(req, res, items, href)
-        })
-      }
-      else {
-        info('skipping children for ' + items.length + ' item search results')
-        serveCollection(req, res, items, href)
-      }
-      log.db(req.url, req.user, (Date.now() - start) )
-    }) // end trade_item_db.getTradeItems
-  }
-
-  // retrieve list of items NOT including xml
+  // retrieve list of items including xml
   api.list_trade_items = function (req, res, next) {
     log.debug('list_items')
 
-    var page = parseInt(req.param('page'))
+    var page = parseInt(req.param('page') || '0')
     log.debug('page: ' + page)
     if (!page || page < 0) page = 0
 
-    var per_page = parseInt(req.param('per_page'))
+    var per_page = parseInt(req.param('per_page') || '10')
     log.debug('per_page: ' + per_page)
-    //if (!per_page || per_page < 0) per_page = config.per_page_count                    // NO per_page LIMIT!
-    //if (!per_page || per_page < 0 || per_page > 100) per_page = config.per_page_count  //      set max per_page to 100
-    //if (!per_page || per_page < 0 || per_page > 1000) per_page = config.per_page_count // increase max per_page to 1000
-    if (!per_page || per_page < 0 || per_page > 10000) per_page = config.per_page_count  // increase max per_page to 10000
+    if (!per_page || per_page < 0 || per_page > 5000) per_page = config.per_page_count  // 5k max items per page
 
-    log.info('req params: ' + JSON.stringify(req.query))
+    log.info('req.query params: ' + JSON.stringify(req.query))
     var query = item_utils.get_query(req)
 
     var start = Date.now()
-    trade_item_db.getTradeItems(query, page, per_page, false, function (err, items) {
+    trade_item_db.getTradeItems(query, page, per_page, function (err, items) {
       if (err) return next(err)
       log.info('list_trade_items getTradeItems returned ' + (items && items.length) + ' items in ' + (Date.now() - start) + 'ms')
       var item_count = (page * per_page) + 1
       items = items.map(function (item) {
         item.href         = item_utils.get_item_href(item, '/items')
         item.history_href = item_utils.get_item_href(item, '/items/history')
-        //item.cin_href     = item_utils.get_item_href(item, '/validate')
         item.cin_href     = config.base_url + '/validate/' + item.provider + '/' + item.gtin + '/' + item.tm
         item.item_count_num = item_count++
         populateItemImageUrls(item)
+
+        if (item.xml) delete item.xml // skip xml for list view, performance?
+
         return item
       })
       var href = config.base_url + req.url
@@ -172,30 +81,30 @@ module.exports = function (config) {
 
       if (!res.finished) res.jsonp(result)
       log.db(req.url, req.user, (Date.now() - start) )
-    })
+    }) // end trade_item_db.getTradeItems
   }
 
   // retrieve list of items including xml
   api.find_trade_items = function (req, res, next) {
     log.info('find_trade_items req.path: ' + req.path)
-    log.info('find_trade_items req.query: ' + JSON.stringify(req.query))
 
+    log.info('find_trade_items req.query: ' + JSON.stringify(req.query))
     var query = item_utils.get_query(req)
 
-    var page = parseInt(req.param('page'))
+    var page = parseInt(req.param('page') || '0')
     log.debug('page ' + page)
     if (!page || page < 0) page = 0
 
-    var per_page = parseInt(req.param('per_page'))
+    var per_page = parseInt(req.param('per_page') || '10')
     log.debug('per_page ' + per_page)
     if (!per_page || per_page < 0 || per_page > 100) per_page = config.per_page_count
 
     var start = Date.now()
-    trade_item_db.getTradeItems(query, page, per_page, true, function (err, items) {
+    trade_item_db.getTradeItems(query, page, per_page, function (err, items) {
       if (err) return next(err)
       log.info('find_trade_items getTradeItems found ' + items.length + ' items in ' + (Date.now() - start) + 'ms')
 
-      if (req.param('callback') || req.param('json')) { // json override
+      if (req.param('callback') || req.param('json') || items.length > 1) { // json override
         req.headers.accept = 'application/json'
       }
       else if (req.param('xml')) { // xml override
@@ -212,7 +121,6 @@ module.exports = function (config) {
           var item = items && items[0]
 
           if (item) {
-
             res.set('Content-Type', 'application/xml;charset=utf-8')
             if (req.param('download')) {
               res.set('Content-Disposition', 'attachment; filename="item_' + item.gtin + '.xml"')
@@ -221,27 +129,18 @@ module.exports = function (config) {
           }
           else {
             log.error('No item found')
+            res.end('item not found for req ' + req.query)
           }
-
         },
 
-        json: function () { // serve item list as 'Content-Type: application/json'
+        json: function () { // serve multi item list as 'Content-Type: application/json'
 
           items = items.map(function (item) {
-
             item.req_user    = req.user
             item.client_name = client_config.client_name
             item.href         = item_utils.get_item_href(item, '/items')
             item.history_href = item_utils.get_item_href(item, '/items/history')
-            //item.cin_href     = item_utils.get_item_href(item, '/validate')
             item.cin_href     = config.base_url + '/validate/' + item.provider + '/' + item.gtin + '/' + item.tm
-
-            // run digest at request time?
-            //var itemDigest = xml_digest.digest(item.xml)
-            //item.tradeItem = itemDigest.tradeItem
-
-            delete item.xml
-
             return item
           })
 
@@ -268,55 +167,56 @@ module.exports = function (config) {
 
       }) // end res.format
       log.db(req.url, req.user, (Date.now() - start) )
-    }) // end getTradeItems callback
+    }) // end trade_item_db.getTradeItems
   }
 
   api.migrate_trade_items = function (req, res, next) {
     log.debug('migrate_trade_items handler called')
 
-    var query = {}
-    query.tradeItem = {$exists: false}
-    query.archived_ts = { $in : ['', null] }
+    var recipient = req.param('recipient')
+
+    // custom query:
+    var query = {
+      archived_ts: {$exists: false}
+      //, tradeItem: {$exists: false}
+      , raw_xml: {$exists: true}
+    }
+    if (recipient) query.recipient = recipient
 
     var gtinsMigrated = []
 
-    var intervalId = setInterval(function () {
-      trade_item_db.getTradeItems(query, 0, 10, true, function (err, items) {
+    var migrateItemBatch = function (batch) {
+      log.debug('batch num: ' + batch)
+      trade_item_db.getTradeItems(query, batch, 10, function (err, items) {
         if (err) return next(err)
+
         log.info('migrate_trade_items getTradeItems return item count: ' + items.length)
 
-        if (!items.length) {
-          clearInterval(intervalId)
-          res.jsonp({msg: 'Migrated ' + gtinsMigrated.length + ' items, GTINs: ' + gtinsMigrated.join(', ')})
+        if (!items || !items.length) {
+          res.jsonp({msg: 'Migrated ' + gtinsMigrated.length + ' items for recipient ' + recipient + ', GTINs: ' + gtinsMigrated.join(', ')})
           return res.end()
         }
 
         var tasks = []
         items.forEach(function (item) {
-          log.debug('migrating tradeitem with gtin ' + item.gtin)
-
-          try {
-            var itemDigest = xml_digest.digest(item.xml)
-            item.tradeItem = itemDigest.tradeItem
-            tasks.push(function (callback) {
-              trade_item_db.saveTradeItem(item, callback)
-            })
-          }
-          catch (e) {
-            log.debug('failed digest xml: ' + item.xml)
-            return next(e)
-          }
+          log.debug('migrating (resaving) tradeitem with gtin ' + item.gtin)
+          tasks.push(function (callback) {
+            trade_item_db.saveTradeItem(item, callback)
+          })
         })
         async.parallel(tasks, function (err, results) {
-          log.debug('parallel err: ' + JSON.stringify(err))
-          log.debug('parallel results: ' + JSON.stringify(results))
           if (err) return next(err)
+          log.debug('parallel results: ' + JSON.stringify(results))
           results = _.flatten(results) // async.parallel returns an array of results arrays
           gtinsMigrated = gtinsMigrated.concat(results)
-        })
 
-      })
-    }, 100)
+          setTimeout(function () {
+            migrateItemBatch(batch + 1)
+          }, 500)
+        }, /* concurrency */ 4) // end async.parallel
+      }) // end trade_item_db.getTradeItems
+    }
+    migrateItemBatch(0)
   }
 
   // retrieve single trade item with historic versions
@@ -328,16 +228,16 @@ module.exports = function (config) {
     if (!req_id) req_id = item_utils.get_auto_req_id()
 
     var info = item_utils.get_info_logger(log, req_id)
-
     info('req path: ' + req.url)
-    info('req query params: ' + JSON.stringify(req.query))
 
+    info('req.query params: ' + JSON.stringify(req.query))
     var db_query = item_utils.get_query(req)
+
     if (db_query.archived_ts) delete db_query.archived_ts // include archived items versions
     info('db query: ' + JSON.stringify(db_query))
 
     var start = Date.now()
-    trade_item_db.getTradeItems(db_query, 0, 10, false, function (err, items) {
+    trade_item_db.getTradeItems(db_query, 0, 10, function (err, items) {
       if (err) return next(err)
 
       info('found ' + items.length + ' total historical items for ' + req.path + ' in ' + (Date.now() - start) + 'ms')
@@ -400,3 +300,47 @@ module.exports = function (config) {
 
   return api
 }
+
+  function populateItemImageUrls(item) {
+    var urls = []
+    if (item
+        && item.tradeItem
+        && item.tradeItem.tradeItemInformation
+        && item.tradeItem.tradeItemInformation.tradeItemDescriptionInformation
+        && item.tradeItem.tradeItemInformation.tradeItemDescriptionInformation.tradeItemExternalInformation
+    ) {
+      try {
+        var dUrls = item.tradeItem.tradeItemInformation.tradeItemDescriptionInformation.tradeItemExternalInformation.map(function (extInfo) {
+          console.log('found an ExternalInfo for populateItemImageUrls for gtin ' + item.gtin + ' with url ' + extInfo.uniformResourceIdentifier)
+          return extInfo.uniformResourceIdentifier
+        })
+        if (dUrls && dUrls.length) {
+          dUrls.unshift(0)
+          dUrls.unshift(dUrls.length -1)
+          Array.prototype.splice.apply(urls, dUrls)
+        }
+      }
+      catch (e) {console.log(e)}
+    }
+    if (item
+        && item.tradeItem
+        && item.tradeItem.extension
+        && item.tradeItem.extension.foodAndBeverageTradeItemExtension
+        && item.tradeItem.extension.foodAndBeverageTradeItemExtension.tradeItemExternalInformation
+    ) {
+      try {
+        var fUrls = item.tradeItem.extension.foodAndBeverageTradeItemExtension.tradeItemExternalInformation.map(function (extInfo) {
+          return extInfo.uniformResourceIdentifier
+        })
+        if (fUrls && fUrls.length) {
+          fUrls.unshift(0)
+          fUrls.unshift(fUrls.length -1)
+          Array.prototype.splice.apply(urls, fUrls)
+        }
+      }
+      catch (e) {console.log(e)}
+    }
+    if (urls.length) log.debug('all item external file urls: ' + urls.join(' '))
+    item.images = urls
+  }
+

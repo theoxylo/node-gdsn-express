@@ -176,10 +176,7 @@ router.get('/gdsn-workflow/:msg_id',         routes_gdsn_wf.lookup_and_process)
 //              [reload=true|*false]
 //              [doc=COPY|*ORIGINAL]
 router.get('/gdsn-cin/:recipient/:gtin/:provider/:tm/:tm_sub', routes_gdsn_cin.create_cin)
-//router.get('/gdsn-cin/:recipient/:gtin/:provider/:tm',         routes_gdsn_cin.create_cin) // default tm_sub is 'na'
-//router.get('/gdsn-cin/:recipient/:gtin',                       routes_gdsn_cin.find_cin)
-//router.get('/gdsn-cin/:recipient/:gtin',                       routes_gdsn_cin.find_cin)
-//router.get('/gdsn-cin/:recipient',                             routes_gdsn_cin.find_cin)
+router.get('/gdsn-cin/:recipient/:gtin/:provider/:tm'        , routes_gdsn_cin.create_cin) // default tm_sub is 'na'
 
 // GET
 router.get('/msg/history/:msg_id/:sender',   routes_msg.msg_history)
@@ -187,7 +184,7 @@ router.get('/msg/archive/:msg_id/:sender',   routes_msg.archive_msg)
 
 router.get('/msg/migrate/:msg_id/:sender',   routes_msg_mig.reparse_msg)
 router.get('/msg/migrate/:msg_id',           routes_msg_mig.reparse_msg)
-//router.get('/msg/migrate',                   routes_msg_mig.migrate_msg_archive)
+//router.get('/msg-migrate',                   routes_msg_mig.migrate_msg_archive)
 
 router.get('/msg/:msg_id/:sender',           routes_msg.find_archive)
 router.get('/msg/:msg_id',                   routes_msg.find_archive)
@@ -198,21 +195,24 @@ router.get('/publish/:provider',             routes_publish.get_publication_list
 router.get('/publish',                       routes_publish.get_publication_list) // all pubs
 
 router.get('/subscribed/:gtin/:provider/:tm/:tm_sub', routes_subscr.get_subscribed_item)
-router.get('/subscribed/:gtin/:provider/:tm', routes_subscr.get_subscribed_item)
-router.get('/subscribed/:gtin/:provider',    routes_subscr.get_subscribed_item)
-router.get('/subscribed/:gtin',              routes_subscr.get_subscribed_item)
-router.get('/subscribed/',                   routes_subscr.get_subscribed_item)
+router.get('/subscribed/:gtin/:provider/:tm'        , routes_subscr.get_subscribed_item) // default tm_sub 'na' or any
+router.get('/subscribed/:gtin/:provider'            , routes_subscr.get_subscribed_item) // default tm '840' or any
+router.get('/subscribed/:gtin'                      , routes_subscr.get_subscribed_item)
+router.get('/subscribed/'                           , routes_subscr.get_subscribed_item)
 
 router.get('/items/history/:recipient/:gtin/:provider/:tm/:tm_sub', routes_item.get_trade_item_history)
+router.get('/items/history/:recipient/:gtin/:provider/:tm'        , routes_item.get_trade_item_history) // default tm_sub 'na'
 
 router.get('/items-list',                    routes_item.list_trade_items)
-//router.get('/items/migrate',                 routes_item.migrate_trade_items)
-router.get('/items/:recipient/:gtin/:provider/:tm/:tm_sub', routes_item.get_trade_item) // return exact item with optional children
-router.get('/items/:recipient/:gtin/:provider/:tm', routes_item.find_trade_items)
-router.get('/items/:recipient/:gtin/:provider', routes_item.find_trade_items)
-router.get('/items/:recipient/:gtin',        routes_item.find_trade_items)
-router.get('/items/:recipient',              routes_item.find_trade_items)
-router.get('/items',                         routes_item.find_trade_items)
+router.get('/items-migrate/:recipient',      routes_item.migrate_trade_items)
+router.get('/items-migrate'           ,      routes_item.migrate_trade_items)
+
+router.get('/items/:recipient/:gtin/:provider/:tm/:tm_sub',   routes_item.find_trade_items)
+router.get('/items/:recipient/:gtin/:provider/:tm',           routes_item.find_trade_items)
+router.get('/items/:recipient/:gtin/:provider',               routes_item.find_trade_items)
+router.get('/items/:recipient/:gtin',                         routes_item.find_trade_items)
+router.get('/items/:recipient',                               routes_item.find_trade_items)
+router.get('/items',                                          routes_item.find_trade_items)
 
 router.get('/party/:gln',                    routes_parties.find_parties)
 router.get('/parties/:gln',                  routes_parties.find_parties)
@@ -225,9 +225,9 @@ router.get('/logs',                          routes_logs.list_logs)
 router.get('/item_status/:provider/:gtin',   routes_item.get_gdsn_registered_items)
 router.get('/item_status/:provider',         routes_item.get_gdsn_registered_items)
 
-router.get('/validate/:provider/:gtin',             routes_validate.validate_hierarchy)
-router.get('/validate/:provider/:gtin/:tm',         routes_validate.validate_hierarchy)
 router.get('/validate/:provider/:gtin/:tm/:tm_sub', routes_validate.validate_hierarchy)
+router.get('/validate/:provider/:gtin/:tm',         routes_validate.validate_hierarchy)
+router.get('/validate/:provider/:gtin',             routes_validate.validate_hierarchy)
 
 log.info('done setting up routes')
 

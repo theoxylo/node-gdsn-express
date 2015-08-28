@@ -151,7 +151,7 @@ module.exports = function (config) {
         res.jsonp(result)
         res.end()
       }
-    }, /* all fields */ true, /* include history */ true)
+    }, /* skip_xml */ false, /*include history */ true)
   }
 
   // returns pages of msg_info
@@ -187,7 +187,7 @@ module.exports = function (config) {
         res.jsonp(result)
         res.end()
       }
-    })
+    }, 'skip_xml')
   }
 
   // finds single message only

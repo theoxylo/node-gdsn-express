@@ -19,12 +19,14 @@ var config = {
   , gpc_file              : __dirname + '/data/gpc/GS1_Combined_Published_as_at_01062014.xml'
   , per_page_count        : 10
   , base_url              : '/cs_api/1.0'
-  , slow_warn_ms          : 1200
+  , slow_warn_ms          : 2000
   , url_gdsn_api          : 'http://localhost:8080/gdsn-server/api'
   , item_default_gtin     : '00000000000000'
   , item_default_gpc      : '99999999'
   , as2_gln_list          : ['9501101020641','0850522001029','4049111180016','7300027777712','5210047000047','0614141810017']
   //, send_rci              : true
+  ,skip_hier_validation     : false
+  ,skip_hier_bus_validation : false
 }
 
 // config methods

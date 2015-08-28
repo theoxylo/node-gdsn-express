@@ -64,14 +64,12 @@ module.exports = function (config) {
       var start = Date.now()
       log.debug('fetching all items for provider ' + provider + ', gtin ' + gtin + ' at time ' + start)
 
-      trade_item_db.getTradeItems(query, 0, 100, /* include_xml */ true, function (err, items) {
+      trade_item_db.getTradeItems(query, 0, 100, function (err, items) {
         if (err) return next(err)
 
         log.info('db found ' + (items && items.length) + ' items for gtin ' + gtin + ' in ' + (Date.now() - start) + ' ms')
 
-        //items = item_utils.de_dupe_items(items)
-
-        if (items.length == 0) {
+        if (!items || items.length == 0 || !items[0] || !items[0].gtin) {
           var result = utils.get_collection_json([], config.base_url + req.url)
           result.collection.error = {
             title    : 'Item not found'
@@ -83,6 +81,11 @@ module.exports = function (config) {
             res.end()
           }
           return
+        }
+
+        if (items.length > 1) {
+          console.log('found many items: ' + items.join())
+          items = [items[0]] // temp enhancement: ignore additional items
         }
 
         if (items.length > 1) {
@@ -109,7 +112,7 @@ module.exports = function (config) {
         items[0].fetch_type = 'match' // this is the hierarchy root item
         //console.log('first match: ' + items[0].xml)
 
-        item_utils.fetch_all_children_with_xml(items[0], 999, function (err, results) {
+        item_utils.fetch_all_children(items[0], 999, function (err, results) {
           if (err) return next(err)
           log.info('utils found ' + (results && results.length) + ' child items for gtin ' + gtin + ' in ' + (Date.now() - start) + 'ms')
 
@@ -118,7 +121,6 @@ module.exports = function (config) {
           })
 
           items = items.concat(results)
-          //items = item_utils.de_dupe_items(items)
           items = items.map(function (item) {
             item.recipient = recipient // note we are changing the items to our new recipient, so these may not exist in db yet
             return item
@@ -126,9 +128,17 @@ module.exports = function (config) {
 
           var cin_xml = config.gdsn.create_tp_pub_cin_28(items, receiver, command, reload, docStatus, sender)
 
+          if (config.skip_hier_validation && !res.finished) {
+            res.set('Content-Type', 'application/xml;charset=utf-8')
+            return res.end(cin_xml)
+          }
+
           try {
+            var start_post = Date.now()
+            var gdsn_url = config.url_gdsn_api + '/xmlvalidation?bus_vld=' + (config.skip_hier_bus_validation ? 'false' : 'true')
             request.post({
-              url: config.url_gdsn_api + '/xmlvalidation?bus_vld=true'
+              //url: config.url_gdsn_api + '/xmlvalidation?bus_vld=true'
+              url: gdsn_url
               , auth: {
                   'user': 'admin'
                   , 'pass': 'devadmin'
@@ -137,6 +147,7 @@ module.exports = function (config) {
               , body: cin_xml
             }, 
             function (err, response, body) {
+              log.debug('post to gdsn xmlvalidation with bus_vld took ' + (Date.now() - start_post) + ' ms with gdsn url ' + gdsn_url)
 
               if (err) return next(err)
 
@@ -162,7 +173,7 @@ module.exports = function (config) {
             return next(err)
           }
         }) // end: fetch all children and generate/validate cin
-      })
+      }) // end trade_item_db.getTradeItems
     }
     catch (err) {
       log.error(err)
@@ -239,11 +250,6 @@ module.exports = function (config) {
       }, 5) // concurrency
     }) // end req.on('end') callback
   } // end api.validate_trade_items 
-
-  api.find_cin = function (req, res, next) { // TODO
-    log.debug('find_cin req.path: ' + req.url)
-    if (!res.finished) res.end(500, 'not yet implemented')
-  }
 
   return api
 }

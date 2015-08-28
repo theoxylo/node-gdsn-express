@@ -6,7 +6,7 @@ module.exports = function (config) {
   var async          = require('async')
 
   var log            = require('../lib/Logger')('rt_msg_migr', {debug: true})
-  var msg_archive    = require('../lib/db/msg_archive.js')(config)
+  var db_msg_archive    = require('../lib/db/msg_archive.js')(config)
 
   var api = {}
 
@@ -29,7 +29,7 @@ module.exports = function (config) {
     log.debug('gdsn-wf will use existing msg with id ' + msg_id)
 
     Promise(function (resolve, reject) {
-      msg_archive.findMessage(sender, msg_id, function (err, msg) {
+      db_msg_archive.findMessage(sender, msg_id, function (err, msg) {
         if (err) {
           reject(err)
         }
@@ -44,7 +44,7 @@ module.exports = function (config) {
     .then(function (msg_xml) {
       log.debug('promised msg_xml.length: ' + msg_xml.length)
       return Promise(function (resolve, reject) {
-        msg_archive.saveMessage(msg_xml, function (err, msg) {
+        db_msg_archive.saveMessage(msg_xml, function (err, msg) {
           if (err) reject(err)
           else resolve(msg)
         })
@@ -80,7 +80,7 @@ module.exports = function (config) {
         //gdsn_repostable: {$exists: true}
       }
 
-      msg_archive.listMessagesWithXml(query, batch_num, 10, function (err, messages) {
+      db_msg_archive.listMessages(query, batch_num, 10, function (err, messages) {
         if (err) return next(err)
         log.info('migrate_msg_archive listMessages return count: ' + messages.length)
 
@@ -94,7 +94,7 @@ module.exports = function (config) {
           log.debug('migrating msg ' + msg.msg_id)
 
           tasks.push(function (callback) {
-            msg_archive.saveMessage(msg.xml, function (err, msg) {
+            db_msg_archive.saveMessage(msg.xml, function (err, msg) {
               log.debug('route save version: ' + (msg && msg.version))
               if (err) return callback(err)
               else callback(null, msg.msg_id)
@@ -109,13 +109,12 @@ module.exports = function (config) {
           results = _.flatten(results) // async.parallel returns an array of results arrays
           msgsMigrated = msgsMigrated.concat(results)
 
-          // repeat after 0.5 seconds sleep
           setTimeout(function () {
             migrateMessageBatch(batch_num + 1)
           }, 500)
-        }, 5)
 
-      })
+        }, 5) // end parallel
+      }) // end db_msg_archive.listMessages
     }
     migrateMessageBatch(0)
   }

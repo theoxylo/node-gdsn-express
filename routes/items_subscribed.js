@@ -88,9 +88,7 @@ module.exports = function (config) {
         var start = Date.now()
         log.debug(req_id + ' fetching all items for gtin ' + gtin + ' at time ' + start)
 
-        var include_xml = false // for db projection
-
-        trade_item_db.getTradeItems(query, 0, 100, include_xml, function process_found_items(err, items) {
+        trade_item_db.getTradeItems(query, 0, 100, function process_found_items(err, items) {
           if (err) return next(err)
 
           info('db found ' + (items && items.length) + ' items for gtin ' + gtin + ' in ' + (Date.now() - start) + 'ms')

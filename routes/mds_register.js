@@ -4,7 +4,7 @@ var request = require('request')
 var log
 var config
 
-module.exports = function get_api(x_config) {
+module.exports = function (x_config) {
 
   config = x_config
   log               = require('../lib/Logger')('rt_mdsreg', config)
@@ -174,17 +174,21 @@ function register_item(as2, item, done) {
     log.debug('post single item register dp result: ' + res_body)
 
     // conditional logic to send RCI if needed (as indicated by /ci response)
-    var rci_xml = config.gdsn.create_tp_item_rci_28(config, item)
-    log.debug('RCI: ' + rci_xml)
     try {
-      var send_rci = config.send_rci // (JSON.parse(res_body).info.p_sendRciMsg == 'false' /*'true'*/)
+      var send_rci = config.send_rci || res_body.indexOf('p_sendRciMsg=true') > -1
       if (send_rci) {
+        log.debug('generating and sending rci for item ' + item.gtin)
+        var rci_xml = config.gdsn.create_tp_item_rci_28(config, item)
+        log.debug('RCI: ' + rci_xml)
         var start = Date.now()
-        as2.send_by_as2_new(rci_xml, config.gdsn_gr_gln, function(err, result) {
-          log.debug('process_msg.send_by_as2_new completed in ' + (Date.now() - start) + ' ms')
+        as2.send_by_as2(rci_xml, config.gdsn_gr_gln, function(err, result) {
+          log.debug('process_msg.send_by_as2 completed in ' + (Date.now() - start) + ' ms')
           if (err) log.error(err)
           if (result) log.info(result)
         })
+      }
+      else { // skip RCI
+        log.debug('skipping rci for item ' + item.gtin)
       }
     }
     catch (err) {
@@ -198,6 +202,7 @@ function register_item(as2, item, done) {
 } // end register_item
 
 function format_result(err, response, res_body, item, errorType) {
+  log.debug('mds_register.format_result - res_body: ' + res_body)
   var result = {
     success: false
     ,errors: []
@@ -220,10 +225,12 @@ function format_result(err, response, res_body, item, errorType) {
     //result.errors.push({message: ('bad status code ' + response.statusCode), xPath:'', attributename:''})
     var msg = 'item error: ' + response.statusCode
     try {
+      res_body = res_body.replace(/\\\\"/g, '')
       msg = JSON.parse(res_body).error
     }
     catch (err) {
-      console.log('error parsing res_body:')
+      log.error(err)
+      msg = 'error parsing res_body: ' + err.message
       console.log(res_body)
     }
     result.errors.push({message: msg, xPath:'', attributename:''})

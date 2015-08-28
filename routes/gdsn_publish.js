@@ -1,12 +1,11 @@
 var async   = require('async')
 var request = require('request')
 
+var Logger  = require('../lib/Logger')
+
 module.exports = function (config) {
 
-  var log            = require('../lib/Logger')('rt_publish', {debug: true})
-  var utils          = require('../lib/utils.js')(config)
-  var db_msg_archive = require('../lib/db/msg_archive.js')(config)
-  var process_msg    = require('../lib/process_msg.js')(config)
+  var log = new Logger('rt_publish', config)
 
   var api = {}
 
