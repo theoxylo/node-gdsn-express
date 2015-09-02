@@ -9,35 +9,6 @@ module.exports = function (config) {
   var trade_item_db  = require('../lib/db/trade_item.js')(config)
   var msg_archive    = require('../lib/db/msg_archive.js')(config)
 
-  function serveCollection(req, res, items, href) {
-
-    var item_count = 1
-    items = items.map(function (item) {
-      item.href         = item_utils.get_item_href(item, '/items')
-      item.history_href = item_utils.get_item_href(item, '/items/history')
-      //item.cin_href     = item_utils.get_item_href(item, '/validate')
-      item.cin_href     = config.base_url + '/validate/' + item.provider + '/' + item.gtin + '/' + item.tm
-
-      item.item_count_num = item_count++
-      populateItemImageUrls(item)
-      return item
-    })
-
-    var result = utils.get_collection_json(items, href)
-
-    result.collection.page             = 0
-    result.collection.per_page         = 100
-    result.collection.item_range_start = 1
-    result.collection.item_range_end   = items.length
-
-    if (res.finished) return
-
-    if (req.query.download) {
-      res.set('Content-Disposition', 'attachment; filename="items_' + Date.now() + '.json"')
-    }
-    res.jsonp(result)
-  }
-
   var api = {} // for return
 
   // retrieve list of items including xml
@@ -296,10 +267,36 @@ module.exports = function (config) {
       }
     }) // end request.get
     log.debug('get item list request initiated')
-  }// end get_registered_list
+  } // end get_registered_list
 
-  return api
-}
+  function serveCollection(req, res, items, href) {
+
+    var item_count = 1
+    items = items.map(function (item) {
+      item.href         = item_utils.get_item_href(item, '/items')
+      item.history_href = item_utils.get_item_href(item, '/items/history')
+      //item.cin_href     = item_utils.get_item_href(item, '/validate')
+      item.cin_href     = config.base_url + '/validate/' + item.provider + '/' + item.gtin + '/' + item.tm
+
+      item.item_count_num = item_count++
+      populateItemImageUrls(item)
+      return item
+    })
+
+    var result = utils.get_collection_json(items, href)
+
+    result.collection.page             = 0
+    result.collection.per_page         = 100
+    result.collection.item_range_start = 1
+    result.collection.item_range_end   = items.length
+
+    if (res.finished) return
+
+    if (req.query.download) {
+      res.set('Content-Disposition', 'attachment; filename="items_' + Date.now() + '.json"')
+    }
+    res.jsonp(result)
+  }
 
   function populateItemImageUrls(item) {
     var urls = []
@@ -344,3 +341,5 @@ module.exports = function (config) {
     item.images = urls
   }
 
+  return api
+}

@@ -11,7 +11,7 @@ module.exports = function (config) {
 
   var api = {}
     
-  api.validate_hierarchy = function (req, res, next) {
+  api.validate_hierarchy = function (req, res, next) { // will lookup all items
 
     log.debug('validate_hierarchy req.path: ' + req.url)
 
@@ -53,10 +53,10 @@ module.exports = function (config) {
         return
       }
 
-      var tm = req.param('tm') || '840'
+      var tm = req.param('tm') || '840' // default
       if (tm) query.tm = tm
 
-      var tm_sub = req.param('tm_sub') || 'na'
+      var tm_sub = req.param('tm_sub') || 'na' // default
       if (tm_sub) query.tm_sub = tm_sub
 
       query.archived_ts = { $exists : false }
@@ -117,7 +117,7 @@ module.exports = function (config) {
           log.info('utils found ' + (results && results.length) + ' child items for gtin ' + gtin + ' in ' + (Date.now() - start) + 'ms')
 
           results.forEach(function (item) {
-            if (!item.xml) throw Error('missing xml for item query gtin ' + item.gtin)
+            if (!item.xml) throw Error('missing xml for item query gtin ' + item)
           })
 
           items = items.concat(results)
@@ -181,7 +181,7 @@ module.exports = function (config) {
     }
   } // end api.validate_hierarchy
 
-  api.validate_trade_items = function (req, res, next) {
+  api.validate_trade_items = function (req, res, next) { // all items in posted xml, no lookups
 
     log.debug('validate_trade_items req.path: ' + req.url)
 
@@ -194,60 +194,98 @@ module.exports = function (config) {
     })
 
     req.on('end', function () {
+
       log.info('Received msg.xml of length ' + (xml && xml.length || '0'))
       var msg = config.gdsn.get_msg_info(xml)
       log.info('msg_info: ' + JSON.stringify(msg))
 
-      var tasks = []
-      msg.data.forEach(function (item) {
-        tasks.push(function (task_done) {
-          log.debug('trade item data gtin: ' + item.gtin)
-          var start = Date.now()
-          var cin_xml = config.gdsn.create_tp_item_cin_28(item)
-          request.post({
-            url: config.url_gdsn_api + '/xmlvalidation' // + '?bus_vld=true'
-            , auth: {
-                'user': 'admin'
-                , 'pass': 'devadmin'
-                , 'sendImmediately': true
-              }
-            , body: cin_xml
-          }, 
-          function (err, response, body) {
-            var result = {
-              success: false
-              ,gtin  : item.gtin
-              ,tm    : item.tm
-              ,tm_sub: (item.tm_sub == 'na' ? '' : item.tm_sub)
-              ,errors: []
-            }
-            if (err) {
-              result.errors.push({message:err, xPath:'', attributename:''})
-            }
-            else if (!getSuccess(body)) {
-              result.errors.push({message:body, xPath:'', attributename:''})
-            }
-            else {
-              result.success = true
-            }
-            task_done(null, result)
-          }) // end request.post
-        }) // end tasks.push
-      }) // end msg.data.forEach item
-      async.parallel(tasks, function (err, results) {
-        log.debug('parallel single item validation results count: ' + results && results.length)
-        if (err) return next(err)
-        if (!results || !results.length) return next(Error('no results'))
-
-        var error_count = 0
-        results.forEach(function (result) { 
-          if (!result.success) error_count++
-        })
-        if (!res.finished) {
-          res.jsonp({error_count: error_count, results: results})
-          res.end()
+      // create hierarchy cin from post
+      var start = Date.now()
+      var cin_xml = ''
+      try {
+        cin_xml = config.gdsn.create_tp_pub_cin_28(msg.data, config.homeDataPoolGln, /* cmd */ 'ADD', /* reload */ 'false', /* docStatus */ 'ORIGINAL', msg.provider)
+      }
+      catch (err) {
+        log.error('error creating cin from posted items ' + err)
+        return next(err) // short-circuit end early
+      }
+      request.post({
+        url: config.url_gdsn_api + '/xmlvalidation?bus_vld=true' //xsd AND bms validation
+        , auth: {
+            'user': 'admin'
+            , 'pass': 'devadmin'
+            , 'sendImmediately': true
+          }
+        , body: cin_xml
+      }, 
+      function (err, response, body) {
+        log.debug('done with create and validate hierarchy in ' + (Date.now() - start) + ' ms')
+        if (err) {
+          return next(err)
         }
-      }, 5) // concurrency
+        else if (!getSuccess(body)) {
+          return next(err)
+        }
+        else {
+
+          // success!
+          var tasks = []
+
+          msg.data.forEach(function (item) {
+            tasks.push(function (task_done) {
+              log.debug('trade item data gtin: ' + item.gtin)
+              var start = Date.now()
+
+              // single item cin
+              var cin_xml = config.gdsn.create_tp_item_cin_28(item)
+
+              request.post({
+                url: config.url_gdsn_api + '/xmlvalidation' // + '?bus_vld=true' //xsd validation only
+                , auth: {
+                    'user': 'admin'
+                    , 'pass': 'devadmin'
+                    , 'sendImmediately': true
+                  }
+                , body: cin_xml
+              }, 
+              function (err, response, body) {
+                var result = {
+                  success: false
+                  ,gtin  : item.gtin
+                  ,tm    : item.tm
+                  ,tm_sub: (item.tm_sub == 'na' ? '' : item.tm_sub)
+                  ,errors: []
+                }
+                if (err) {
+                  result.errors.push({message:err, xPath:'', attributename:''})
+                }
+                else if (!getSuccess(body)) {
+                  result.errors.push({message:body, xPath:'', attributename:''})
+                }
+                else {
+                  result.success = true
+                }
+                task_done(null, result)
+              }) // end request.post
+            }) // end tasks.push
+          }) // end msg.data.forEach item
+
+          async.parallel(tasks, function (err, results) {
+            log.debug('parallel single item validation results count: ' + results && results.length)
+            if (err) return next(err)
+            if (!results || !results.length) return next(Error('no results'))
+
+            var error_count = 0
+            results.forEach(function (result) { 
+              if (!result.success) error_count++
+            })
+            if (!res.finished) {
+              res.jsonp({error_count: error_count, results: results})
+              res.end()
+            }
+          }, /* concurrency */ 5) // end async.parallel
+        } // end post validation success
+      }) // end request.post
     }) // end req.on('end') callback
   } // end api.validate_trade_items 
 

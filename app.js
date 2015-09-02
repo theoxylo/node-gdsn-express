@@ -52,6 +52,7 @@ var routes_profile  = require(config.routes_dir + '/profile.js')(config)
 var routes_gdsn_wf  = require(config.routes_dir + '/gdsn_workflow.js')(config)
 var routes_gdsn_cin = require(config.routes_dir + '/gdsn_create_cin.js')(config)
 var routes_validate = require(config.routes_dir + '/validate_temp_cin.js')(config)
+var routes_hierarchy= require(config.routes_dir + '/validate_hierarchy.js')(config)
 var routes_gdsn     = require(config.routes_dir + '/gdsn_send.js')(config)
 var routes_xsd      = require(config.routes_dir + '/gdsn_xsd.js')(config)
 var routes_msg      = require(config.routes_dir + '/msg_archive.js')(config)
@@ -148,17 +149,12 @@ router.post('/validate_register/:provider',  routes_register.register_existing_i
 
 // POST xml
 router.post('/gdsn-auto',                    routes_auto.process) // message persistence, validation, workflow, and response
-
 router.post('/items',                        routes_msg.post_archive) // used by ECCnet client
 router.post('/item',                         routes_msg.post_archive)
 router.post('/msg',                          routes_msg.post_archive)
 router.post('/persist',                      routes_msg.post_archive)
 router.post('/save',                         routes_msg.post_archive)
-
 router.post('/parties',                      routes_parties.post_parties) //
-
-router.post('/validate',                     routes_validate.validate_trade_items)
-
 
 // GET /gdsn
 router.get('/gdsn-send/:msg_id/:sender',     routes_gdsn.lookup_and_send)
@@ -225,9 +221,12 @@ router.get('/logs',                          routes_logs.list_logs)
 router.get('/item_status/:provider/:gtin',   routes_item.get_gdsn_registered_items)
 router.get('/item_status/:provider',         routes_item.get_gdsn_registered_items)
 
-router.get('/validate/:provider/:gtin/:tm/:tm_sub', routes_validate.validate_hierarchy)
-router.get('/validate/:provider/:gtin/:tm',         routes_validate.validate_hierarchy)
-router.get('/validate/:provider/:gtin',             routes_validate.validate_hierarchy)
+// validate service POST / GET, not yet used by MDS
+router.post('/validate',                              routes_validate.validate_trade_items) // xml post
+router.get('/x_validate/:provider/:gtin/:tm/:tm_sub', routes_validate.validate_hierarchy) // old version
+
+router.post('/validate_multi/:provider',              routes_hierarchy.validate_hierarchies) // json list post
+router.get('/validate/:provider/:gtin/:tm/:tm_sub',   routes_hierarchy.validate_hierarchy) // Promises
 
 log.info('done setting up routes')
 

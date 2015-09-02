@@ -58,7 +58,7 @@ module.exports = function (x_config) {
       }
       if (!req_body.items.length) return next(Error('no item definitions found in request'))
 
-      validate_register_items(process_msg, trade_item_db, req_body.items, function format_response(err, results) {
+      validate_register_items(process_msg, trade_item_db, req_body.items, function (err, results) {
 
         log.debug('>>>>>>>>>>>>>>>>>>>> validate_register_items (' + (results ? results.length : '0') + ' results) took ' + (Date.now() - start) + ' ms')
 
@@ -79,7 +79,7 @@ module.exports = function (x_config) {
           })
           res.end()
         }
-      }) // end validate_register_items
+      }) // end validate_register_items call
     }) // end req.on('end')
   }
 
