@@ -122,7 +122,7 @@ function validate_and_register_item(msg_as2, ti_db, query, done) {
 function validate_single_item(as2, item, do_success, done) {
   log.debug('validate_single_item, gtin: ' + item.gtin)
   var start = Date.now()
-  var cin_xml = config.gdsn.create_tp_item_cin_28(item)
+  var cin_xml = config.gdsn.create_item_cin_28(item)
   log.debug('CIN: ' + cin_xml)
   request.post({
     url: config.url_gdsn_api + '/xmlvalidation' // + '?bus_vld=true'

@@ -34,7 +34,7 @@ module.exports = function (config) {
       items = items.map(function (item) {
         item.href         = item_utils.get_item_href(item, '/items')
         item.history_href = item_utils.get_item_href(item, '/items/history')
-        item.cin_href     = config.base_url + '/validate/' + item.provider + '/' + item.gtin + '/' + item.tm
+        item.cin_href     = config.base_url + '/validate/' + item.provider + '/' + item.gtin + '/' + item.tm + '/' + (item.tm_sub || 'na')
         item.item_count_num = item_count++
         populateItemImageUrls(item)
 
@@ -111,7 +111,7 @@ module.exports = function (config) {
             item.client_name = client_config.client_name
             item.href         = item_utils.get_item_href(item, '/items')
             item.history_href = item_utils.get_item_href(item, '/items/history')
-            item.cin_href     = config.base_url + '/validate/' + item.provider + '/' + item.gtin + '/' + item.tm
+            item.cin_href     = config.base_url + '/validate/' + item.provider + '/' + item.gtin + '/' + item.tm  + '/' + (item.tm_sub || 'na')
             return item
           })
 
@@ -276,7 +276,8 @@ module.exports = function (config) {
       item.href         = item_utils.get_item_href(item, '/items')
       item.history_href = item_utils.get_item_href(item, '/items/history')
       //item.cin_href     = item_utils.get_item_href(item, '/validate')
-      item.cin_href     = config.base_url + '/validate/' + item.provider + '/' + item.gtin + '/' + item.tm
+      item.cin_href     = config.base_url + '/validate/' + item.provider + '/' + item.gtin + '/' + item.tm  + '/' + (item.tm_sub || 'na')
+
 
       item.item_count_num = item_count++
       populateItemImageUrls(item)

@@ -237,7 +237,7 @@ module.exports = function (config) {
               var start = Date.now()
 
               // single item cin
-              var cin_xml = config.gdsn.create_tp_item_cin_28(item)
+              var cin_xml = config.gdsn.create_item_cin_28(item)
 
               request.post({
                 url: config.url_gdsn_api + '/xmlvalidation' // + '?bus_vld=true' //xsd validation only

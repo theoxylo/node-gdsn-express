@@ -9,9 +9,9 @@ module.exports = function (config) {
 
   var api = {}
     
-  api.create_cin = function (req, res, next) {
+  api.create_cin_28_or_31 = function (req, res, next) {
 
-    log.debug('create_cin req.path: ' + req.url)
+    log.debug('create_cin_28_or_31 req.path: ' + req.url)
 
     try {
 
@@ -70,13 +70,10 @@ module.exports = function (config) {
 
       query.archived_ts = { $exists : false }
 
-      var lang = req.param('lang')
-      if (lang && lang.indexOf('-')) lang = lang.split('-')[0] // 'en-us' => 'en'
-
       var start = Date.now()
       log.debug('fetching all items for gtin ' + gtin + ' at time ' + start)
 
-      trade_item_db.getTradeItems(query, 0, 100, function process_found_items(err, items) {
+      trade_item_db.getTradeItems(query, 0, 100, function (err, items) {
         if (err) return next(err)
 
         log.info('db found ' + (items && items.length) + ' items for gtin ' + gtin + ' in ' + (Date.now() - start) + ' ms')
@@ -117,7 +114,7 @@ module.exports = function (config) {
 
         var start = Date.now()
         items[0].fetch_type = 'match'
-        //console.log('first match: ' + items[0].xml)
+        var version_28 = (items[0].tradeItem.gtin ? false : true) // 3.1 tradeItem has shorter gtin xpath
 
         item_utils.fetch_all_children(items[0], 999, function (err, results) {
           if (err) return next(err)
@@ -133,7 +130,14 @@ module.exports = function (config) {
             return item
           })
 
-          var cin_xml = config.gdsn.create_cin(items, receiver, command, reload, docStatus)
+          var cin_xml = ''
+          try {
+            if (version_28) cin_xml = config.gdsn.create_cin_28(items, receiver, command, reload, docStatus)
+            else            cin_xml = config.gdsn.create_cin_31(items, receiver, command, reload, docStatus)
+          }
+          catch (err) {
+            log.error('err generating CIN: ' + err)
+          }
 
           msg_archive.saveMessage(cin_xml, function (err, msg_info) {
             if (err) return next(err)
@@ -156,7 +160,7 @@ module.exports = function (config) {
       log.error('Failed returning subscribed items: ' + JSON.stringify(error))
       next(error)
     }
-  } // end api.create_cin
+  } // end api.create_cin_28_or_31
 
   return api
 }
