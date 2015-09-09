@@ -126,7 +126,7 @@ module.exports = function (config) {
             return item
           })
 
-          var cin_xml = config.gdsn.create_tp_pub_cin_28(items, receiver, command, reload, docStatus, sender)
+          var cin_xml = config.gdsn.create_cin_28(items, receiver, command, reload, docStatus, sender)
 
           if (config.skip_hier_validation && !res.finished) {
             res.set('Content-Type', 'application/xml;charset=utf-8')

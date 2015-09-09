@@ -154,10 +154,10 @@ module.exports = function (config) {
       item_utils.fetch_all_children(item, 99, function (err, items) {
         log.debug('fetch_all_children took ' + (Date.now() - start) + ' ms')
         if (err || !items) return reject(err)
-        items.unshift(item) // include root item as first position!
         try {
-          var cin_xml = config.gdsn.create_tp_pub_cin_28(items, config.homeDataPoolGln, 'ADD', 'false', 'ORIGINAL', provider)
-          resolve(cin_xml)
+          var cin_xml = config.gdsn.create_cin_28(items, config.homeDataPoolGln, 'ADD', 'false', 'ORIGINAL', provider)
+          return cin_xml // will automatically resolve
+          //resolve(cin_xml)
         }
         catch (err) {
           log.info('failed to create 28 cin to dp ' + err)

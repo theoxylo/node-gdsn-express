@@ -70,7 +70,7 @@ app.use(require('serve-favicon')(__dirname + '/public/favicon.ico'))
 app.use(express.static(__dirname + '/public'))
 
 // append response time to Http log, for Kibana
-app.use( logger(logger.combined + ' - :response-time ms') )
+app.use(logger(logger.combined + ' - :response-time ms') )
 
 /*
 app.use(session({
@@ -160,6 +160,7 @@ router.post('/parties',                      routes_parties.post_parties) //
 router.get('/gdsn-send/:msg_id/:sender',     routes_gdsn.lookup_and_send)
 router.get('/gdsn-send/:msg_id',             routes_gdsn.lookup_and_send)
 
+router.post('/gdsn-validate',                routes_xsd.post_and_validate)
 router.get('/gdsn-validate/:msg_id/:sender', routes_xsd.lookup_and_validate)
 router.get('/gdsn-validate/:msg_id',         routes_xsd.lookup_and_validate)
 

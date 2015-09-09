@@ -36,8 +36,7 @@ module.exports = function (config) {
           , message: 'please provide a gtin for your search'
         }
         if (!res.finished) {
-            res.jsonp(result)
-            res.end()
+          res.jsonp(result)
         }
         return
       }
@@ -48,6 +47,8 @@ module.exports = function (config) {
       // e.g. /cs_api/1.0/gdsn-cin/1100001011278?
       // and for any subscriber (local or otherwise) we could also workflow the CIN
       // to create new catalog items retrievable via /cs_api/1.0/subscribed/gtin/provider
+
+      var sender = config.homeDataPoolGln
 
       var receiver = req.param('rdp') || req.param('receiver') // receiver is optional, but should be local tp or other dp
       if (!receiver || receiver == config.homeDataPoolGln || receiver == config.gdsn_gr_gln) {
@@ -87,7 +88,6 @@ module.exports = function (config) {
           }
           if (!res.finished) {
             res.jsonp(result)
-            res.end()
           }
           return
         }
@@ -107,7 +107,6 @@ module.exports = function (config) {
           })
           if (!res.finished) {
             res.jsonp(result)
-            res.end()
           }
           return
         }
@@ -132,11 +131,12 @@ module.exports = function (config) {
 
           var cin_xml = ''
           try {
-            if (version_28) cin_xml = config.gdsn.create_cin_28(items, receiver, command, reload, docStatus)
-            else            cin_xml = config.gdsn.create_cin_31(items, receiver, command, reload, docStatus)
+            if (version_28) cin_xml = config.gdsn.create_cin_28(items, receiver, command, reload, docStatus, sender)
+            else            cin_xml = config.gdsn.create_cin_31(items, receiver, command, reload, docStatus, sender)
           }
           catch (err) {
             log.error('err generating CIN: ' + err)
+            //log.debug(cin_xml)
           }
 
           msg_archive.saveMessage(cin_xml, function (err, msg_info) {
