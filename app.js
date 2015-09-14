@@ -168,7 +168,7 @@ router.get('/gdsn-workflow/:msg_id/:sender', routes_gdsn_wf.lookup_and_process)
 router.get('/gdsn-workflow/:msg_id',         routes_gdsn_wf.lookup_and_process)
 
 // fully qualified path for CIN generation, including recipient
-// also accepts [rdp=gln] // msg receiver, defaults to recipient
+// also accepts [rdp=gln] // recipientDataPool, msg receiver, defaults to recipient
 //              [cmd=*ADD|CORRECT|CHANGE_BY_REFRESH|DELETE]
 //              [reload=true|*false]
 //              [doc=COPY|*ORIGINAL]
@@ -223,11 +223,11 @@ router.get('/item_status/:provider/:gtin',   routes_item.get_gdsn_registered_ite
 router.get('/item_status/:provider',         routes_item.get_gdsn_registered_items)
 
 // validate service POST / GET, not yet used by MDS
-router.post('/validate',                              routes_validate.validate_trade_items) // xml post
-router.get('/x_validate/:provider/:gtin/:tm/:tm_sub', routes_validate.validate_hierarchy) // old version
+router.post('/validate_multi/:provider',               routes_hierarchy.validate_hierarchies) // json list post
+router.get( '/validate/:provider/:gtin/:tm/:tm_sub',   routes_hierarchy.validate_hierarchy) // Promises
 
-router.post('/validate_multi/:provider',              routes_hierarchy.validate_hierarchies) // json list post
-router.get('/validate/:provider/:gtin/:tm/:tm_sub',   routes_hierarchy.validate_hierarchy) // Promises
+router.post('/validate',                               routes_validate.validate_trade_items) // xml post
+router.get( '/x_validate/:provider/:gtin/:tm/:tm_sub', routes_validate.validate_hierarchy)   // old version
 
 log.info('done setting up routes')
 

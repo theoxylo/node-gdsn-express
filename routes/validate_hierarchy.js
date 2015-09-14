@@ -1,9 +1,11 @@
 var Q = require('q')
 var Promise = Q.Promise
 var request = require('request')
+var config
 
-module.exports = function (config) {
+module.exports = function (x_config) {
 
+  config = x_config
   var log            = require('../lib/Logger')('rt_pr_val', config)
   var item_utils     = require('../lib/item_utils.js')(config)
   var trade_item_db  = require('../lib/db/trade_item.js')(config)
@@ -156,8 +158,7 @@ module.exports = function (config) {
         if (err || !items) return reject(err)
         try {
           var cin_xml = config.gdsn.create_cin_28(items, config.homeDataPoolGln, 'ADD', 'false', 'ORIGINAL', provider)
-          return cin_xml // will automatically resolve
-          //resolve(cin_xml)
+          resolve(cin_xml)
         }
         catch (err) {
           log.info('failed to create 28 cin to dp ' + err)
