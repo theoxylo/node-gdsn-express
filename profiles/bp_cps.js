@@ -1,3 +1,7 @@
+/*
+    Profile config and custom processing for BP CPS account
+    $URL: http://svn.instill.com/repos/instill_dev/Catalog_Services/node-api-server/trunk/profiles/bp_cps.js $
+*/
 module.exports = {
     client_name  : 'ITN Branded Procurement 20140730'
   , recipients   : ['0625199000015']

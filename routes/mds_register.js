@@ -178,7 +178,7 @@ function register_item(as2, item, done) {
       var send_rci = config.send_rci || res_body.indexOf('p_sendRciMsg=true') > -1
       if (send_rci) {
         log.debug('generating and sending rci for item ' + item.gtin)
-        var rci_xml = config.gdsn.create_tp_item_rci_28(config, item)
+        var rci_xml = config.gdsn.create_tp_item_rci_28(item)
         log.debug('RCI: ' + rci_xml)
         var start = Date.now()
         as2.send_by_as2(rci_xml, config.gdsn_gr_gln, function(err, result) {

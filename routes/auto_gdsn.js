@@ -48,7 +48,7 @@ module.exports = function (config) {
 
             if (!getSuccess(body)) {
               log.debug('body: ' + body)
-              var response_xml = config.gdsn.populateResponseToSender('validation error', config, msg, msg.provider || msg.recipient)
+              var response_xml = config.gdsn.populateResponseToSender('validation error', msg, msg.provider || msg.recipient)
               if (response_xml) {
                 db_msg_archive.saveMessage(response_xml, function (err, saved_resp) {
                   if (err) return next(err)
@@ -84,7 +84,7 @@ module.exports = function (config) {
   return api
 }
 
-function getSuccess(body) {
+function getSuccess(body) { // this function cannot access config
   try {
     var success = JSON.parse(body).success
     console.log('success: ' + success)

@@ -346,3 +346,7 @@ fs.watch(config.inbox_dir, function (event, filename) {
   }
 })
 
+process.on('uncaughtException', function (err) {
+  console.log('uncaughtException event: ' + err);
+})
+
