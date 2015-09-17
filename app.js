@@ -147,6 +147,9 @@ log.info('setting up routes and URL templates')
 router.post('/publish/:provider',            routes_publish.publish) // JSON {"gln":["123"],gtin:["456"]}
 router.post('/validate_register/:provider',  routes_register.register_existing_items) // JSON
 
+router.get( '/validate_register/:provider/:gtin/:tm/:tm_sub',  routes_register.register_existing_item) // GET for single item/hierarchy
+router.get( '/validate_register/:provider/:gtin/:tm'        ,  routes_register.register_existing_item) // default tm_sub 'na'
+
 // POST xml
 router.post('/gdsn-auto',                    routes_auto.process) // message persistence, validation, workflow, and response
 router.post('/items',                        routes_msg.post_archive) // used by ECCnet client

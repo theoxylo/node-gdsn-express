@@ -1,33 +1,26 @@
 module.exports = function (config) {
   
   var log           = require('../lib/Logger')('rt_cin', config)
-  var utils         = require('../lib/utils.js')(config)
   var item_utils    = require('../lib/item_utils.js')(config)
+  var outbox        = require('../lib/outbox.js')(config)
+  var utils         = require('../lib/utils.js')(config)
   var trade_item_db = require('../lib/db/trade_item.js')(config)
   var msg_archive   = require('../lib/db/msg_archive.js')(config)
-  var process_msg   = require('../lib/process_msg.js')(config)
 
   var api = {}
     
-  api.create_cin_28_or_31 = function (req, res, next) {
+  api.create_cin_28_or_31 = function (req, res, next) { // GET /:recipient/:gtin/:provider/:tm[/:tm_sub|na]
 
     log.debug('create_cin_28_or_31 req.path: ' + req.url)
 
+    var gtin // used in catch
+
     try {
 
-      // item query to build new CIN message from data pool to local TP or other DP
-      // must only consider publisher data pool items 
-      // cin is built from items received by the home data pool by locat parties ONLY 
-      var query = {
-        recipient: config.homeDataPoolGln 
-        
-        // TODO: add support for mulitple data pools or generating private draft CINs?
-      }
-      
-      // root item gtin is always required
-      var gtin = req.param('gtin')
-      console.log('create cin gtin: ' + gtin)
-      query.gtin = gtin
+      //var gtin = req.param('gtin')
+
+      gtin = req.params.gtin // root item gtin is always required in path
+      console.log('create new CIN messages for root gtin: ' + gtin)
       if (!gtin) {
         var result = utils.get_collection_json([], config.base_url + req.url)
         result.collection.error = {
@@ -35,10 +28,8 @@ module.exports = function (config) {
           , code   : '596'
           , message: 'please provide a gtin for your search'
         }
-        if (!res.finished) {
-          res.jsonp(result)
-        }
-        return
+        if ('test') res.end('early end error test') // throw cannot set headers error below
+        return res.jsonp(result) // early 200 return with err object
       }
 
       var recipient = req.param('recipient') // the subscriber is the recipient of our new CIN, submitted as the first path param
@@ -60,15 +51,21 @@ module.exports = function (config) {
       var reload    = req.param('reload') || 'false'
       var docStatus = req.param('doc')    || 'ORIGINAL'
 
-      var provider = req.param('provider')
-      if (provider) query.provider = provider
-
-      var tm = req.param('tm')
-      if (tm) query.tm = tm
-
-      var tm_sub = req.param('tm_sub') || 'na'
-      if (tm_sub) query.tm_sub = tm_sub
-
+      // item query to build new CIN message from data pool to local TP or other DP
+      // must only consider publisher data pool items 
+      // cin is built from items received by the home data pool by locat parties ONLY 
+      var query = {
+        recipient: config.homeDataPoolGln 
+        , provider   : req.params.provider
+        , gtin       : gtin
+        , tm         : req.params.tm || '840'
+        , tm_sub     : req.params.tm_sub || 'na'
+        , archived_ts: { $exists : false }
+      }
+      // req.params refers to path :param object
+      query.provider    = req.params.provider
+      query.tm          = req.params.tm || '840'
+      query.tm_sub      = req.params.tm_sub || 'na'
       query.archived_ts = { $exists : false }
 
       var start = Date.now()
@@ -124,6 +121,8 @@ module.exports = function (config) {
           })
 
           items = items.concat(results)
+
+          // make items hypothetical with modified values for CIN generation
           items = items.map(function (item) {
             item.recipient = recipient // note we are changing the items to our new recipient, so these may not exist in db yet
             return item
@@ -143,7 +142,7 @@ module.exports = function (config) {
             if (err) return next(err)
             log.info('Generated cin message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
 
-            process_msg.send_by_as2(cin_xml, receiver)
+            outbox.send_by_as2(cin_xml, receiver)
           })
 
           if (!res.finished) {
@@ -157,7 +156,7 @@ module.exports = function (config) {
       })
     }
     catch (error) {
-      log.error('Failed returning subscribed items: ' + JSON.stringify(error))
+      log.error('Failed to create new CIN message for root gtin: ' + JSON.stringify(error))
       next(error)
     }
   } // end api.create_cin_28_or_31
