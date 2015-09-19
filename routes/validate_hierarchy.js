@@ -157,6 +157,7 @@ module.exports = function (x_config) {
         log.debug('fetch_all_children took ' + (Date.now() - start) + ' ms')
         if (err || !items) return reject(err)
         try {
+          items.unshift(item)
           var cin_xml = config.gdsn.create_cin_28(items, config.homeDataPoolGln, 'ADD', 'false', 'ORIGINAL', provider)
           resolve(cin_xml)
         }
