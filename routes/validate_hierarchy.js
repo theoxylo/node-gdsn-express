@@ -1,11 +1,10 @@
-var Q = require('q')
-var Promise = Q.Promise
-var request = require('request')
-var config
+module.exports = function (config) {
 
-module.exports = function (x_config) {
+  var Q = require('q')
+  var Promise = Q.Promise
+  var request = require('request')
 
-  config = x_config
+
   var log            = require('../lib/Logger')('rt_pr_val', config)
   var item_utils     = require('../lib/item_utils.js')(config)
   var trade_item_db  = require('../lib/db/trade_item.js')(config)
@@ -33,12 +32,9 @@ module.exports = function (x_config) {
         var promises = []
         try {
           log.info('Received content of length ' + (content && content.length || '0'))
-          console.log('request body:' + content)
+          log.debug('request body:' + content)
 
           req_body = JSON.parse(content)
-
-          console.log('parsed:')
-          console.dir(req_body)
 
           req_body.items.forEach(function (item_spec) { // TODO: create new array with map and copy
 
@@ -109,11 +105,9 @@ module.exports = function (x_config) {
 
     getPromiseChain(item_spec)
     .then(function (valid_cin_xml) {
-      if (!res.finished) {
-        res.set('Content-Type', 'application/xml;charset=utf-8')
-        res.end(valid_cin_xml)
-      }
-    }) // end then
+      res.set('Content-Type', 'application/xml;charset=utf-8')
+      res.end(valid_cin_xml)
+    })
     .catch(function (err) {
       log.debug('catch err: ' + err)
       if (!res.finished) res.jsonp(err)
@@ -121,8 +115,6 @@ module.exports = function (x_config) {
     .done()
 
   }
-
-  return api
 
   function getPromiseChain(item_spec) {
     item_spec.archived_ts = { $exists : false }
@@ -203,4 +195,5 @@ module.exports = function (x_config) {
     return false
   }
 
-} // end module.exports function
+  return api
+}
