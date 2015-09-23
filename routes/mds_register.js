@@ -168,7 +168,7 @@ module.exports = function (config) {
     .catch(function (err) {
       log.debug('.catch err: ' + err)
       // not passing err as err param to callback, wrapping as 'result'
-      done(null, format_result(err, response, res_body, item, 'Registration')) // end of processing for each item
+      done(null, format_result(err, null, null, item, 'Registration')) // end of processing for each item
     })
     .done() // Q
   } // end validate_single_item
