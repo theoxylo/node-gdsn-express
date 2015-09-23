@@ -28,7 +28,6 @@ module.exports = function (config) {
           , code   : '596'
           , message: 'please provide a gtin for your search'
         }
-        if ('test') res.end('early end error test') // throw cannot set headers error below
         return res.jsonp(result) // early 200 return with err object
       }
 

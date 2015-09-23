@@ -8,6 +8,8 @@ module.exports = function (config) {
   var outbox        = require('../lib/outbox.js')(config)
   var trade_item_db = require('../lib/db/trade_item.js')(config)
 
+  var cin_promise   = require('../lib/validate_cin.js')(config)
+
   var api = {}
 
   api.register_existing_item = function (req, res, next) { // GET /:provider/:gtin/:tm[/:tm_sub|na]
@@ -24,7 +26,6 @@ module.exports = function (config) {
         , tm_sub  : req.params.tm_sub || 'na'
         , validate: true
     }
-    var req_body = { items: [item], validate: true }
 
     validate_and_register_item(item, function (err, results) {
 
@@ -81,7 +82,7 @@ module.exports = function (config) {
         console.log('parsed:')
         console.dir(req_body)
 
-        req_body.items.forEach(function (item) { // TODO: create new array with map and copy
+        req_body.items.forEach(function (item) {
           item.recipient = config.homeDataPoolGln
           item.provider = provider
           item.tm_sub = item.tm_sub || item.tmSub || 'na'
@@ -150,7 +151,7 @@ module.exports = function (config) {
           return done(format_result(Error('mds attributes do not match, no item found'), null, null, item))
       }
       console.log('query.validate: "' + query.validate + '"')
-      //if (query.validate == 'false') return register_item(item, done)
+      //if (query.validate == 'false') return register_item(item, done) // skip validation?
       validate_single_item(item, register_item, done)
     })
   } // end validate_and_register_item
@@ -158,24 +159,18 @@ module.exports = function (config) {
   function validate_single_item(item, do_success, done) {
     log.debug('validate_single_item, gtin: ' + item.gtin)
     var start = Date.now()
-    var cin_xml = config.gdsn.create_item_cin_28(item)
-    log.debug('CIN: ' + cin_xml)
-    request.post({
-      url: config.url_gdsn_api + '/xmlvalidation' // + '?bus_vld=true'
-      , auth: {
-          'user': 'admin'
-          , 'pass': 'devadmin'
-          , 'sendImmediately': true
-        }
-      , body: cin_xml
-    },
-    function (err, response, res_body) {
-      log.debug('post single item validation result: ' + res_body)
-      if (err || !get_success(res_body)) {
-        return done(format_result(err, response, res_body, item))
-      }
+    cin_promise.validate_cin(item)
+    .then(function (cin_xml) {
+      log.debug('valid CIN length: ' + cin_xml.length)
+      item.cin_xml = cin_xml
       do_success(item, done)
-    }) // end request.post
+    })
+    .catch(function (err) {
+      log.debug('.catch err: ' + err)
+      // not passing err as err param to callback, wrapping as 'result'
+      done(null, format_result(err, response, res_body, item, 'Registration')) // end of processing for each item
+    })
+    .done() // Q
   } // end validate_single_item
 
   function register_item(item, done) {
