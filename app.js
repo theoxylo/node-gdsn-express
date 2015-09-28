@@ -222,6 +222,8 @@ router.get('/item_status/:provider/:gtin',   routes_item.get_gdsn_registered_ite
 router.get('/item_status/:provider',         routes_item.get_gdsn_registered_items)
 
 // validate service POST / GET, not yet used by MDS
+router.get( '/test_promise'                       ,    routes_hierarchy.test_promise) // Promises
+router.get( '/get_cin/:provider/:gtin/:tm/:tm_sub',    routes_hierarchy.get_cin) // Promises
 router.get( '/validate/:provider/:gtin/:tm/:tm_sub',   routes_hierarchy.validate_hierarchy) // Promises
 router.post('/validate_multi/:provider',               routes_hierarchy.validate_hierarchies) // json list post
 
