@@ -57,7 +57,7 @@ module.exports = function (config) {
     req.on('data', function (chunk) {
       log.debug('archive_post_chunk.length: ' + (chunk && chunk.length))
       xml += chunk
-      if (xml.length > 10 * 1024 * 1024 && !res.finished) res.end('msg.xml too big - larger than 10 MB')
+      if (xml.length > 30 * 1024 * 1024 && !res.finished) res.end('msg.xml too big')
     })
     req.on('end', function () {
       if (res.finished) return

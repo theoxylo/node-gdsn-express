@@ -9,30 +9,44 @@ module.exports = function (config) {
 
   var cin_promise   = require('../lib/validate_cin.js')(config)
 
-
   var get_test_promise = function (num) {
     num = num || Date.now()
     log.debug('calling get_test_promise with effective num: ' + num)
-    return new Promise(function (res, rej) {
-        log.debug('1. synchronous resolve can end in 1 of 3 ways:')
-        if (Math.random() > 0.7) throw('1. resolver throw ' + num)
-        if (Math.random() > 0.7) rej('2. resolver reject ' + num)
-        else res('3. resolved ' + num)
+    return new Promise(function (fulfill) {
+      log.debug('0. synchronous resolver ends with fulfill, return, or throw')
+      if      (num > 7) fulfill(num + ' >>> resolver fulfill') // pass goto 23
+      else if (num > 4) return  num + ' >>> resolver return'   // pass goto 23
+      else               throw  num + ' >>> resolver throw '   // fail goto 27
     })
     .then(function (val) {
-        log.debug('4. then val: ' + val)
-        if (num % 2) throw val + ' >>> then success throw odd'// odd values resolved by catch below
-        return val + ' >>> then success return even RESOLVED'
-    }, function (err) {
-        log.debug('4. then err: ' + err)
-        if (Math.random() > 0.7) throw(err + ' >>> then fail random throw')
-        return err + ' >>> then fail return err RESOLVED'  // from throw or rejct in resolver fn
+        log.debug('1. 1st then val: ' + val)
+        if (num % 2)       return val + ' >>> 1then val return'  // pass goto 32
+        else                throw val + ' >>> 1then val throw '  // fail goto 36
+    },function(err) {
+        log.debug('1. 1st then err: ' + err)
+        if (num % 2 == 0)  return err + ' >>> 1then err return'  // pass goto 32
+        else                throw err + ' >>> 1then err throw '  // fail goto 36
+    }) // then returns a new pending promise
+    .then(function (val) {
+        log.debug('2. 2nd then val: ' + val)
+        if (num == 5)      return val + ' >>> 2then val return'  // pass goto 41
+        else                throw val + ' >>> 2then val throw'   // fail goto 46 goes to .catch since next then has no failure handler
+    },function(err) {
+        log.debug('2. 2nd then err: ' + err)
+        if (num % 2 == 0)  return err + ' >>> 2then err return'  // pass goto 41
+        else                throw err + ' >>> 2then err throw '  // fail goto 46
     })
+    .then(function(val) {
+        log.debug('3. 3rd then val: ' + val)
+        if (num == 5)      return val + ' >>> 3then val return RESOLVED' // pass, all done 
+        else                throw val + ' >>> 3then val throw'           // fail goto 46
+    }, null /* no 3then failure handler */) // goes straight to .catch
     .catch (function (err) {
-        log.debug('4. catch err: ' + err)
-        if (Math.random() > 0.7) throw err + ' >>> catch random rethrow REJECTED'
-        return err + ' >>> catch return RESOLVED'
-    }) // catch returns a new pending promise that mp will return
+        log.debug('4. catch err from 3then or resolver: ' + err)
+        if (Math.random() > 0.7) return err + ' >>> catch return RESOLVED'
+        else                      throw err + ' >>> catch random rethrow REJECTED'
+    }) // catch returns a new pending promise
+    
   } // end get_test_promise
 
   // api object for return
@@ -51,7 +65,6 @@ module.exports = function (config) {
     })
     .done() // Q
   }
-
   api.get_cin = function (req, res, next) { // GET for single hierarchy, no validation
 
     log.debug('>>> get_cin PROMISE called with path ' + req.path)
@@ -109,13 +122,15 @@ module.exports = function (config) {
     }
 
     cin_promise.validate_cin(item_spec)
-    .then(function (valid_cin_xml) {
-      //res.set('Content-Type', 'application/xml;charset=utf-8')
-      res.end(valid_cin_xml)
+    .then(function (xml) {
+      log.debug('cin_promise.validate_cin.then xml length: ' + (xml && xml.length))
+      res.set('Content-Type', 'application/xml;charset=utf-8')
+      res.end(xml)
     })
     .catch(function (err) {
-      log.debug('.catch err: ' + err)
-      res.jsonp(err)
+      log.debug('cin_promise.validate_cin.catch err: ' + err)
+      res.set('Content-Type', 'application/json;charset=utf-8')
+      res.end(err)
     })
     .done() // Q
   }
