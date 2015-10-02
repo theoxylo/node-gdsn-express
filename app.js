@@ -58,6 +58,7 @@ var routes_msg      = require(config.routes_dir + '/msg_archive.js')(config)
 var routes_auto     = require(config.routes_dir + '/auto_gdsn.js')(config)
 var routes_publish  = require(config.routes_dir + '/gdsn_publish.js')(config)
 var routes_register = require(config.routes_dir + '/mds_register.js')(config)
+var test_promise    = require(config.routes_dir + '/test_promise.js')(config)
 var app = express()
 config.app = app
 
@@ -151,7 +152,7 @@ router.get( '/validate_register/:provider/:gtin/:tm'        ,  routes_register.r
 
 // POST xml
 router.post('/gdsn-auto',                    routes_auto.process) // message persistence, validation, workflow, and response
-router.post('/items',                        routes_msg.post_archive) // used by ECCnet client
+router.post('/items',                        routes_item.post_trade_items) // used by eccnet / ECCnet client
 router.post('/item',                         routes_msg.post_archive)
 router.post('/msg',                          routes_msg.post_archive)
 router.post('/persist',                      routes_msg.post_archive)
@@ -222,7 +223,7 @@ router.get('/item_status/:provider/:gtin',   routes_item.get_gdsn_registered_ite
 router.get('/item_status/:provider',         routes_item.get_gdsn_registered_items)
 
 // validate service POST / GET, not yet used by MDS
-router.get( '/test_promise'                       ,    routes_hierarchy.test_promise) // Promises
+router.get( '/test_promise'                       ,    test_promise.do_get) // Promises
 router.get( '/get_cin/:provider/:gtin/:tm/:tm_sub',    routes_hierarchy.get_cin) // Promises
 router.get( '/validate/:provider/:gtin/:tm/:tm_sub',   routes_hierarchy.validate_hierarchy) // Promises
 router.post('/validate_multi/:provider',               routes_hierarchy.validate_hierarchies) // json list post
@@ -350,5 +351,6 @@ fs.watch(config.inbox_dir, function (event, filename) {
 
 process.on('uncaughtException', function (err) {
   console.log('uncaughtException event: ' + err);
+  console.log(err.stack)
 })
 

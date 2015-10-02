@@ -342,5 +342,103 @@ module.exports = function (config) {
     item.images = urls
   }
 
+  api.post_trade_items = function (req, res, next) {
+    log.debug('))))))))))))))))))))))) post_trade_items handler called')
+    var xml = ''
+    req.setEncoding('utf8')
+    req.on('data', function (chunk) {
+      log.debug('archive_post_chunk.length: ' + (chunk && chunk.length))
+      xml += chunk
+      if (xml.length > 30 * 1024 * 1024 && !res.finished) res.end('msg.xml too big')
+    })
+    req.on('end', function () {
+      if (res.finished) return
+      log.info('Received msg.xml of length ' + (xml && xml.length || '0'))
+      msg_archive.saveMessage(xml, function (err, msg_info) {
+        if (err) return next(err)
+        log.info('Message info saved to archive: ' + msg_info.msg_id + ', sender: ' + msg_info.sender)
+        var results = msg_info.gtins || []
+        if (results && results.length) {
+          res.jsonp({
+            msg: 'Created ' + results.length + ' items with GTINs: ' + results.join(', ')
+            ,gtins: results
+          }) 
+        }
+        else {
+          res.jsonp({msg: 'No items were created'})
+        }
+      }) // end saveMessage
+    }) // end req.on end
+  } // end api.post_archive
+
+/* old version from prod 20141010 tag:
+  api.post_trade_items = function (req, res, next) {
+    log.debug('))))))))))))))))))))))) post_trade_items handler called')
+    var xml = ''
+    req.setEncoding('utf8')
+    req.on('data', function (chunk) {
+      log.debug('post_trade_items chunk.length: ' + (chunk && chunk.length) || 0)
+      xml += chunk
+      if (xml.length > 5 * 1000 * 1000) return res.end('msg xml too big - larger than 5 MB')
+    })
+    req.on('end', function () {
+      log.info('Received msg xml of length ' + (xml && xml.length || '0'))
+      msg_archive_db.saveMessage(xml, function (err, msg_info) {
+        if (err) return next(err)
+        log.info('Message info saved to archive: ' + JSON.stringify(msg_info))
+      })
+    })
+
+    var unique_items = []
+    var tasks = []
+
+    config.gdsn.items.getEachTradeItemFromStream(req, function (err, item) {
+      if (err) return next(err)
+
+      if (item) {
+        log.debug('received item from getEachTradeItemFromStream callback with gtin ' + item.gtin)
+
+        item.slug = item_utils.get_item_slug(item)
+
+        if (unique_items.indexOf(item.slug) == -1) {
+          unique_items.push(item.slug)
+          var itemDigest = xml_digest.digest(item.xml)
+          item.tradeItem = itemDigest.tradeItem
+
+          tasks.push(function (callback) {
+            trade_item_db.saveTradeItem(item, callback)
+          })
+        }
+        else {
+          // skip duplicate item
+          log.warn('skipping apparent item duplicate: ' + item.slug)
+        }
+      }
+      else { // null item is passed when there are no more items in the stream
+        log.debug('no more items from getEachTradeItemFromStream callback')
+        async.parallel(tasks, function (err, results) {
+          log.debug('parallel err: ' + JSON.stringify(err))
+          log.debug('parallel results: ' + JSON.stringify(results))
+          if (err) return next(err)
+
+          results = _.flatten(results) // async.parallel returns an array of results arrays
+
+          if (!res.finished) {
+            if (results && results.length) {
+              res.jsonp({
+                msg: 'Created ' + results.length + ' items with GTINs: ' + results.join(', ')
+                , gtins: results
+              }) 
+            }
+            else {
+              res.jsonp({msg: 'No items were created'})
+            }
+          }
+        }) // end async.parallel
+      } // end else
+    }) // end getEachTradeItemFromStream
+  } // end api.post_trade_items
+  */
+
   return api
 }

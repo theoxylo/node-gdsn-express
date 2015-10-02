@@ -3,68 +3,14 @@ module.exports = function (config) {
   var Q = require('q')
   var Promise = Q.Promise
 
-  var log            = require('../lib/Logger')('rt_pr_val', config)
-  var item_utils     = require('../lib/item_utils.js')(config)
-  var trade_item_db  = require('../lib/db/trade_item.js')(config)
-
-  var cin_promise   = require('../lib/validate_cin.js')(config)
-
-  var get_test_promise = function (num) {
-    num = num || Date.now()
-    log.debug('calling get_test_promise with effective num: ' + num)
-    return new Promise(function (fulfill) {
-      log.debug('0. synchronous resolver ends with fulfill, return, or throw')
-      if      (num > 7) fulfill(num + ' >>> resolver fulfill') // pass goto 23
-      else if (num > 4) return  num + ' >>> resolver return'   // pass goto 23
-      else               throw  num + ' >>> resolver throw '   // fail goto 27
-    })
-    .then(function (val) {
-        log.debug('1. 1st then val: ' + val)
-        if (num % 2)       return val + ' >>> 1then val return'  // pass goto 32
-        else                throw val + ' >>> 1then val throw '  // fail goto 36
-    },function(err) {
-        log.debug('1. 1st then err: ' + err)
-        if (num % 2 == 0)  return err + ' >>> 1then err return'  // pass goto 32
-        else                throw err + ' >>> 1then err throw '  // fail goto 36
-    }) // then returns a new pending promise
-    .then(function (val) {
-        log.debug('2. 2nd then val: ' + val)
-        if (num == 5)      return val + ' >>> 2then val return'  // pass goto 41
-        else                throw val + ' >>> 2then val throw'   // fail goto 46 goes to .catch since next then has no failure handler
-    },function(err) {
-        log.debug('2. 2nd then err: ' + err)
-        if (num % 2 == 0)  return err + ' >>> 2then err return'  // pass goto 41
-        else                throw err + ' >>> 2then err throw '  // fail goto 46
-    })
-    .then(function(val) {
-        log.debug('3. 3rd then val: ' + val)
-        if (num == 5)      return val + ' >>> 3then val return RESOLVED' // pass, all done 
-        else                throw val + ' >>> 3then val throw'           // fail goto 46
-    }, null /* no 3then failure handler */) // goes straight to .catch
-    .catch (function (err) {
-        log.debug('4. catch err from 3then or resolver: ' + err)
-        if (Math.random() > 0.7) return err + ' >>> catch return RESOLVED'
-        else                      throw err + ' >>> catch random rethrow REJECTED'
-    }) // catch returns a new pending promise
-    
-  } // end get_test_promise
+  var log           = require('../lib/Logger')('rt_pr_val', config)
+  var item_utils    = require('../lib/item_utils.js')(config)
+  var trade_item_db = require('../lib/db/trade_item.js')(config)
+  var promises      = require('../lib/promises.js')(config)
 
   // api object for return
   var api =  {}
   
-  api.test_promise = function (req, res, next) { // eg GET /test_promise
-    log.debug('>>> test_promise called with path ' + req.path)
-    get_test_promise(Math.floor(Math.random() * 10))
-    .then(function (result) {
-      log.debug('.then result: ' + result)
-      res.jsonp({ success: true, result: result})
-    })
-    .catch(function (err) {
-      log.debug('.catch err: ' + err)
-      res.jsonp({ success: false, result: err})
-    })
-    .done() // Q
-  }
   api.get_cin = function (req, res, next) { // GET for single hierarchy, no validation
 
     log.debug('>>> get_cin PROMISE called with path ' + req.path)
@@ -87,7 +33,7 @@ module.exports = function (config) {
       ,tm_sub    : tm_sub
     }
 
-    cin_promise.generate_cin(item_spec)
+    promises.get_item_hierarchy_cin(item_spec)
     .then(function (cin_xml) {
       res.set('Content-Type', 'application/xml;charset=utf-8')
       res.end(cin_xml)
@@ -109,30 +55,30 @@ module.exports = function (config) {
       return next(Error('missing provider or gtin'))
     }
 
-    var tm = req.param('tm') || '840' // default
-    var tm_sub = req.param('tm_sub') || 'na' // default
+    var tm =     req.param('tm')     || '840' // default
+    var tm_sub = req.param('tm_sub') || 'na'  // default
 
     // generate TP CIN to home DP for registration-oriented validation
     var item_spec = {
-      recipient : config.homeDataPoolGln
-      ,provider  : provider
-      ,gtin      : gtin
-      ,tm        : tm
-      ,tm_sub    : tm_sub
+       recipient: req.param('recipient') || config.homeDataPoolGln      
+      ,provider : provider
+      ,gtin     : gtin
+      ,tm       : tm
+      ,tm_sub   : tm_sub
     }
 
-    cin_promise.validate_cin(item_spec)
-    .then(function (xml) {
-      log.debug('cin_promise.validate_cin.then xml length: ' + (xml && xml.length))
-      res.set('Content-Type', 'application/xml;charset=utf-8')
-      res.end(xml)
+    promises.item_hierarchy_cin_validate(item_spec, function(err, result) {
+      if (err) {
+        log.debug('item_hierarchy_cin_validate error: ' + err)
+        res.jsonp(err)
+        return
+      }
+      log.debug('item_hierarchy_cin_validate result: ' + JSON.stringify(result))
+      //res.set('Content-Type', 'application/json;charset=utf-8')
+      //res.set('Content-Type', 'application/xml;charset=utf-8')
+      //res.end(JSON.stringify(result))
+      res.jsonp(result) // eg {"success":true,"ts":"Fri Oct 02 08:35:46 PDT 2015"}
     })
-    .catch(function (err) {
-      log.debug('cin_promise.validate_cin.catch err: ' + err)
-      res.set('Content-Type', 'application/json;charset=utf-8')
-      res.end(err)
-    })
-    .done() // Q
   }
 
   api.validate_hierarchies = function (req, res, next) {
@@ -152,7 +98,7 @@ module.exports = function (config) {
 
     req.on('end', function () {
 
-      var promises = []
+      var tasks = []
       try {
         log.info('Received content of length ' + (content && content.length || '0'))
         log.debug('request body:' + content)
@@ -166,7 +112,7 @@ module.exports = function (config) {
           item_spec.provider  = provider
           item_spec.tm        = item_spec.tm || '840'
           item_spec.tm_sub    = item_spec.tm_sub || item_spec.tmSub || 'na'
-          promises.push(cin_promise.validate_cin(item_spec))
+          tasks.push(promises.item_hierarchy_cin_validate(item_spec))
         })
       }
       catch (err) {
@@ -175,7 +121,7 @@ module.exports = function (config) {
         return next(err)
       }
 
-      Q.allSettled(promises)
+      Q.allSettled(tasks)
       .then(function (results) {
 
         console.log('==================== Q.allsettled ==================')

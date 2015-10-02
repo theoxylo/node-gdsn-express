@@ -7,8 +7,7 @@ module.exports = function (config) {
   var process_msg   = require('../lib/process_msg.js')(config)
   var outbox        = require('../lib/outbox.js')(config)
   var trade_item_db = require('../lib/db/trade_item.js')(config)
-
-  var cin_promise   = require('../lib/validate_cin.js')(config)
+  var promises      = require('../lib/promises.js')(config)
 
   var api = {}
 
@@ -159,18 +158,13 @@ module.exports = function (config) {
   function validate_single_item(item, do_success, done) {
     log.debug('validate_single_item, gtin: ' + item.gtin)
     var start = Date.now()
-    cin_promise.validate_cin(item)
-    .then(function (cin_xml) {
-      log.debug('valid CIN length: ' + cin_xml.length)
-      item.cin_xml = cin_xml
+    promises.item_hierarchy_cin_validate(item, function(err, result){
+      if (err) {
+        done(null, format_result(err, null, null, item, 'Registration')) // end of processing for each item
+        return
+      }
       do_success(item, done)
     })
-    .catch(function (err) {
-      log.debug('.catch err: ' + err)
-      // not passing err as err param to callback, wrapping as 'result'
-      done(null, format_result(err, null, null, item, 'Registration')) // end of processing for each item
-    })
-    .done() // Q
   } // end validate_single_item
 
   function register_item(item, done) {
@@ -249,7 +243,7 @@ module.exports = function (config) {
     result.portalChar           = item.portalChar           || ''
 
     if (err) {
-      result.errors.push({message:err.message, xPath:'', attributename:''})
+      result.errors.push({message: err.message || 'na', xPath: '', attributename: ''})
       return result
     }
     if ((response && response.statusCode > 400) || !get_success(res_body)) {
