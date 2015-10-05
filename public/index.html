@@ -144,18 +144,18 @@
           <table width="100%">
             <tr>
               <th><input type="checkbox" ng-model="rs_ctrl.selectAll" ng-change="rs_ctrl.updateSelectAll(messages)"/></th>
-              <th><a href="" ng-click="sortField = 'msg_id';         reverse = !reverse">Msg Id</a></th>
-              <th><a href="" ng-click="sortField = 'version';        reverse = !reverse">Version</a></th>
-              <th><a href="" ng-click="sortField = 'msg_type';       reverse = !reverse">Type</a></th>
-              <th><a href="" ng-click="sortField = 'status';         reverse = !reverse">Status</a></th>
-              <th><a href="" ng-click="sortField = 'sender';         reverse = !reverse">Sender</a></th>
-              <th><a href="" ng-click="sortField = 'receiver';       reverse = !reverse">Receiver</a></th>
+              <th>Msg Id</th>
+              <th>Version</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Sender</th>
+              <th>Receiver</th>
               <th>XML</th>
-              <th><a href="" ng-click="sortField = 'created_ts';     reverse = !reverse">Created</a></th>
-              <th><a href="" ng-click="sortField = 'modified_ts';    reverse = !reverse">Modified</a></th>
-              <th><a href="" ng-click="sortField = 'content_length'; reverse = !reverse">Length</a></th>
+              <th>Created</th>
+              <th>Modified</th>
+              <th>Length</th>
             </tr>
-            <tr ng-repeat="msg in messages | orderBy:sortField:reverse | filter:query">
+            <tr ng-repeat="msg in messages | filter:query">
               <td>
                 <input type="checkbox" ng-model="msg.selected"/>
               </td>
