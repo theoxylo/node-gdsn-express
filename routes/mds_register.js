@@ -140,7 +140,10 @@ module.exports = function (config) {
 
     trade_item_db.findTradeItemFromItem(query, function (err, item) {
 
-      if (err) return done(format_result(err, null, null, query))
+      if (err) {
+          var fr = format_result(err, null, null, query)
+          return done(fr)
+      }
 
       if ((query.itemOwnerProductCode && query.itemOwnerProductCode != item.itemOwnerProductCode)
        || (query.vendorId             && query.vendorId             != item.vendorId)
@@ -158,9 +161,10 @@ module.exports = function (config) {
   function validate_single_item(item, do_success, done) {
     log.debug('validate_single_item, gtin: ' + item.gtin)
     var start = Date.now()
-    promises.item_hierarchy_cin_validate(item, function(err, result){
-      if (err) {
-        done(null, format_result(err, null, null, item, 'Registration')) // end of processing for each item
+    promises.item_hierarchy_cin_validate(item, function (err, result) {
+      if (err || !result || !result.success) {
+        //done(null, format_result(err, null, null, item, 'Validation')) // end of processing for each item
+        done(null, result) // end of processing for each item
         return
       }
       do_success(item, done)
@@ -206,7 +210,7 @@ module.exports = function (config) {
           var rci_xml = config.gdsn.create_tp_item_rci_28(item)
           log.debug('RCI: ' + rci_xml)
           var start = Date.now()
-          outbox.send_by_as2(rci_xml, config.gdsn_gr_gln, function(err, result) {
+          outbox.send_by_as2(rci_xml, config.gdsn_gr_gln, function (err, result) {
             log.debug('process_msg.send_by_as2 completed in ' + (Date.now() - start) + ' ms')
             if (err) log.error(err)
             if (result) log.info(result)
@@ -246,16 +250,19 @@ module.exports = function (config) {
       result.errors.push({message: err.message || 'na', xPath: '', attributename: ''})
       return result
     }
-    if ((response && response.statusCode > 400) || !get_success(res_body)) {
-      //result.errors.push({message: ('bad status code ' + response.statusCode), xPath:'', attributename:''})
-      var msg = 'item error: ' + response.statusCode
+    if (response && response.statusCode > 400) {
+      result.errors.push({message: ('bad status code ' + response.statusCode), xPath:'', attributename:''})
+      return result
+    }
+    if (!get_success(res_body)) {
+      var msg = 'error parsing res_body.error: '
       try {
         res_body = res_body.replace(/\\\\"/g, '')
         msg = JSON.parse(res_body).error
       }
       catch (err) {
         log.error(err)
-        msg = 'error parsing res_body: ' + err.message
+        msg += err.message
         console.log(res_body)
       }
       result.errors.push({message: msg, xPath:'', attributename:''})
@@ -273,7 +280,7 @@ module.exports = function (config) {
       return success && success != 'false' && success != 'FALSE'
     }
     catch (err) {
-      console.log('json parse error: ' + err)
+      console.log('mds json parse error: ' + err)
     }
     return false
   } // end get_success
