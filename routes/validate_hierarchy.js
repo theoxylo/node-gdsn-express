@@ -33,16 +33,11 @@ module.exports = function (config) {
       ,tm_sub    : tm_sub
     }
 
-    promises.get_item_hierarchy_cin(item_spec)
-    .then(function (cin_xml) {
+    promises.get_item_hierarchy_cin(item_spec, function (err, result) {
+      if (err) return res.jsonp(err)
       res.set('Content-Type', 'application/xml;charset=utf-8')
-      res.end(cin_xml)
+      res.end(result)
     })
-    .catch(function (err) {
-      log.debug('.catch err: ' + err)
-      res.jsonp(err)
-    })
-    .done() // Q
   }
 
   api.validate_hierarchy = function (req, res, next) { // GET for single hierarchy with known root item
@@ -68,15 +63,7 @@ module.exports = function (config) {
     }
 
     promises.item_hierarchy_cin_validate(item_spec, function(err, result) {
-      if (err) {
-        log.debug('item_hierarchy_cin_validate error: ' + err)
-        res.jsonp(err)
-        return
-      }
-      log.debug('item_hierarchy_cin_validate result: ' + JSON.stringify(result))
-      //res.set('Content-Type', 'application/json;charset=utf-8')
-      //res.set('Content-Type', 'application/xml;charset=utf-8')
-      //res.end(JSON.stringify(result))
+      if (err) return res.jsonp(err)
       res.jsonp(result) // eg {"success":true,"ts":"Fri Oct 02 08:35:46 PDT 2015"}
     })
   }
