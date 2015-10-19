@@ -140,20 +140,23 @@ module.exports = function (config) {
 
     trade_item_db.findTradeItemFromItem(query, function (err, item) {
 
-      if (err) {
-          var fr = format_result(err, null, null, query)
-          return done(fr)
-      }
+      //if (err) return done(err) // this will cause http 500!
+
+      //if (err) return done(null, format_result(Error('custom item error'), null, null, query))
+
+      if (err) return done(null, format_result(err, null, null, query))
 
       if ((query.itemOwnerProductCode && query.itemOwnerProductCode != item.itemOwnerProductCode)
        || (query.vendorId             && query.vendorId             != item.vendorId)
        || (query.buyerId              && query.buyerId              != item.buyerId)
        || (query.portalChar           && query.portalChar           != item.portalChar)) {
 
-          return done(format_result(Error('mds attributes do not match, no item found'), null, null, item))
+          return done(null, format_result(Error('mds attributes do not match, no item found'), null, null, item))
       }
-      console.log('query.validate: "' + query.validate + '"')
+
+      //console.log('query.validate: "' + query.validate + '"')
       //if (query.validate == 'false') return register_item(item, done) // skip validation?
+
       validate_single_item(item, register_item, done)
     })
   } // end validate_and_register_item
@@ -162,10 +165,9 @@ module.exports = function (config) {
     log.debug('validate_single_item, gtin: ' + item.gtin)
     var start = Date.now()
     promises.item_hierarchy_cin_validate(item, function (err, result) {
-      if (err || !result || !result.success) {
-        //done(null, format_result(err, null, null, item, 'Validation')) // end of processing for each item
-        done(null, result) // end of processing for each item
-        return
+
+      if (err) {
+        return done(null, format_result(err, null, null, item, 'Validation')) // end of processing for each item
       }
       do_success(item, done)
     })
@@ -199,32 +201,24 @@ module.exports = function (config) {
           , 'pass': 'devadmin'
           , 'sendImmediately': true
         }
-    }, function post_complete(err, response, res_body) {
+    }, function (err, response, res_body) {
       log.debug('post single item register dp result: ' + res_body)
 
       // conditional logic to send RCI if needed (as indicated by /ci response)
-      try {
-        var send_rci = config.send_rci || res_body.indexOf('p_sendRciMsg=true') > -1
-        if (send_rci) {
-          log.debug('generating and sending rci for item ' + item.gtin)
-          var rci_xml = config.gdsn.create_tp_item_rci_28(item)
-          log.debug('RCI: ' + rci_xml)
-          var start = Date.now()
-          outbox.send_by_as2(rci_xml, config.gdsn_gr_gln, function (err, result) {
-            log.debug('process_msg.send_by_as2 completed in ' + (Date.now() - start) + ' ms')
-            if (err) log.error(err)
-            if (result) log.info(result)
-          })
-        }
-        else { // skip RCI
-          log.debug('skipping rci for item ' + item.gtin)
-        }
+      if (!err && (res_body.indexOf('p_sendRciMsg=true') > -1 || res_body.indexOf('p_sendRciMsg\\u003dtrue') > -1)) {
+        log.debug('generating and sending rci for item ' + item.gtin)
+        var rci_xml = config.gdsn.create_tp_item_rci_28(item)
+        log.debug('RCI: ' + rci_xml)
+        var start = Date.now()
+        outbox.send_by_as2(rci_xml, config.gdsn_gr_gln, function(as2_err, result) {
+          log.debug('process_msg.send_by_as2 completed in ' + (Date.now() - start) + ' ms')
+          if (as2_err) log.error(as2_err)
+          if (result) log.info(result)
+        })
       }
-      catch (err) {
-        log.warn('error parsing gdsn server response for RCI logic: ' + err)
-        console.log(err)
+      else { // skip RCI
+        log.debug('skipping rci for item ' + item.gtin)
       }
-
       done(null, format_result(err, response, res_body, item, 'Registration')) // end of processing for each item
 
     }) // end request.post
@@ -250,40 +244,30 @@ module.exports = function (config) {
       result.errors.push({message: err.message || 'na', xPath: '', attributename: ''})
       return result
     }
-    if (response && response.statusCode > 400) {
-      result.errors.push({message: ('bad status code ' + response.statusCode), xPath:'', attributename:''})
-      return result
-    }
-    if (!get_success(res_body)) {
-      var msg = 'error parsing res_body.error: '
-      try {
-        res_body = res_body.replace(/\\\\"/g, '')
-        msg = JSON.parse(res_body).error
-      }
-      catch (err) {
-        log.error(err)
-        msg += err.message
-        console.log(res_body)
-      }
-      result.errors.push({message: msg, xPath:'', attributename:''})
-      return result
-    }
-    result.success = true
-    result.errorType = ''
-    return result
-  } // end format_result
 
-  function get_success(res_body){
+    if (!res_body) {
+      result.errors.push({message: 'missing res_body', xPath:'', attributename:''})
+      return result
+    }
+
+    var body = {success: false, error: 'json parse error'}
     try {
-      var success = JSON.parse(res_body).success
-      console.log('success value from res_body: ' + success)
-      return success && success != 'false' && success != 'FALSE'
+      body = JSON.parse(res_body)
+      console.log('success value from res_body: "' + body.success + '"')
     }
     catch (err) {
       console.log('mds json parse error: ' + err)
     }
-    return false
-  } // end get_success
+
+    if (!body.success || !response || response.statusCode > 400) {
+      result.errors.push({message: body.error, xPath:'', attributename:''})
+      return result
+    }
+
+    result.success = true
+    result.errorType = ''
+    return result
+  } // end format_result
 
   return api
 }

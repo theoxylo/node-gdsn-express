@@ -26,20 +26,21 @@
         , xmlMode: true
       })
 
-      $('privateInformation>partyReceivingPrivateData>gln').text('1100001011278')
+      /* example: count tradeItems
+      $('privateInformation > partyReceivingPrivateData > gln').text('1100001011339')
 
       fs.writeFile(filename + '.' + Date.now(), $.html(), function (err) {
         log('Task done in ' + (Date.now() - start) + ' ms')
         if (err) log(err)
       })
+      */
 
-      /* example: count tradeItems
       var count = 0
       $('tradeItem > tradeItemIdentification > gtin').each(function () {
         count++
         //log('found gtin ' + $(this).text())
       })
-      */
+      log('trade item count: ' + count)
 
     })
   }

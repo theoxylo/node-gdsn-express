@@ -85,7 +85,7 @@ module.exports = function (config) {
 
     req.on('end', function () {
 
-      var tasks = []
+      var promise_list = []
       try {
         log.info('Received content of length ' + (content && content.length || '0'))
         log.debug('request body:' + content)
@@ -99,7 +99,10 @@ module.exports = function (config) {
           item_spec.provider  = provider
           item_spec.tm        = item_spec.tm || '840'
           item_spec.tm_sub    = item_spec.tm_sub || item_spec.tmSub || 'na'
-          tasks.push(promises.item_hierarchy_cin_validate(item_spec))
+          promise_list.push(promises.item_hierarchy_cin_validate(item_spec, function (err, result) {
+            log.debug('item_h_c_v callback err: ' + err)
+            log.debug('item_h_c_v callback result: ' + result)
+          }))
         })
       }
       catch (err) {
@@ -108,7 +111,7 @@ module.exports = function (config) {
         return next(err)
       }
 
-      Q.allSettled(tasks)
+      Q.allSettled(promise_list)
       .then(function (results) {
 
         console.log('==================== Q.allsettled ==================')
