@@ -9,9 +9,9 @@ module.exports = function (config) {
 
   var api = {}
     
-  api.create_cin_28_or_31 = function (req, res, next) { // GET /:recipient/:gtin/:provider/:tm[/:tm_sub|na]
+  api.create_cin = function (req, res, next) { // GET /:recipient/:gtin/:provider/:tm[/:tm_sub|na]
 
-    log.debug('create_cin_28_or_31 req.path: ' + req.url)
+    log.debug('create_cin (28_or_31) req.path: ' + req.url)
 
     var gtin // used in catch
 
@@ -109,7 +109,6 @@ module.exports = function (config) {
 
         var start = Date.now()
         items[0].fetch_type = 'match'
-        var version_28 = (items[0].tradeItem.gtin ? false : true) // 3.1 tradeItem has shorter gtin xpath
 
         item_utils.fetch_all_children(items[0], 999, function (err, results) {
           if (err) return next(err)
@@ -129,8 +128,7 @@ module.exports = function (config) {
 
           var cin_xml = ''
           try {
-            if (version_28) cin_xml = config.gdsn.create_cin_28(items, receiver, command, reload, docStatus, sender)
-            else            cin_xml = config.gdsn.create_cin_31(items, receiver, command, reload, docStatus, sender)
+            cin_xml = config.gdsn.create_cin(items, receiver, command, reload, docStatus, sender) // 3.1 is the new default version!
           }
           catch (err) {
             log.error('err generating CIN: ' + err)
@@ -158,7 +156,7 @@ module.exports = function (config) {
       log.error('Failed to create new CIN message for root gtin: ' + JSON.stringify(error))
       next(error)
     }
-  } // end api.create_cin_28_or_31
+  } // end api.create_cin
 
   return api
 }
