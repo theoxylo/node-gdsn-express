@@ -4,7 +4,6 @@ module.exports = function (config) {
   var request = require('request')
 
   var log           = require('../lib/Logger')('rt_mdsreg', config)
-  var process_msg   = require('../lib/process_msg.js')(config)
   var outbox        = require('../lib/outbox.js')(config)
   var trade_item_db = require('../lib/db/trade_item.js')(config)
   var promises      = require('../lib/promises.js')(config)
@@ -210,10 +209,10 @@ module.exports = function (config) {
         var rci_xml = config.gdsn.create_tp_item_rci_28(item)
         log.debug('RCI: ' + rci_xml)
         var start = Date.now()
-        outbox.send_by_as2(rci_xml, config.gdsn_gr_gln, function(as2_err, result) {
-          log.debug('process_msg.send_by_as2 completed in ' + (Date.now() - start) + ' ms')
-          if (as2_err) log.error(as2_err)
-          if (result) log.info(result)
+        outbox.send_from_dp(rci_xml, function(send_err, result) {
+          log.debug('outbox.send_from_dp completed in ' + (Date.now() - start) + ' ms')
+          if (send_err) log.error(send_err)
+          else log.info(result)
         })
       }
       else { // skip RCI

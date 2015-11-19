@@ -135,18 +135,15 @@ module.exports = function (config) {
             //log.debug(cin_xml)
           }
 
-          msg_archive.saveMessage(cin_xml, function (err, msg_info) {
-            if (err) return next(err)
-            log.info('Generated cin message saved to archive: ' + msg_info.msg_id + ', modified: ' + new Date(msg_info.modified_ts))
-
-            outbox.send_by_as2(cin_xml, receiver)
+          outbox.send_from_dp(cin_xml, function (err, result) {
+            if (err) log.err(err)
+            else log.info(result)
           })
 
-          if (!res.finished) {
-            res.set('Content-Type', 'application/xml;charset=utf-8')
-            if (req.param('download')) res.set('Content-Disposition', 'attachment; filename="gen_cin_' + gtin + '.xml"')
-            res.end(cin_xml)
-          }
+          res.set('Content-Type', 'application/xml;charset=utf-8')
+          if (req.param('download')) res.set('Content-Disposition', 'attachment; filename="gen_cin_' + gtin + '.xml"')
+          res.end(cin_xml)
+
           log.db(req.url, req.user, (Date.now() - start))
 
         }) // end: fetch all children and generate cin
