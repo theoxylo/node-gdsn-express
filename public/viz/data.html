@@ -55,7 +55,7 @@
         physics_stats.domElement.style.zIndex = 100;
         document.getElementById( 'viewport' ).appendChild( physics_stats.domElement );
         
-        scene = new Physijs.Scene({ fixedTimeStep: 1 / 120 });
+        scene = new Physijs.Scene({ fixedTimeStep: 1 / 60 });
         scene.setGravity(new THREE.Vector3( 0, -30, 0 ));
         scene.addEventListener(
             'update',
@@ -160,7 +160,7 @@
         var addshapes = true,
             shapes = 0,
             box_geometry = new THREE.CubeGeometry( 3, 3, 3 ),
-            sphere_geometry = new THREE.SphereGeometry( 1.5, 32, 32 ),
+            sphere_geometry = new THREE.SphereGeometry( 3.5, 32, 32 ),
             cylinder_geometry = new THREE.CylinderGeometry( 2, 2, 1, 32 ),
             cone_geometry = new THREE.CylinderGeometry( 0, 2, 4, 32 ),
             octahedron_geometry = new THREE.OctahedronGeometry( 1.7, 1 ),
@@ -183,9 +183,11 @@
         doCreateShape = function() {
             var shape, material = new THREE.MeshLambertMaterial({ opacity: 0, transparent: true });
             
-                    shape = new Physijs.BoxMesh(
-                        box_geometry,
-                        material
+                    shape = new Physijs.SphereMesh(
+                        sphere_geometry,
+                        material,
+                        undefined,
+                        { restitution: Math.random() * 1.5 }
                     );
 
             // random shape:
