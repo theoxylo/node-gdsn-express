@@ -27,6 +27,8 @@ var config = {
   //, send_rci              : true
   ,skip_hier_validation     : false
   ,skip_hier_bus_validation : false
+  ,cin_31_only: true
+  ,rci_31_only: true
 }
 
 // config methods
