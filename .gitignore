@@ -1,3 +1,5 @@
+profiles/bp_cps.js
+profiles/bp_compassCAN.js
 node_modules
 .svnignore
 .svn
