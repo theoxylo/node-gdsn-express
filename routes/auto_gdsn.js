@@ -54,21 +54,15 @@ module.exports = function (config) {
                   if (err) return next(err)
                   log.info('Saved generated response to original message: ' + msg.msg_id)
                   log.info('Saved generated response: ' + saved_resp.msg_id)
-                  if (!res.finished) {
-                    res.jsonp({note:'validation error for msg ' + msg.msg_id, body: body})
-                    res.end()
-                  }
+                  res.jsonp({note:'validation error for msg ' + msg.msg_id, body: body})
                 })
               }
               return
             }
  
-            process_msg.workflow(msg, 'DEFAULT', function (err, result) {
+            process_msg.workflow(msg, function (err, result) {
               if (err) return next(err)
-              if (!res.finished) {
-                res.jsonp(result)
-                res.end()
-              }
+              else res.jsonp(result)
             })
 
           }) // end request.post

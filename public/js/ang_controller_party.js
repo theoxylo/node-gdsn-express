@@ -4,8 +4,11 @@
 
       $scope.showPartyDetail = function (party) {
         log('showPartyDetail called for gln ' + party.gln)
-        if (party && party.json && party.json.registryPartyDataDumpDetail) {
+        if (false && party && party.json && party.json.registryPartyDataDumpDetail) {
           $result_dialog.html(prettyPrint(party.json.registryPartyDataDumpDetail.registryParty)).dialog('open')
+        }
+        else {
+          $result_dialog.html(prettyPrint(party)).dialog('open')
         }
       }
 

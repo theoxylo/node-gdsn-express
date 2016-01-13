@@ -4,7 +4,6 @@ module.exports = function (config) {
   var request = require('request')
 
   var log           = require('../lib/Logger')('rt_mdsreg', config)
-  var process_msg   = require('../lib/process_msg.js')(config)
   var outbox        = require('../lib/outbox.js')(config)
   var trade_item_db = require('../lib/db/trade_item.js')(config)
   var promises      = require('../lib/promises.js')(config)
@@ -28,7 +27,7 @@ module.exports = function (config) {
 
     validate_and_register_item(item, function (err, results) {
 
-      log.debug('>>>>>>>>>>>>>>>>>>>> validate_register_items (' + (results ? results.length : '0') + ' results) took ' + (Date.now() - start) + ' ms')
+      log.debug('>>>>>>>>>>>>>>>>>>>> validate_register_item (' + (results ? results.length : '0') + ' results) took ' + (Date.now() - start) + ' ms')
 
       if (err) return next(err) // not expected as item errors will be wrapped in results
       if (!results || !results.length) return next(Error('no results'))
@@ -47,7 +46,7 @@ module.exports = function (config) {
       console.log('=============================================')
       console.dir(output)
       res.jsonp(output)
-    }) // end validate_register_items call
+    }) // end validate_register_item call
   }
 
   api.register_existing_items = function (req, res, next) { // json post
@@ -75,8 +74,6 @@ module.exports = function (config) {
       var req_body
       try {
         log.info('Received content of length ' + (content && content.length || '0'))
-        console.log('request body:' + content)
-
         req_body = JSON.parse(content)
         console.log('parsed:')
         console.dir(req_body)
@@ -140,10 +137,6 @@ module.exports = function (config) {
 
     trade_item_db.findTradeItemFromItem(query, function (err, item) {
 
-      //if (err) return done(err) // this will cause http 500!
-
-      //if (err) return done(null, format_result(Error('custom item error'), null, null, query))
-
       if (err) return done(null, format_result(err, null, null, query))
 
       if ((query.itemOwnerProductCode && query.itemOwnerProductCode != item.itemOwnerProductCode)
@@ -154,9 +147,11 @@ module.exports = function (config) {
           return done(null, format_result(Error('mds attributes do not match, no item found'), null, null, item))
       }
 
-      //console.log('query.validate: "' + query.validate + '"')
+      // skip validation and just register:
       //if (query.validate == 'false') return register_item(item, done) // skip validation?
+      if (query.validate != 'false') item.validate_bms = true // skip BMS validation?
 
+      // validate, then register:
       validate_single_item(item, register_item, done)
     })
   } // end validate_and_register_item
@@ -165,8 +160,8 @@ module.exports = function (config) {
     log.debug('validate_single_item, gtin: ' + item.gtin)
     var start = Date.now()
     promises.item_hierarchy_cin_validate(item, function (err, result) {
-
       if (err) {
+        console.dir(err)
         return done(null, format_result(err, null, null, item, 'Validation')) // end of processing for each item
       }
       do_success(item, done)
@@ -179,7 +174,7 @@ module.exports = function (config) {
       , classCategoryCode         : item.gpc
       , unitDescriptor            : item.unit_type
       , ts                        : new Date()
-      , cmd                       : 'ADD'
+      //, cmd                       : 'ADD' // ci service will autoconfigure cmd
       , ci_state: 'REGISTERED' // always, for now
     }
     if (item.cancelledDate)    form_data.canceledDate     = item.cancelledDate // iso string
@@ -201,31 +196,59 @@ module.exports = function (config) {
           , 'pass': 'devadmin'
           , 'sendImmediately': true
         }
-    }, function (err, response, res_body) {
-      log.debug('post single item register dp result: ' + res_body)
+    }, function (err, response, body) {
+      log.debug('post single item register dp result: ' + body)
+
+      if (err || response.statusCode != 200) {
+        return done(null, format_result(err, response, body, item, 'Registration')) // end of processing for each item
+      }
+
+      var send_rci = false
+      var rci_cmd = ''
+
+      try {
+        var data = JSON.parse(body)
+        console.dir(data)
+
+        send_rci = (data.info.p_sendRciMsg == 'true')
+        if (send_rci) rci_cmd  = data.info.p_documentCommandHeader
+
+        log.debug('data.info send rci : ' + send_rci)
+        log.debug('data.info send type: ' + rci_cmd)
+      }      
+      catch (e) {
+        log.error('error parsing ci response body: ' + body)
+        log.error(e)
+
+        if (send_rci && ! rci_cmd) rci_cmd = 'ADD' // default add if parsing error
+      }
+      log.debug('data.info send rci : ' + send_rci)
+      log.debug('data.info send type: ' + rci_cmd)
 
       // conditional logic to send RCI if needed (as indicated by /ci response)
-      if (!err && (res_body.indexOf('p_sendRciMsg=true') > -1 || res_body.indexOf('p_sendRciMsg\\u003dtrue') > -1)) {
+      //if (!err && (body.indexOf('p_sendRciMsg=true') > -1 || body.indexOf('p_sendRciMsg\\u003dtrue') > -1)) {
+      if (send_rci) {
         log.debug('generating and sending rci for item ' + item.gtin)
-        var rci_xml = config.gdsn.create_tp_item_rci_28(item)
+        var rci_xml = config.gdsn.create_rci_to_gr(item, rci_cmd)
         log.debug('RCI: ' + rci_xml)
         var start = Date.now()
-        outbox.send_by_as2(rci_xml, config.gdsn_gr_gln, function(as2_err, result) {
-          log.debug('process_msg.send_by_as2 completed in ' + (Date.now() - start) + ' ms')
-          if (as2_err) log.error(as2_err)
-          if (result) log.info(result)
+        outbox.send_from_dp(rci_xml, function(send_err, result) {
+          log.debug('outbox.send_from_dp completed in ' + (Date.now() - start) + ' ms')
+          if (send_err) log.error(send_err)
+          else log.info(result)
         })
       }
       else { // skip RCI
         log.debug('skipping rci for item ' + item.gtin)
       }
-      done(null, format_result(err, response, res_body, item, 'Registration')) // end of processing for each item
+      done(null, format_result(err, response, body, item, 'Registration')) // end of processing for each item
 
     }) // end request.post
   } // end register_item
 
-  function format_result(err, response, res_body, item, errorType) {
-    log.debug('mds_register.format_result - res_body: ' + res_body)
+  function format_result(err, response, body, item, errorType) {
+    log.debug('mds_register.format_result - err: ' + err)
+    log.debug('mds_register.format_result - body: ' + body)
     var result = {
       success: false
       ,errors: []
@@ -245,22 +268,22 @@ module.exports = function (config) {
       return result
     }
 
-    if (!res_body) {
-      result.errors.push({message: 'missing res_body', xPath:'', attributename:''})
+    if (!body) {
+      result.errors.push({message: 'missing response', xPath:'', attributename:''})
       return result
     }
 
-    var body = {success: false, error: 'json parse error'}
+    var body_parse = {success: false, error: 'json parse error'}
     try {
-      body = JSON.parse(res_body)
-      console.log('success value from res_body: "' + body.success + '"')
+      body_parse = JSON.parse(body)
+      console.log('success value from body: "' + body_parse.success + '"')
     }
     catch (err) {
       console.log('mds json parse error: ' + err)
     }
 
-    if (!body.success || !response || response.statusCode > 400) {
-      result.errors.push({message: body.error, xPath:'', attributename:''})
+    if (!body_parse.success || !response || response.statusCode > 400) {
+      result.errors.push({message: body_parse.error, xPath:'', attributename:''})
       return result
     }
 

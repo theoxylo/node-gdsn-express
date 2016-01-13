@@ -22,7 +22,7 @@ module.exports = function (config) {
     }
 
     // send cic only if cic_state is specified in request
-    var cic_state = req.param('cic_state', 'DEFAULT') // from query string, not url template /:blah
+    var cic_state = req.param('cic_state', 'DEFAULT') // req.param() reads from query string only, not url template path
 
     // fetch existing msg xml and submit to dp
     log.debug('locate existing message with id: ' + msg_id + ', sender: ' + sender)
@@ -41,11 +41,8 @@ module.exports = function (config) {
       msg = config.gdsn.get_msg_info(msg.xml)
       log.debug('reparse of db msg xml took ' + (Date.now() - start_parse) + ' ms for ' + msg.xml.length + ' new length')
 
-      process_msg.workflow(msg, cic_state, function (err, result) {
-        if (!res.finished) {
-          res.jsonp(result)
-          res.end()
-        }
+      process_msg.workflow(msg, function (err, result) {
+        res.jsonp(err || result)
       })
     })
 

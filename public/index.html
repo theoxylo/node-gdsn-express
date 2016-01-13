@@ -46,7 +46,7 @@
   <ul>
     <li><a href="#main_menu">Main Menu</a></li>
     <li><a href="#msg_tab">Messages</a></li>
-    <li><a href="#party_tab">Trading Parties</a></li>
+    <li><a href="#party_tab">Party GLNs</a></li>
     <li><a href="#item_tab">Catalog Items</a></li>
     <li><a href="#pub_tab">Publication</a></li>
     <li><a href="#sub_tab">Subscription</a></li>
@@ -218,7 +218,7 @@
           </form>
 
           <p>Changes and new entries on other tabs may result:</p>
-            <li>BPR and RPDD messages will create/update parties on the Trading Parties tab</li>
+            <li>BPR and RPDD messages will create/update parties on the Party tab</li>
             <li>CIN messages will create/update items on the Catalog Items tab</li>
             <li>CIP messages will create/update publications on the Publications tab</li>
             <li>CIS messages will create/update subscriptions on the Subscriptions tab</li>
@@ -296,10 +296,11 @@
   <div id="party_tab" ng-controller="gdsn_party_controller">
     <div id="party_accordion">
 
-      <div>Search Trading Parties</div>
+      <div>Search Party Registry</div>
       <div>
         <br/>
-        <button ng-if="!parties" ng-click="list_parties()">Load Parties</button>
+        <button ng-if="!parties" ng-click="list_parties()">Load</button>
+        <button ng-if="parties" ng-click="list_parties()">Reload</button>
         <button ng-if="page > 0" ng-click="list_parties(-1)">Prev</button>
         <button ng-if="parties && parties.length == 10" ng-click="list_parties(1)">Next</button>
         <div ng-if="parties" style="border-style:solid;border-width:1px;border-color:green">
@@ -313,9 +314,9 @@
               <th>Modified</th>
             </tr>
             <tr class="clickable" ng-repeat="party in parties" ng-click="showPartyDetail(party)">
-              <td>{{party.name}}</td>
+              <td>{{party.json.registryPartyDataDumpDetail.registryParty.registryPartyInformation.registryPartyNameAndAddress.name}}</td>
               <td>{{party.gln}}</td>
-              <td>{{party.tm}}</td>
+              <td>{{party.json.registryPartyDataDumpDetail.registryParty.registryPartyInformation.registryPartyNameAndAddress.countryCode.countryISOCode}}</td>
               <td>{{party.source_dp}}</td>
               <td>{{party.created_ts}}</td>
               <td>{{party.modified_ts}}</td>
@@ -334,7 +335,7 @@
         <br/><span ng-if="input_party_gln">[<a ng-href="/cs_api/1.0/party/{{input_party_gln}}?download=true">Download link to catalog party {{input_party_gln}}</a>]</span>
       </div>
 
-      <div>Post Trading Parties RPDD File</div>
+      <div>Post Party RPDD File</div>
       <div>
         <div ng-controller="gdsn_file_controller">
           <input type="file" multiple="true" ng-file-select="onFileSelect($files, 'parties_url')"></input>
