@@ -94,7 +94,6 @@ router.use(function authorizeRequest(req, res, next) {
   log.info('req.user: ' + JSON.stringify(req.user))
 
   var credentials = basic_auth(req)
-
   if (!credentials || (credentials.name + 'Admin' !== credentials.pass)) {
     res.writeHead(401, {
       'WWW-Authenticate': 'Basic realm="Authorization Required"'
