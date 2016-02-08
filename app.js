@@ -25,6 +25,7 @@ config.request_counter = 0
 var express         = require('express')
 var logger          = require('morgan')
 var compression     = require('compression')
+var session         = require('cookie-session')
 
 var fs      = require('fs')
 
@@ -71,11 +72,18 @@ app.use(express.static(__dirname + '/public'))
 // append response time to Http log, for Kibana
 app.use(logger(logger.combined + ' - :response-time ms') )
 
+
+app.use(session({
+  keys: ['secret135', 'secret258']
+  , secureProxy: true
+}))
+
+
 log.info('Loading ITN Passport google OAuth2 connector...')
 require('./lib/passport').init(config)
 
 
-//app.use('/snoop', function (req, res, next) { res.render('snoop') }) // views/snoop.ejs
+app.use('/snoop', function (req, res, next) { res.render('snoop') }) // views/snoop.ejs
 
 // api doc renders - ejs examples
 app.get('/docs' + config.base_url + '/parties',    function (req, res, next) { res.render('parties_api_docs_10')   })
@@ -94,6 +102,15 @@ router.use(function authorizeRequest(req, res, next) {
   log.info('req.user: ' + JSON.stringify(req.user))
 
   var credentials = basic_auth(req)
+  //log.info('creds name: ' + (credentials && credentials.name))
+
+  var session = req.session
+  //log.info('session: ' + JSON.stringify(session))
+
+  if (req.user && req.user.google_token) {
+     return next()
+  }
+
   if (!credentials || (credentials.name + 'Admin' !== credentials.pass)) {
     res.writeHead(401, {
       'WWW-Authenticate': 'Basic realm="Authorization Required"'
@@ -101,7 +118,6 @@ router.use(function authorizeRequest(req, res, next) {
     return res.end()
   }
   req.user = credentials.name
-  log.info('req.user: ' + JSON.stringify(req.user))
   next()
 })
 log.info('done setting up basic_auth')

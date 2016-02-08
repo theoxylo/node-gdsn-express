@@ -137,14 +137,14 @@ module.exports = function (config) {
 
     trade_item_db.findTradeItemFromItem(query, function (err, item) {
 
-      if (err) return done(null, format_result(err, null, null, query))
+      if (err) return done(null, format_result(err, null, query))
 
       if ((query.itemOwnerProductCode && query.itemOwnerProductCode != item.itemOwnerProductCode)
        || (query.vendorId             && query.vendorId             != item.vendorId)
        || (query.buyerId              && query.buyerId              != item.buyerId)
        || (query.portalChar           && query.portalChar           != item.portalChar)) {
 
-          return done(null, format_result(Error('mds attributes do not match, no item found'), null, null, item))
+          return done(null, format_result(Error('mds attributes do not match, no item found'), null, item))
       }
 
       // skip validation and just register:
@@ -160,9 +160,8 @@ module.exports = function (config) {
     log.debug('validate_single_item, gtin: ' + item.gtin)
     var start = Date.now()
     promises.item_hierarchy_cin_validate(item, function (err, result) {
-      if (err) {
-        console.dir(err)
-        return done(null, format_result(err, null, null, item, 'Validation')) // end of processing for each item
+      if (err || result.body) {
+        return done(null, format_result(err, result.body, item)) // end of processing for each item
       }
       do_success(item, done)
     })
@@ -200,7 +199,7 @@ module.exports = function (config) {
       log.debug('post single item register dp result: ' + body)
 
       if (err || response.statusCode != 200) {
-        return done(null, format_result(err, response, body, item, 'Registration')) // end of processing for each item
+        return done(null, format_result(err, body, item, 'Registration')) // end of processing for each item
       }
 
       var send_rci = false
@@ -241,12 +240,12 @@ module.exports = function (config) {
       else { // skip RCI
         log.debug('skipping rci for item ' + item.gtin)
       }
-      done(null, format_result(err, response, body, item, 'Registration')) // end of processing for each item
+      done(null, format_result(err, body, item, 'Registration')) // end of processing for each item
 
     }) // end request.post
   } // end register_item
 
-  function format_result(err, response, body, item, errorType) {
+  function format_result(err, body, item, errorType) {
     log.debug('mds_register.format_result - err: ' + err)
     log.debug('mds_register.format_result - body: ' + body)
     var result = {
@@ -269,7 +268,7 @@ module.exports = function (config) {
     }
 
     if (!body) {
-      result.errors.push({message: 'missing response', xPath:'', attributename:''})
+      result.errors.push({message: 'missing body', xPath:'', attributename:''})
       return result
     }
 
@@ -282,7 +281,7 @@ module.exports = function (config) {
       console.log('mds json parse error: ' + err)
     }
 
-    if (!body_parse.success || !response || response.statusCode > 400) {
+    if (!body_parse.success) {
       result.errors.push({message: body_parse.error, xPath:'', attributename:''})
       return result
     }
