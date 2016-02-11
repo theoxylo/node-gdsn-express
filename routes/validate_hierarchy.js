@@ -24,9 +24,9 @@ module.exports = function (config) {
     var tm = req.param('tm') || '840' // default
     var tm_sub = req.param('tm_sub') || 'na' // default
 
-    // generate TP CIN to home DP for registration-oriented validation
+    // generate TP CIN to home DP for registration-oriented validation, or for subscriber if recipient param is specified
     var item_spec = {
-      recipient : config.homeDataPoolGln
+      recipient : req.param('recipient') || config.homeDataPoolGln
       ,provider  : provider
       ,gtin      : gtin
       ,tm        : tm
@@ -55,7 +55,7 @@ module.exports = function (config) {
 
     // generate TP CIN to home DP for registration-oriented validation
     var item_spec = {
-       recipient: req.param('recipient') || config.homeDataPoolGln      
+      recipient: req.param('recipient') || config.homeDataPoolGln      
       ,provider : provider
       ,gtin     : gtin
       ,tm       : tm
@@ -95,7 +95,7 @@ module.exports = function (config) {
         if (!req_body.items.length) return next(Error('no [items] data found in request'))
 
         req_body.items.forEach(function (item_spec) {
-          item_spec.recipient = config.homeDataPoolGln
+          item_spec.recipient = req.param('recipient') || config.homeDataPoolGln      
           item_spec.provider  = provider
           item_spec.tm        = item_spec.tm || '840'
           item_spec.tm_sub    = item_spec.tm_sub || item_spec.tmSub || 'na'

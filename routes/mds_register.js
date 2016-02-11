@@ -43,8 +43,7 @@ module.exports = function (config) {
        ,provider: provider
        ,results: results
       }
-      console.log('=============================================')
-      console.dir(output)
+      //log.debug('validate_and_register_item output: ' + output)
       res.jsonp(output)
     }) // end validate_register_item call
   }
@@ -75,8 +74,7 @@ module.exports = function (config) {
       try {
         log.info('Received content of length ' + (content && content.length || '0'))
         req_body = JSON.parse(content)
-        console.log('parsed:')
-        console.dir(req_body)
+        log.debug('parsed:' + req_body)
 
         req_body.items.forEach(function (item) {
           item.recipient = config.homeDataPoolGln
@@ -110,8 +108,7 @@ module.exports = function (config) {
            ,provider: provider
            ,results: results
         }
-        console.log('=============================================')
-        console.dir(output)
+        log.debug('validate_register_items output: ' + output)
         res.jsonp(output)
       }) // end validate_register_items call
     }) // end req.on('end')
@@ -133,7 +130,7 @@ module.exports = function (config) {
   }
 
   function validate_and_register_item(query, done) {
-    console.log('item query: ' + (query && query.gtin))
+    log.debug('item query: ' + (query && query.gtin))
 
     trade_item_db.findTradeItemFromItem(query, function (err, item) {
 
@@ -156,14 +153,14 @@ module.exports = function (config) {
     })
   } // end validate_and_register_item
 
-  function validate_single_item(item, do_success, done) {
+  function validate_single_item(item, register_if_valid, done) {
     log.debug('validate_single_item, gtin: ' + item.gtin)
     var start = Date.now()
     promises.item_hierarchy_cin_validate(item, function (err, result) {
-      if (err || result.body) {
-        return done(null, format_result(err, result.body, item)) // end of processing for each item
+      if (err || !result || !result.success) {
+        return done(null, format_result(err, result, item)) // end of processing for each item
       }
-      do_success(item, done)
+      register_if_valid(item, done)
     })
   } // end validate_single_item
 
@@ -207,7 +204,7 @@ module.exports = function (config) {
 
       try {
         var data = JSON.parse(body)
-        console.dir(data)
+        log.debug('ci respons data: ' + data)
 
         send_rci = (data.info.p_sendRciMsg == 'true')
         if (send_rci) rci_cmd  = data.info.p_documentCommandHeader
@@ -267,22 +264,32 @@ module.exports = function (config) {
       return result
     }
 
-    if (!body) {
-      result.errors.push({message: 'missing body', xPath:'', attributename:''})
+    if (!err && !body) {
+      result.errors.push({message: 'missing results', xPath:'', attributename:''})
       return result
     }
 
-    var body_parse = {success: false, error: 'json parse error'}
-    try {
-      body_parse = JSON.parse(body)
-      console.log('success value from body: "' + body_parse.success + '"')
-    }
-    catch (err) {
-      console.log('mds json parse error: ' + err)
+    if (!body.ts) { // not already parsed
+      var body_parse = {success: false, ts: Date.now(), error: 'json parse error'}
+      try {
+        body_parse = JSON.parse(body)
+        log.debug('success value from body: "' + body_parse.success + '"')
+      }
+      catch (err) {
+        log.error('mds json parse error: ' + err)
+      }
+      body = body_parse
     }
 
-    if (!body_parse.success) {
-      result.errors.push({message: body_parse.error, xPath:'', attributename:''})
+    if (body.cin_xml) result.cin_xml = body.cin_xml
+
+    if (body.errors && body.errors.length) {
+      result.errors = body.errors
+      return result
+    }
+
+    if (!body.success) {
+      result.errors.push({message: 'unknown failure' , xPath:'', attributename:''})
       return result
     }
 
