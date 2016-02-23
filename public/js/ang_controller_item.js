@@ -173,7 +173,9 @@
               }
               console.log(item.gtin + ' preparationStates: ' + JSON.stringify(item.preparationStates))
 
-              item.thumbnail = item.images && item.images.length ? item.images[0] : './icon_camera.jpg'
+              item.thumbnail = item.images && item.images.length ? item.images[0] : ''
+              if (item.thumbnail && !/^http:\/\//.test(item.thumbnail)) item.thumbnail = ''
+              if (!item.thumbnail) item.thumbnail = './icon_camera.jpg'
 
               return item
             })
