@@ -148,11 +148,14 @@ router.get( '/validate_register/:provider/:gtin/:tm'        ,  routes_register.r
 
 // POST xml
 router.post('/gdsn-auto',                    routes_auto.process) // message persistence, validation, workflow, and response
+
 router.post('/items',                        routes_item.post_trade_items) // used by eccnet / ECCnet client
+
 router.post('/item',                         routes_msg.post_archive)
-router.post('/msg',                          routes_msg.post_archive)
-router.post('/persist',                      routes_msg.post_archive)
+router.post('/msg',                          routes_msg.post_archive) // used by GDSN Server to only persist "noflow"
+router.post('/persist',                      routes_msg.post_archive) // used by MDS to post items
 router.post('/save',                         routes_msg.post_archive)
+
 router.post('/parties',                      routes_parties.post_parties) //
 
 // GET /gdsn

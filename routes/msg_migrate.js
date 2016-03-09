@@ -101,19 +101,19 @@ module.exports = function (config) {
             })
           })
         })
-        async.parallel(tasks, function (err, results) {
+        async.parallelLimit(tasks, config.concurrency, function (err, results) {
           if (err) log.debug('parallel err: ' + JSON.stringify(err))
           else log.debug('parallel results: ' + JSON.stringify(results))
 
           if (err) return next(err)
-          results = _.flatten(results) // async.parallel returns an array of results arrays
+          results = _.flatten(results)
           msgsMigrated = msgsMigrated.concat(results)
 
           setTimeout(function () {
             migrateMessageBatch(batch_num + 1)
           }, 500)
 
-        }, 5) // end parallel
+        }) // end async.parallelLimit
       }) // end db_msg_archive.listMessages
     }
     migrateMessageBatch(0)

@@ -126,7 +126,7 @@ module.exports = function (config) {
         })
       })
     })
-    async.parallel(tasks, all_done, 5) // concurrency
+    async.parallelLimit(tasks, config.concurrency, all_done)
   }
 
   function validate_and_register_item(query, done) {
@@ -288,7 +288,12 @@ module.exports = function (config) {
       return result
     }
 
-    if (!body.success) {
+    if (body.error && body.error.length) {
+      result.errors = [body.error]
+      return result
+    }
+
+    if (!body.success || !body.success == 'true' ) {
       result.errors.push({message: 'unknown failure' , xPath:'', attributename:''})
       return result
     }

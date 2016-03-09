@@ -14,7 +14,7 @@
     "gdsn": "theoxylo/node-gdsn",
     "mongojs": "0.13.1",
     "underscore": "1.6.0",
-    "async": "0.9.0",
+    "async": "1.5.2",
     "cheerio": "0.17.0",
     "xml-digester": "0.0.5",
     "passport": "0.2.1",

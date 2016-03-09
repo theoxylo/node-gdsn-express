@@ -101,7 +101,7 @@ console.log('type of statusCode: ' + typeof response.statusCode)
         }) // end forEach gln
       }) // end forEach gtin
 
-      async.parallel(tasks, function (err, results) {
+      async.parallelLimit(tasks, config.concurrency, function (err, results) {
         log.debug('parallel cip results count: ' + results && results.length)
         if (!res.finished) {
           res.json({
@@ -114,7 +114,7 @@ console.log('type of statusCode: ' + typeof response.statusCode)
           res.end()
           return
         }
-      }, 10) // concurrency 10, end async.parallel
+      }) // end async.parallelLimit
     }) // end req.on('end'
   }
 

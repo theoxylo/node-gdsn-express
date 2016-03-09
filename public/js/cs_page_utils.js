@@ -54,6 +54,12 @@
         collapsible: true
     })
 
+    var $cic_accordion = $('#cic_accordion')
+    $cic_accordion.accordion({
+        heightStyle: 'content',
+        collapsible: true
+    })
+
     var $debug_accordion = $('#debug_accordion')
     $debug_accordion.accordion({
         heightStyle: 'content',

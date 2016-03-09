@@ -15,11 +15,14 @@ var config = {
   , per_page_count     : 10
   , base_url           : '/cs_api/1.0'
   , slow_warn_ms       : 2000
+  , db_timeout         : 'true'
   , url_gdsn_api       : 'http://localhost:8080/gdsn-server/api'
   , item_default_gtin  : '00000000000000'
   , item_default_gpc   : '99999999'
   , query_msg_id_regex : false
   , send_rci           : true
+  , auto_cic           : false
+  , concurrency        : 4
 
   //  Optional SSL:
   //, https_port       : 8443        // potentially used for public access

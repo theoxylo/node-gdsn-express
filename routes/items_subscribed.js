@@ -91,7 +91,7 @@ module.exports = function (config) {
         trade_item_db.getTradeItems(query, 0, 100, function process_found_items(err, items) {
           if (err) return next(err)
 
-          info('db found ' + (items && items.length) + ' items for gtin ' + gtin + ' in ' + (Date.now() - start) + 'ms')
+          info('db found ' + (items && items.length) + ' items for gtin ' + gtin + ' in ' + (Date.now() - start) + ' ms')
 
           items = item_utils.de_dupe_items(items)
 
@@ -154,90 +154,89 @@ module.exports = function (config) {
             else log.debug(req_id + ' skipping child search for item ' + gtin)
           })
 
-info('starting async for task count: ' + tasks.length)
+          info('starting async for task count: ' + tasks.length)
 
-          async.parallel(tasks, function (err, results) {
-              if (err) return next(err)
-              results = _.flatten(results) // async.parallel returns an array of results arrays
+          async.parallelLimit(tasks, config.concurrency, function (err, results) {
+            if (err) return next(err)
+            results = _.flatten(results)
 
-              //results.unshift(items[0])
-              items = items.concat(results)
+            //results.unshift(items[0])
+            items = items.concat(results)
 
-              items = item_utils.de_dupe_items(items)
-              log.debug(req_id + ' parallel tasks final item count: ' + items.length)
+            items = item_utils.de_dupe_items(items)
+            log.debug(req_id + ' parallel tasks final item count: ' + items.length)
 
-              items = items.map(function (item) {
+            items = items.map(function (item) {
 
-                //log.debug(req_id + ' augmenting gtin ' + item.gtin)
+              //log.debug(req_id + ' augmenting gtin ' + item.gtin)
 
-                try {
-                  item.food_and_bev = !!(item.tradeItem.extension.foodAndBeverageTradeItemExtension)
-                }
-                catch (food_error) {
-                  item.food_and_bev = false
-                }
-
-                item.req_user    = req.user
-                item.client_name = client_config.client_name
-
-                item.href = get_item_href(item)
-
-                item.data = [
-                  {
-                    prompt: 'Item GTIN (required)'
-                    , name: 'gtin'
-                    , value: item.gtin
-                  }
-                ]
-                item.links = [
-                  { rel: 'self', href: item.href }
-                ]
-
-                if (req_param['transform']) {
-                  if (client_config.transform) {
-                    info('applying server profile transform for client ' + req.user + ' to item GTIN ' + item.gtin)
-                    try {
-                      item = client_config.transform(item, lang)
-                    }
-                    catch (e) {
-                      log.error('Error applying server profile transform to item: ' + e)
-                    }
-                  }
-                  //else info('SKIPPING server profile transform for client ' + req.user + ' to item GTIN ' + item.gtin)
-                }
-
-                return item
-              })
-
-              if (req_param['food']) {
-                items = items.filter(function (item) {
-                  return item.food_and_bev
-                })
+              try {
+                item.food_and_bev = !!(item.tradeItem.extension.foodAndBeverageTradeItemExtension)
               }
+              catch (food_error) {
+                item.food_and_bev = false
+              }
+
+              item.req_user    = req.user
+              item.client_name = client_config.client_name
+
+              item.href = get_item_href(item)
+
+              item.data = [
+                {
+                  prompt: 'Item GTIN (required)'
+                  , name: 'gtin'
+                  , value: item.gtin
+                }
+              ]
+              item.links = [
+                { rel: 'self', href: item.href }
+              ]
 
               if (req_param['transform']) {
-                if (req_param['reduce'] && client_config.reduce) {
-                  console.log('applying server profile reduce for client ' + req.user)
+                if (client_config.transform) {
+                  info('applying server profile transform for client ' + req.user + ' to item GTIN ' + item.gtin)
                   try {
-                    items = [client_config.reduce(items)] // condense to single item
+                    item = client_config.transform(item, lang)
                   }
                   catch (e) {
-                    console.log('Error applying server profile reduce to item: ' + e)
+                    log.error('Error applying server profile transform to item: ' + e)
                   }
                 }
+                //else info('SKIPPING server profile transform for client ' + req.user + ' to item GTIN ' + item.gtin)
               }
 
-              if (req_param['download']) {
-                res.set('Content-Disposition', 'attachment; filename="items_' + Date.now() + '.json"')
-                res.jsonp(items)
+              return item
+            })
+
+            if (req_param['food']) {
+              items = items.filter(function (item) {
+                return item.food_and_bev
+              })
+            }
+
+            if (req_param['transform']) {
+              if (req_param['reduce'] && client_config.reduce) {
+                console.log('applying server profile reduce for client ' + req.user)
+                try {
+                  items = [client_config.reduce(items)] // condense to single item
+                }
+                catch (e) {
+                  console.log('Error applying server profile reduce to item: ' + e)
+                }
               }
-              else {
-                var result = utils.get_collection_json(items, config.base_url + req.url)
-                if (!res.finished) res.jsonp(result)
-              }
-              log.db(req.url, req.user, (Date.now() - start))
-            } // end async.parallel callback
-          ) // end async.parallel invocation
+            }
+
+            if (req_param['download']) {
+              res.set('Content-Disposition', 'attachment; filename="items_' + Date.now() + '.json"')
+              res.jsonp(items)
+            }
+            else {
+              var result = utils.get_collection_json(items, config.base_url + req.url)
+              if (!res.finished) res.jsonp(result)
+            }
+            log.db(req.url, req.user, (Date.now() - start))
+          }) // end async.parallelLimit
         }) // end db getTradeItems callback and invocation
       }
       catch (error) {

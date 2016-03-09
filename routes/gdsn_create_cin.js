@@ -89,6 +89,10 @@ module.exports = function (config) {
         }
 
         if (items.length > 1) {
+          items = [items[0]] // temp fix: disregard duplicate older items
+        }
+
+        if (items.length > 1) {
           var href = config.base_url + req.url
           var result = utils.get_collection_json([], href)
           result.collection.error = {
@@ -107,12 +111,12 @@ module.exports = function (config) {
           return
         }
 
-        var start = Date.now()
+        var start2 = Date.now()
         items[0].fetch_type = 'match'
 
         item_utils.fetch_all_children(items[0], 999, function (err, results) {
           if (err) return next(err)
-          log.info('utils found ' + (results && results.length) + ' child items for gtin ' + gtin + ' in ' + (Date.now() - start) + 'ms')
+          log.info('utils found ' + (results && results.length) + ' child items for gtin ' + gtin + ' in ' + (Date.now() - start2) + ' ms')
 
           results.forEach(function (item) {
             if (!item.xml) throw Error('missing xml for item query gtin ' + item.gtin)
@@ -144,7 +148,7 @@ module.exports = function (config) {
           if (req.param('download')) res.set('Content-Disposition', 'attachment; filename="gen_cin_' + gtin + '.xml"')
           res.end(cin_xml)
 
-          log.db(req.url, req.user, (Date.now() - start))
+          log.db(req.url, req.user, (Date.now() - start2))
 
         }) // end: fetch all children and generate cin
       })

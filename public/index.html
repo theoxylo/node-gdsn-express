@@ -50,6 +50,7 @@
     <li><a href="#item_tab">Catalog Items</a></li>
     <li><a href="#pub_tab">Publication</a></li>
     <li><a href="#sub_tab">Subscription</a></li>
+    <li><a href="#cic_tab">Confirmation</a></li>
   </ul>
 
   <div id="main_menu">
@@ -616,6 +617,29 @@
     </div> <!-- end sub_accordion -->
   </div> <!-- end sub_tab -->
 
+  <div id="cic_tab" ng-controller="gdsn_cic_controller">
+    <div id="cic_accordion">
+
+      <div>Search Confirmations</div>
+      <div id="cic_list">
+        <div>
+          <input type="text" ng-model="publisher"></input>
+          <input type="button" ng-click="getConfirmations(publisher)" value="Get Confirmations"></input>
+          <div ng-if="data.publisher">
+            <div>Confirmations for ITN publisher {{data.publisher}} as of <span ng-bind="timestamp"/>:</div>
+            <div ng-repeat="cic in data.confirmations" ng-click="showCicDetail(cic)">
+              <span>{{$index + 1}}. Published to GLN: {{cic.recipient}}
+                <br/>Item GTIN: {{cic.gtin}}
+                <br/>Item TM/TMSub: {{cic.tm}}/{{cic.tm_sub}}
+              </span>
+            </div>
+          </div>
+          <div ng-if="data.url">Data URL: <a ng-href="{{data.url}}">{{data.url}}</a></div>
+        </div>
+      </div>
+    </div>
+  </div> <!-- end cic_tab -->
+
 </div><!-- end tabs -->
 
 
@@ -726,6 +750,7 @@
 <script src="js/ang_controller_item.js"></script>
 <script src="js/ang_controller_pub.js"></script>
 <script src="js/ang_controller_sub.js"></script>
+<script src="js/ang_controller_cic.js"></script>
 <script src="js/ang_controller_debug.js"></script>
 <script src="js/ang_directives.js"></script>
 <script src="js/ang_directive_gdsn-sub/directive.js"></script>
