@@ -108,7 +108,7 @@ module.exports = function (config) {
            ,provider: provider
            ,results: results
         }
-        log.debug('validate_register_items output: ' + output)
+        log.debug('validate_register_items output: ' + JSON.stringify(output))
         res.jsonp(output)
       }) // end validate_register_items call
     }) // end req.on('end')

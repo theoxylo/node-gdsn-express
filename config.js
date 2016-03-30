@@ -22,7 +22,8 @@ var config = {
   , query_msg_id_regex : false
   , send_rci           : true
   , auto_cic           : false
-  , concurrency        : 4
+  , concurrency        : 9
+  , gdsn_bus_vld       : false
 
   //  Optional SSL:
   //, https_port       : 8443        // potentially used for public access

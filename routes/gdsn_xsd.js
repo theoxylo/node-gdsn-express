@@ -63,7 +63,9 @@ module.exports = function (x_config) {
 function do_validation_post(xml, cb) {
 
   var url = config.url_gdsn_api + '/xmlvalidation' 
-  url += '?bus_vld=true'
+  //url += '?bus_vld=true'
+  //url += '?bus_vld=' + (config.gdsn_bus_vld ? 'true' : 'false')
+  url += '?bus_vld=' + config.gdsn_bus_vld // support custom value like 'bms_only'
   log.info('dp-xsd target url: ' + url)
 
   var post_options = {
