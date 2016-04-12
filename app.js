@@ -25,7 +25,7 @@ config.request_counter = 0
 var express         = require('express')
 var logger          = require('morgan')
 var compression     = require('compression')
-var session         = require('cookie-session')
+//var session         = require('cookie-session')
 
 var fs      = require('fs')
 
@@ -73,17 +73,17 @@ app.use(express.static(__dirname + '/public'))
 app.use(logger(logger.combined + ' - :response-time ms') )
 
 
-app.use(session({
-  keys: ['secret135', 'secret258']
-  , secureProxy: true
-}))
+//app.use(session({
+//  keys: ['secret135', 'secret258']
+//  , secureProxy: true
+//}))
 
 
-log.info('Loading ITN Passport google OAuth2 connector...')
-require('./lib/passport').init(config)
+//log.info('Loading ITN Passport google OAuth2 connector...')
+//require('./lib/passport').init(config)
 
 
-app.use('/snoop', function (req, res, next) { res.render('snoop') }) // views/snoop.ejs
+//app.use('/snoop', function (req, res, next) { res.render('snoop') }) // views/snoop.ejs
 
 // api doc renders - ejs examples
 app.get('/docs' + config.base_url + '/parties',    function (req, res, next) { res.render('parties_api_docs_10')   })
@@ -104,12 +104,12 @@ router.use(function authorizeRequest(req, res, next) {
   var credentials = basic_auth(req)
   //log.info('creds name: ' + (credentials && credentials.name))
 
-  var session = req.session
+  //var session = req.session
   //log.info('session: ' + JSON.stringify(session))
 
-  if (req.user && req.user.google_token) {
-     return next()
-  }
+  //if (req.user && req.user.google_token) {
+  //   return next()
+  //}
 
   if (!credentials || (credentials.name + 'Admin' !== credentials.pass)) {
     res.writeHead(401, {
@@ -168,6 +168,7 @@ router.get('/gdsn-validate/:msg_id',         routes_xsd.lookup_and_validate)
 
 router.get('/gdsn-workflow/:msg_id/:sender', routes_gdsn_wf.lookup_and_process)
 router.get('/gdsn-workflow/:msg_id',         routes_gdsn_wf.lookup_and_process)
+router.post('/gdsn_28_31',                   routes_gdsn_wf.convert_item)
 
 // fully qualified path for CIN generation, including recipient
 // also accepts [rdp=gln] // recipientDataPool, msg receiver, defaults to recipient
@@ -271,7 +272,6 @@ if (config.https_port) {
 app.use('/gdsn-server/api/outbox', (function (counter) {
   return function (req, res, next) {
     if (res.finished) return
-
     var content = ''
     req.setEncoding('utf8')
     req.on('data', function (chunk) {
@@ -311,6 +311,32 @@ app.use('/gdsn-server/api/', (function (counter) {
       ,rci_is_needed: true
       ,ts: Date.now()
       ,date_time: new Date()
+    })
+  }
+}(100)))
+
+// convert 2.8 trade item or CIN to first 3.1 tradeItem
+app.post('/quick_post_sample', (function (counter) {
+  return function (req, res, next) {
+    var content = ''
+    req.setEncoding('utf8')
+    req.on('data', function (chunk) {
+      log.debug('gdsn_28_31 post_chunk.length: ' + (chunk && chunk.length))
+      content += chunk
+      if (content.length > 10 * 1024 * 1024 && !res.finished) res.end('content too big - larger than 10 MB')
+    })
+    req.on('end', function () {
+      log.debug('OLD gdsn_28_31 req ' + (counter++) + ' posted content length: ' + content.length)
+      if (res.finished) return
+      try {
+        content = config.gdsn.convert_tradeItem_28_31(content)
+      }
+      catch (e) {
+        log.error(e)
+        return res.send(e)
+      }
+      log.debug('return gdsn_28_31 content length: ' + (content && content.length))
+      res.send(content)
     })
   }
 }(100)))

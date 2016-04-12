@@ -45,7 +45,30 @@ module.exports = function (config) {
         res.jsonp(err || result)
       })
     })
+  }
 
+  api.convert_item = function (req, res, next) {
+    log.debug('>>> route handler called with path ' + req.path)
+    var content = ''
+    req.setEncoding('utf8')
+    req.on('data', function (chunk) {
+      log.debug('gdsn_28_31 post_chunk.length: ' + (chunk && chunk.length))
+      content += chunk
+      if (content.length > 10 * 1024 * 1024 && !res.finished) res.end('content too big - larger than 10 MB')
+    })
+    req.on('end', function () {
+      log.debug('NEW gdsn_28_31 req posted content length: ' + content.length)
+      if (res.finished) return
+      try {
+        content = config.gdsn.convert_tradeItem_28_31(content)
+      }
+      catch (e) {
+        log.error(e)
+        return res.send(e)
+      }
+      log.debug('return gdsn_28_31 content length: ' + (content && content.length))
+      res.send(content)
+    })
   }
 
   return api
