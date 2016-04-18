@@ -9,23 +9,16 @@
   <link rel="stylesheet" href="jqui/jquery-ui-1.10.4.custom.css" />
 
  <style>
-    table
-    {
+    table {
       border-collapse: collapse;
     }
-
-    table, th, td
-    {
+    table, th, td {
       border: 1px solid #e1e1e1;
     }
-
-    th, td
-    {
+    th, td {
       padding: 6px;
     }
-
-    thead
-    {
+    thead {
       background-color: #fcfcfc;
     }
   </style>
@@ -160,12 +153,12 @@
               <td>
                 <input type="checkbox" ng-model="msg.selected"/>
               </td>
-              <td style="text-align: left;">
+              <td style="text-align: left">
                 <span><a ng-href="/cs_api/1.0/msg/{{msg.msg_id}}/{{msg.sender}}" target="_blank" title="View Raw XML">{{msg.msg_id}}</a></span>
               </td>
               <td><span class="clickable" ng-click="showMessageDetail(msg)">{{msg.version}}</span></td>
-              <td style="text-align: left;">{{msg.msg_type}}</td>
-              <td style="text-align: left;">
+              <td style="text-align: left">{{msg.msg_type}}</td>
+              <td style="text-align: left">
                   <span ng-if="msg.exception" class="clickable" ng-click="popupField(msg, 'exception')" title="Show Exception">{{msg.status}}</span>
                   <span ng-if="!msg.exception">{{msg.status}}</span>
                   <span ng-if="msg.request_msg_id"><a ng-href="/cs_api/1.0/msg/{{msg.request_msg_id}}/{{msg.receiver}}" target="_blank" title="View Request Message">req</a></span>
@@ -1003,7 +996,7 @@
           }
         })
         archived.forEach(function(msg) {
-          var idx = messages.indexOf(msg);
+          var idx = messages.indexOf(msg)
           if (idx > -1) messages.splice(idx, 1)
         })
       }

@@ -34,7 +34,7 @@ module.exports = function (config) {
 
         try {
           request.post({
-            url: config.url_gdsn_api + '/xmlvalidation?bus_vld=true'
+            url: config.url_gdsn_api + '/xmlvalidation?bus_vld=false'
             , auth: {
                 'user': 'admin'
                 , 'pass': 'devadmin'
