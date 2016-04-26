@@ -30,12 +30,12 @@ module.exports = function (config) {
 
       log.info('Received content of length ' + (content && content.length || '0'))
 
-      console.log('req.body:')
-      console.log(content)
+      //console.log('req.body:')
+      //console.log(content)
       var body = ''
       body = JSON.parse(content)
-      console.log('parsed:')
-      console.dir(body)
+      //console.log('parsed:')
+      //console.dir(body)
 
       if (!body.gtin || body.gtin.length == 0 || !body.gln || body.gln.length == 0) {
         throw Error('at least 1 gtin and 1 gln are required')
@@ -87,7 +87,6 @@ module.exports = function (config) {
               var error = err || get_error_message(res_body, log)
               if (error) errorCount++
 
-console.log('type of statusCode: ' + typeof response.statusCode)
               task_done(null, {
                 //success   : !err && !error && response.statusCode == '200'
                 success   : !err && !error && response.statusCode == '200'

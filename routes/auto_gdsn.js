@@ -30,49 +30,14 @@ module.exports = function (config) {
         if (err) return next(err)
 
         log.info('Message info saved to archive: ' + msg.msg_id + ', sender: ' + msg.sender)
-        log.info('Message info saved to archive: ' + msg)
 
-        try {
-          request.post({
-            url: config.url_gdsn_api + '/xmlvalidation?bus_vld=false'
-            , auth: {
-                'user': 'admin'
-                , 'pass': 'devadmin'
-                , 'sendImmediately': true
-              }
-            , body: msg.xml
-          }, 
-          function (err, response, body) {
+        process_msg.workflow(msg, function (err, result) {
+          if (err) return next(err)
+          else if (!res.finished) res.jsonp(result)
+        })
+      }) // end db save msg
 
-            if (err) return next(err)
-
-            if (!getSuccess(body)) {
-              log.debug('body: ' + body)
-              var response_xml = config.gdsn.populateResponseToSender('validation error', msg, msg.provider || msg.recipient)
-              if (response_xml) {
-                db_msg_archive.saveMessage(response_xml, function (err, saved_resp) {
-                  if (err) return next(err)
-                  log.info('Saved generated response to original message: ' + msg.msg_id)
-                  log.info('Saved generated response: ' + saved_resp.msg_id)
-                  res.jsonp({note:'validation error for msg ' + msg.msg_id, body: body})
-                })
-              }
-              return
-            }
- 
-            process_msg.workflow(msg, function (err, result) {
-              if (err) return next(err)
-              else res.jsonp(result)
-            })
-
-          }) // end request.post
-        }
-        catch (err) {
-          return next(err)
-        }
-
-      })
-    })
+    }) // end req on 'end'
   }
 
   return api

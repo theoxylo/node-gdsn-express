@@ -37,7 +37,7 @@ module.exports = function (config) {
 
     profileChecker: function (req, res, next) {
       var path = config.base_url + req.path
-      log.info('checking user \'' + req.user + '\' config for requested url: ' + req.url)
+      log.debug('checking user \'' + req.user + '\' config for requested url: ' + req.url)
       var urls = config.user_config[req.user] && config.user_config[req.user].urls
       for (var i = 0; urls && i < urls.length; i++) {
         if (path.indexOf(urls[i]) == 0) {
@@ -45,6 +45,7 @@ module.exports = function (config) {
           return next()
         }
       }
+      log.warn('path \'' + path + '\' NOT allowed by config \'' + urls[i] + '\' for user ' + req.user)
       res.statusCode = 403
       res.end('path ' + path + ' not configured for user ' + req.user)
     }

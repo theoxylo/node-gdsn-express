@@ -99,7 +99,7 @@ log.info('setting up basic_auth')
 var basic_auth = require('basic-auth')
 
 router.use(function authorizeRequest(req, res, next) {
-  log.info('req.user: ' + JSON.stringify(req.user))
+  //log.info('req.user: ' + JSON.stringify(req.user))
 
   var credentials = basic_auth(req)
   //log.info('creds name: ' + (credentials && credentials.name))

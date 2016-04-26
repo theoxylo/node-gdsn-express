@@ -20,10 +20,11 @@ var config = {
   , item_default_gtin  : '00000000000000'
   , item_default_gpc   : '99999999'
   , query_msg_id_regex : false
-  , send_rci           : true
+  , send_rci           : false
   , auto_cic           : false
-  , concurrency        : 9
   , gdsn_bus_vld       : false
+  , concurrency        : 9
+  , xml_query          : false
 
   //  Optional SSL:
   //, https_port       : 8443        // potentially used for public access

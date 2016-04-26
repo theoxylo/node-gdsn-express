@@ -114,8 +114,8 @@ module.exports = function (config) {
       Q.allSettled(promise_list)
       .then(function (results) {
 
-        console.log('==================== Q.allsettled ==================')
-        console.dir(results)
+        //console.log('==================== Q.allsettled ==================')
+        //console.dir(results)
 
         var summary = {success: true, ts: Date.now(), results: []}
         results.forEach(function (result) {

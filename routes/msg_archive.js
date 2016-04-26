@@ -55,7 +55,7 @@ module.exports = function (config) {
     var xml = ''
     req.setEncoding('utf8')
     req.on('data', function (chunk) {
-      log.debug('archive_post_chunk.length: ' + (chunk && chunk.length))
+      //log.debug('archive_post_chunk.length: ' + (chunk && chunk.length))
       xml += chunk
       if (xml.length > 30 * 1024 * 1024 && !res.finished) res.end('msg.xml too big')
     })
@@ -65,7 +65,7 @@ module.exports = function (config) {
       db_msg_archive.saveMessage(xml, function (err, msg_info) {
         if (err) return next(err)
         log.info('Message info saved to archive: ' + msg_info.msg_id + ', sender: ' + msg_info.sender)
-        log.info('biz objects: ' + (msg_info.data && msg_info.data.join()))
+        //log.info('biz objects: ' + (msg_info.data && msg_info.data.join()))
         if (!res.finished) {
           res.json(formatResults(msg_info))
           res.end()
@@ -121,17 +121,16 @@ module.exports = function (config) {
   api.msg_history = function (req, res, next) {
     log.debug('msg_history req query string: ' + JSON.stringify(req.query))
     var query = get_query(req)
-    query.msg_id = req.param('msg_id') // change to exact match, 
-    query.sender = req.param('sender') // since getQuery uses a regex
+    query.msg_id = req.param('msg_id') // change to exact match since get_query uses a regex
     log.debug('query= ' + JSON.stringify(query))
 
     var page = parseInt(req.param('page'))
-    log.info('page ' + page)
+    log.debug('page ' + page)
     if (!page || page < 0) page = 0
 
     var per_page = parseInt(req.param('per_page'))
     if (!per_page || per_page < 0 || per_page > 10000) per_page = config.per_page_count  // max per_page is 10k
-    log.info('per_page ' + per_page)
+    log.debug('per_page ' + per_page)
     
     db_msg_archive.listMessages(query, page, per_page, function (err, results) {
       if (err) return next(err)
@@ -161,12 +160,12 @@ module.exports = function (config) {
     log.debug('query= ' + JSON.stringify(query))
 
     var page = parseInt(req.param('page'))
-    log.info('page ' + page)
+    //log.info('page ' + page)
     if (!page || page < 0) page = 0
 
     var per_page = parseInt(req.param('per_page'))
     if (!per_page || per_page < 0 || per_page > 10000) per_page = config.per_page_count  // max per_page is 10k
-    log.info('per_page ' + per_page)
+    //log.info('per_page ' + per_page)
     
     db_msg_archive.listMessages(query, page, per_page, function (err, results) {
       if (err) return next(err)
@@ -225,19 +224,20 @@ module.exports = function (config) {
   function get_query(req) {
     var query = {}
     
-    var sender       = req.param('sender')
-    if (sender) {
+    var sender = req.param('sender')
+    if (sender && sender.length < 13) {
       query.sender = {$regex: sender}
     }
+    else if (sender) query.sender = sender
     else query.sender = {$exists: true} // every message must have a msg_id and sender
 
-    var msg_id       = req.param('msg_id')
+    var msg_id = req.param('msg_id')
     if (msg_id) {
       query.msg_id = {$regex: msg_id}
     }
     else query.msg_id = {$exists: true} // every message must have a msg_id and sender
 
-    var req_msg_id       = req.param('req_msg_id')
+    var req_msg_id = req.param('req_msg_id')
     if (req_msg_id) {
       query.request_msg_id = {$regex: req_msg_id}
     }
@@ -254,25 +254,29 @@ module.exports = function (config) {
       }
     }
 
-    var source_dp       = req.param('source_dp')
-    if (source_dp) {
+    var source_dp = req.param('source_dp')
+    if (source_dp && source_dp.length < 13) {
       query.source_dp = {$regex: source_dp}
     }
+    else if (source_dp) query.source_dp = source_dp
 
-    var recipient       = req.param('recipient')
-    if (recipient) {
+    var recipient = req.param('recipient')
+    if (recipient && recipient.length < 13) {
       query.recipient = {$regex: recipient}
     }
+    else if (recipient) query.recipient = recipient
 
-    var provider       = req.param('provider')
-    if (provider) {
+    var provider  = req.param('provider')
+    if (provider && provider.length < 13) {
       query.provider = {$regex: provider}
     }
+    else if (provider) query.provider = provider
 
-    var receiver       = req.param('receiver')
-    if (receiver) {
+    var receiver  = req.param('receiver')
+    if (receiver && receiver.length < 13) {
       query.receiver = {$regex: receiver}
     }
+    else if (receiver) query.receiver = receiver
     
     var created_st_date       = req.param('created_st_date')
     var created_end_date       = req.param('created_end_date')
@@ -296,6 +300,8 @@ module.exports = function (config) {
           query.modified_ts.$lt = utils.getDateTime(modified_end_date) + utils.MILLIS_PER_DAY
         }
     }
+
+    if (!config.xml_query) return query
     
     // $and $not
 	var exprs = []
