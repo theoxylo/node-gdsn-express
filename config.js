@@ -1,5 +1,5 @@
 var config = {
-    debug              : true                       // additional logging
+    debug              : false                      // additional logging?
   , shut_down_pw       : ''                         // for remote server shutdown, empty to disable
   , http_port          : 8080                       // used for dashboard and load balanced traffic
   , http_host          : 'localhost'                // hostname used for http redirects/auth
@@ -34,6 +34,7 @@ var config = {
 }
 
 // config methods
+/*
 config.toString = function () {
   var as_string = ''
   var self = this
@@ -44,6 +45,7 @@ config.toString = function () {
   }
   return as_string
 }
+*/
 
 var local_config = {}
 try {

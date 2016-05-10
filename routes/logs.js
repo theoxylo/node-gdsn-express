@@ -1,16 +1,14 @@
 module.exports = function (config) {
   
   var async      = require('async')
-  var log        = require('../lib/Logger')('rt_logs', {debug: true})
+  var log        = require('../lib/Logger')('rt_logs', config)
   var utils      = require('../lib/utils.js')(config)
   var logs       = require('../lib/db/logs.js')(config)
 
   var api = {}
 
   api.list_logs = function(req, res, next) {
-    log.debug('list_logs() req params= ' + JSON.stringify(req.query))
-
-
+    //log.debug('list_logs() req params= ' + JSON.stringify(req.query))
     var page = parseInt(req.param('page'))
     if (!page || page < 0) page = 0
     var per_page = parseInt(req.param('per_page'))

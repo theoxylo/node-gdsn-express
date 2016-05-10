@@ -1,6 +1,6 @@
 module.exports = function (config) {
 
-  var log            = require('../lib/Logger')('rt_msg_arch', {debug: true})
+  var log            = require('../lib/Logger')('rt_msg_arch', config)
   var utils          = require('../lib/utils.js')(config)
   var db_msg_archive = require('../lib/db/msg_archive.js')(config)
 
@@ -50,21 +50,24 @@ module.exports = function (config) {
 
   // save msg xml to archive and store biz objects e.g. trade_items
   api.post_archive = function (req, res, next) {
-
-    log.debug('-------------------------------------------------->>> post_archive handler called')
+    //log.debug('-------------------------------------------------->>> post_archive handler called')
     var xml = ''
     req.setEncoding('utf8')
     req.on('data', function (chunk) {
       //log.debug('archive_post_chunk.length: ' + (chunk && chunk.length))
       xml += chunk
-      if (xml.length > 30 * 1024 * 1024 && !res.finished) res.end('msg.xml too big')
+      if (xml.length > 30 * 1024 * 1024 && !res.finished) res.end('msg.xml too big') // ~30MB upload limit
     })
     req.on('end', function () {
       if (res.finished) return
-      log.info('Received msg.xml of length ' + (xml && xml.length || '0'))
+      log.debug('Received posted XML of length ' + xml.length)
+      var start = Date.now()
       db_msg_archive.saveMessage(xml, function (err, msg_info) {
-        if (err) return next(err)
-        log.info('Message info saved to archive: ' + msg_info.msg_id + ', sender: ' + msg_info.sender)
+        if (err) {
+          log.error(err)
+          return next(err)
+        }
+        log.info('Message with length ' + xml.length + ' archived: ' + msg_info.msg_id + ', sender: ' + msg_info.sender + ', took ' + (Date.now() - start) + ' ms')
         //log.info('biz objects: ' + (msg_info.data && msg_info.data.join()))
         if (!res.finished) {
           res.json(formatResults(msg_info))

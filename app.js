@@ -14,7 +14,7 @@
  *  public/
  *  public/js
  *
- * SVN Tag: $URL: $
+ * SVN Tag: $URL: http://svn.instill.com/repos/instill_dev/Catalog_Services/node-api-server/trunk/app.js $
  */
 console.log('start app.js at ' + new Date)
 
@@ -33,7 +33,7 @@ var Logger = require('./lib/Logger')
 var log = Logger('gdsnApp', config)
 log.debug('DEBUG logging enabled')
 log.info('INFO logging enabled')
-log.debug('config: ' + config) // use config.toString impl
+//log.debug('config: ' + config) // use config.toString impl
 
 var Gdsn = require('gdsn')
 config.gdsn = new Gdsn(config)

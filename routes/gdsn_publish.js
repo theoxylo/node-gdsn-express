@@ -37,30 +37,32 @@ module.exports = function (config) {
       //console.log('parsed:')
       //console.dir(body)
 
-      if (!body.gtin || body.gtin.length == 0 || !body.gln || body.gln.length == 0) {
-        throw Error('at least 1 gtin and 1 gln are required')
+      if (!body.items || body.items.length == 0 || !body.gln || body.gln.length == 0) {
+        throw Error('at least 1 item and 1 gln are required')
       }
       // do async api calls:
       var tasks = []
       var errorCount = 0
 
-      body.gtin.forEach(function (gtin) {
+      body.items.forEach(function (item) {
         body.gln.forEach(function (gln) {
           tasks.push(function (task_done) {
 
-            log.debug('update pub data for gtin ' + gtin + ', pub to: ' + gln)
+            if (!item) return
+            log.debug('update pub data for item gtin ' + item.gtin + ', tm: ' + item.tm + ', tm_sub: ' + item.tm_sub + ', pub to: ' + gln)
+
             var start_cip_api_call = Date.now()
 
             var form_data = {
                 ds       : provider
               , dr       : gln
-              , gtin     : gtin
-              , tm       : '840'
-              , tms      : ''
+              , gtin     : item.gtin || item // in case item is simple gtin string like before
+              , tm       : item.tm || '840'
+              , tms      : item.tm_sub || ''
               , il       : body.load ? 'true' : ''
               , ts       : new Date()
             }
-            //if (pub['delete']) form_data['delete'] = 'true'
+            if (body['delete'] == 'true') form_data['delete'] = 'true'
 
             request.post({
               url          : config.url_gdsn_api + '/publish'
@@ -92,13 +94,15 @@ module.exports = function (config) {
                 success   : !err && !error && response.statusCode == '200'
                 ,error    : error || ''
                 ,gln      : gln
-                ,gtin     : gtin
+                ,gtin     : item.gtin || item
+                ,tm       : item.tm || '840'
+                ,tm_sub   : item.tm_sub || ''
               })
 
             }) // end request.post
           }) // end tasks.push
         }) // end forEach gln
-      }) // end forEach gtin
+      }) // end forEach item gtin
 
       async.parallelLimit(tasks, config.concurrency, function (err, results) {
         log.debug('parallel cip results count: ' + results && results.length)

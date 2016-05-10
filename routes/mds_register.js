@@ -34,8 +34,10 @@ module.exports = function (config) {
 
       var error_count = 0
       results.forEach(function (result) {
-        log.info('register_items result: ' + result)
-        if (result == null || !result.success) error_count++
+        try { 
+          log.info('register_items result: ' + JSON.stringify(result))
+        } catch (e) {}
+        if (!result || !result.success) error_count++
       })
       var output = {
        result_count: (results && results.length) || '0'
@@ -99,8 +101,10 @@ module.exports = function (config) {
 
         var error_count = 0
         results.forEach(function (result) {
-          log.info('register_items result: ' + result)
-          if (result == null || !result.success) error_count++
+          try { 
+            log.info('register_items result: ' + JSON.stringify(result))
+          } catch (e) {}
+          if (!result || !result.success) error_count++
         })
         var output = {
            result_count: (results && results.length) || '0'

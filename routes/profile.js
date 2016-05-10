@@ -1,7 +1,7 @@
 module.exports = function (config) {
   
   var fs = require('fs')
-  var log  = require('../lib/Logger')('rt_profile', {debug: true})
+  var log = require('../lib/Logger')('rt_profile', config)
 
   return {
 
@@ -12,7 +12,7 @@ module.exports = function (config) {
         return next()
       }
       var filename = __dirname + '/../profiles/' + req.user + '.js'
-      log.info('loading user_config for user \'' + req.user + '\', file: ' + filename)
+      log.debug('loading user_config for user \'' + req.user + '\', file: ' + filename)
 
       fs.readFile(filename, function (err, data) {
         if (config.user_config[req.user]) return next() // in case it got loaded since above check
