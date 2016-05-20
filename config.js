@@ -33,20 +33,6 @@ var config = {
   //, cert_file        : __dirname + '/dev_key-cert.pem'
 }
 
-// config methods
-/*
-config.toString = function () {
-  var as_string = ''
-  var self = this
-  for (var prop in self) {
-    as_string += '\n'
-    if (self.hasOwnProperty(prop)) as_string += '*** '
-    as_string += '"' + prop + '": "' + self[prop] + '"'
-  }
-  return as_string
-}
-*/
-
 var local_config = {}
 try {
   //var file = process.env['NODE_LOCAL_CONFIG'] || './config.js.STAGE'
