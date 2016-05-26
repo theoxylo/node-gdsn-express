@@ -309,7 +309,7 @@ module.exports = function (config) {
     ) {
       try {
         var dUrls = item.tradeItem.tradeItemInformation.tradeItemDescriptionInformation.tradeItemExternalInformation.map(function (extInfo) {
-          console.log('found an ExternalInfo for populateItemImageUrls for gtin ' + item.gtin + ' with url ' + extInfo.uniformResourceIdentifier)
+          log.debug('found an ExternalInfo for populateItemImageUrls for gtin ' + item.gtin + ' with url ' + extInfo.uniformResourceIdentifier)
           return extInfo.uniformResourceIdentifier
         })
         if (dUrls && dUrls.length) {
@@ -318,7 +318,7 @@ module.exports = function (config) {
           Array.prototype.splice.apply(urls, dUrls)
         }
       }
-      catch (e) {console.log(e)}
+      catch (e) {log.error(e)}
     }
     if (item
         && item.tradeItem
@@ -336,7 +336,7 @@ module.exports = function (config) {
           Array.prototype.splice.apply(urls, fUrls)
         }
       }
-      catch (e) {console.log(e)}
+      catch (e) {log.error(e)}
     }
     if (urls.length) log.debug('all item external file urls: ' + urls.join(' '))
     item.images = urls

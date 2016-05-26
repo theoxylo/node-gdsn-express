@@ -119,7 +119,7 @@ module.exports = function (config) {
 
         var summary = {success: true, ts: Date.now(), results: []}
         results.forEach(function (result) {
-          console.log(result.state + ': ' + (result.value || result.reason))
+          //console.log(result.state + ': ' + (result.value || result.reason))
           //summary.results.push(result.state)
           summary.results.push(result.value || result.reason)
         })
@@ -128,7 +128,7 @@ module.exports = function (config) {
       .then(function (data) {
         res.jsonp(data)
         //return data
-        console.log('data.state: ' + data.state)   // treat data param like a promise?
+        //console.log('data.state: ' + data.state)   // treat data param like a promise?
         return ('wrote ' + data.length + ' bytes') // treat data param like array/string?
       })
       .catch(function (err) {

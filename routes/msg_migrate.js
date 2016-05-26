@@ -5,8 +5,8 @@ module.exports = function (config) {
   var _              = require('underscore')
   var async          = require('async')
 
-  var log            = require('../lib/Logger')('rt_msg_migr', {debug: true})
-  var db_msg_archive    = require('../lib/db/msg_archive.js')(config)
+  var log            = require('../lib/Logger')('rt_msg_migr', config)
+  var db_msg_archive = require('../lib/db/msg_archive.js')(config)
 
   var api = {}
 

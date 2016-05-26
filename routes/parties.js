@@ -38,7 +38,7 @@ module.exports = function (config) {
   }
 
   api.post_parties = function (req, res, next) {
-    console.log('post_parties handler called')
+    //console.log('post_parties handler called')
 
     var parties = []
 

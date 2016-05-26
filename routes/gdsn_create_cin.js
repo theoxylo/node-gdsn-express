@@ -20,7 +20,7 @@ module.exports = function (config) {
       //var gtin = req.param('gtin')
 
       gtin = req.params.gtin // root item gtin is always required in path
-      console.log('create new CIN messages for root gtin: ' + gtin)
+      log.debug('create new CIN messages for root gtin: ' + gtin)
       if (!gtin) {
         var result = utils.get_collection_json([], config.base_url + req.url)
         result.collection.error = {

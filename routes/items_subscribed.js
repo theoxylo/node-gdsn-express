@@ -217,12 +217,12 @@ module.exports = function (config) {
 
             if (req_param['transform']) {
               if (req_param['reduce'] && client_config.reduce) {
-                console.log('applying server profile reduce for client ' + req.user)
+                log.debug('applying server profile reduce for client ' + req.user)
                 try {
                   items = [client_config.reduce(items)] // condense to single item
                 }
                 catch (e) {
-                  console.log('Error applying server profile reduce to item: ' + e)
+                  log.error('Error applying server profile reduce to item: ' + e)
                 }
               }
             }

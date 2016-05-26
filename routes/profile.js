@@ -29,7 +29,7 @@ module.exports = function (config) {
             log.warn('error parsing profile \'' + filename + '\': ' + e)
           }
         }
-        else console.log(err)
+        else log.error(err)
         config.user_config[req.user].user = req.user
         next()
       })

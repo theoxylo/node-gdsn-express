@@ -165,10 +165,8 @@ module.exports = function (config) {
         })
       }
       catch (e) {
-        log.debug('json parse error: ' + e)
-        console.dir(e)
-        log.debug('json parse error source text: ' + body)
-        console.dir(body)
+        log.error('json parse error: ' + e)
+        log.error('json parse error source text: ' + body)
         next(error)
       }
 
@@ -185,14 +183,14 @@ function get_error_message(body, log) {
   try {
     body = body.replace(/\(/g, '')
     var res_body = JSON.parse(body)
-    console.log('error: ' + res_body.error)
-    console.dir(res_body)
+    //console.log('error: ' + res_body.error)
+    //console.dir(res_body)
     return res_body.error ? JSON.stringify([res_body.error]) : ''
   }
   catch (e) {
-    log.debug('json parse error: ' + e)
-    log.debug('json parse error source text: ' + body)
-    console.dir(body)
+    log.error('json parse error: ' + e)
+    log.error('json parse error source text: ' + body)
+    //console.dir(body)
     return body
   }
   return ''

@@ -41,7 +41,7 @@ module.exports = function (config) {
 function getSuccess(body) { // this function cannot access config
   try {
     var success = JSON.parse(body).success
-    console.log('success: ' + success)
+    //console.log('success: ' + success)
     return success && success != 'false'
   }
   catch (e) {
