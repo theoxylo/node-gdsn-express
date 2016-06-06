@@ -228,21 +228,26 @@ module.exports = function (config) {
     var query = {}
     
     var sender = req.param('sender')
+    if (sender) query.sender = sender
+    /*
     if (sender && sender.length < 13) {
       query.sender = {$regex: sender}
     }
     else if (sender) query.sender = sender
-    else query.sender = {$exists: true} // every message must have a msg_id and sender
+    */
+    //else query.sender = {$exists: true} // every message must have a msg_id and sender
 
     var msg_id = req.param('msg_id')
     if (msg_id) {
-      query.msg_id = {$regex: msg_id}
+      //query.msg_id = {$regex: msg_id}
+      query.msg_id = msg_id
     }
-    else query.msg_id = {$exists: true} // every message must have a msg_id and sender
+    //else query.msg_id = {$exists: true} // every message must have a msg_id and sender
 
     var req_msg_id = req.param('req_msg_id')
     if (req_msg_id) {
-      query.request_msg_id = {$regex: req_msg_id}
+      //query.request_msg_id = {$regex: req_msg_id}
+      query.request_msg_id = req_msg_id
     }
 
     // drop down (exact match) is 1st choice
@@ -253,33 +258,46 @@ module.exports = function (config) {
       // free text is 2nd choice
       var msg_type_regex     = req.param('msg_type_regex')
       if (msg_type_regex) {
-        query.msg_type = {$regex: msg_type_regex}
+        //query.msg_type = {$regex: msg_type_regex}
+        query.msg_type = msg_type_regex
       }
     }
 
     var source_dp = req.param('source_dp')
+    if (source_dp) query.source_dp = source_dp
+    /*
     if (source_dp && source_dp.length < 13) {
       query.source_dp = {$regex: source_dp}
     }
     else if (source_dp) query.source_dp = source_dp
+    */
 
     var recipient = req.param('recipient')
+    if (recipient) query.recipient = recipient
+    /*
     if (recipient && recipient.length < 13) {
       query.recipient = {$regex: recipient}
     }
     else if (recipient) query.recipient = recipient
+    */
 
     var provider  = req.param('provider')
+    if (provider) query.provider = provider
+    /*
     if (provider && provider.length < 13) {
       query.provider = {$regex: provider}
     }
     else if (provider) query.provider = provider
+    */
 
     var receiver  = req.param('receiver')
+    if (receiver) query.receiver = receiver
+    /*
     if (receiver && receiver.length < 13) {
       query.receiver = {$regex: receiver}
     }
     else if (receiver) query.receiver = receiver
+    */
     
     var created_st_date       = req.param('created_st_date')
     var created_end_date       = req.param('created_end_date')
@@ -304,6 +322,8 @@ module.exports = function (config) {
         }
     }
 
+    if (true) return query
+    /*
     if (!config.xml_query) return query
     
     // $and $not
@@ -336,5 +356,8 @@ module.exports = function (config) {
   // escape forward slash
   function escSlash(str) {
 	return str.replace(/\//g, '\\/')
+    */
+
+
   }
 }

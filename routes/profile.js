@@ -45,7 +45,7 @@ module.exports = function (config) {
           return next()
         }
       }
-      log.warn('path \'' + path + '\' NOT allowed by config \'' + urls[i] + '\' for user ' + req.user)
+      log.warn('path \'' + path + '\' NOT allowed by config for user ' + req.user)
       res.statusCode = 403
       res.end('path ' + path + ' not configured for user ' + req.user)
     }

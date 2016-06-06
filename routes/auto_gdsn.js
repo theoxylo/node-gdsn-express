@@ -20,15 +20,22 @@ module.exports = function (config) {
       if (xml.length > 30 * 1024 * 1024 && !res.finished) res.end('msg.xml too big - larger than 30 MB')
     })
 
+    setTimeout(function () {
+      if (!res.finished) next(Error('request timeout'))
+    }, 60000) // 60 sec timeout
+
     req.on('end', function () {
       log.info('Received msg.xml of length ' + (xml && xml.length || '0'))
+
+      if (res.finished) return // stale request
 
       db_msg_archive.saveMessage(xml, function (err, msg) {
         if (err) return next(err)
         log.info('Message info saved to archive: ' + msg.msg_id + ', sender: ' + msg.sender)
+
         process_msg.workflow(msg, function (err, result) {
           if (err) return next(err)
-          else if (!res.finished) res.jsonp(result)
+          if (!res.finished) res.jsonp(result)
         })
       }) // end saveMessage
 

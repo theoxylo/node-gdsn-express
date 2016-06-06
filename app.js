@@ -184,7 +184,7 @@ router.get('/msg/archive/:msg_id/:sender',   routes_msg.archive_msg)
 
 router.get('/msg/migrate/:msg_id/:sender',   routes_msg_mig.reparse_msg)
 router.get('/msg/migrate/:msg_id',           routes_msg_mig.reparse_msg)
-//router.get('/msg-migrate',                   routes_msg_mig.migrate_msg_archive)
+router.get('/msg-migrate',                   routes_msg_mig.migrate_msg_archive)
 
 router.get('/msg/:msg_id/:sender',           routes_msg.find_archive)
 router.get('/msg/:msg_id',                   routes_msg.find_archive)

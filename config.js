@@ -1,5 +1,5 @@
 var config = {
-    debug              : false                      // additional logging?
+    debug              : true                       // additional logging?
   , shut_down_pw       : ''                         // for remote server shutdown, empty to disable
   , http_port          : 8080                       // used for dashboard and load balanced traffic
   , http_host          : 'localhost'                // hostname used for http redirects/auth
@@ -23,7 +23,7 @@ var config = {
   , send_rci           : false
   , auto_cic           : false
   , gdsn_bus_vld       : false
-  , concurrency        : 9
+  , concurrency        : 5
   , xml_query          : false
 
   //  Optional SSL:

@@ -18,15 +18,12 @@ module.exports = function (config) {
       res.end('sender must be a valid GLN')
       return
     }
-  
+
     var msg_id = req.params.msg_id
-    var sender = req.params.sender
     if (!msg_id) { 
       res.end('msg_id param is required')
       return
     }
-    // fetch existing msg xml and submit to dp
-    log.debug('gdsn-wf will use existing msg with id ' + msg_id)
 
     Promise(function (resolve, reject) {
       db_msg_archive.findMessage(sender, msg_id, function (err, msg) {
@@ -65,24 +62,26 @@ module.exports = function (config) {
 
     var msgsMigrated = []
 
+    var msg_type  = req.param('msg_type') || 'catalogueItemConfirmation'
+
+    var provider  = req.param('provider')
+    var recipient = req.param('recipient')
+    var all       = req.param('all')
+
+    if (!provider && !recipient && !all) provider = '0000000000000'
+
     function migrateMessageBatch(batch_num) {
 
       var query = {
-        sender   : '1100001011339'
-        //,msg_type: 'catalogueItemNotification'
-        //,source_dp: '1100001011285'
-        //,version  : '3.1'
-        //source_dp: {$exists: false}
-        //version: {$exists: false}
-        //status: "REVIEW"
-        //msg_type: 'GDSNResponse'
-        //msg_id: 'API_CIP_1348588916974_10036016500279'
-        //gdsn_repostable: {$exists: true}
+        receiver: config.homeDataPoolGln // only look at messages received by home DP from local parties or other data pools, not generated CIN
+        ,msg_type: msg_type
       }
+      if (provider) query.provider = provider
+      if (recipient) query.recipient = recipient
 
       db_msg_archive.listMessages(query, batch_num, 10, function (err, messages) {
         if (err) return next(err)
-        log.info('migrate_msg_archive listMessages return count: ' + messages.length)
+        log.info('migrate_msg_archive cic listMessages return count: ' + messages.length)
 
         if (!messages.length) {
           res.jsonp({msg: 'Migrated ' + msgsMigrated.length + ' messages: ' + msgsMigrated.join(', ')})
@@ -95,7 +94,6 @@ module.exports = function (config) {
 
           tasks.push(function (callback) {
             db_msg_archive.saveMessage(msg.xml, function (err, msg) {
-              log.debug('route save version: ' + (msg && msg.version))
               if (err) return callback(err)
               else callback(null, msg.msg_id)
             })
