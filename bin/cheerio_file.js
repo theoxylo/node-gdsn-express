@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+"use strict";
+
 (function () {
      
   var log = console.log
@@ -26,12 +28,28 @@
         , xmlMode: true
       })
 
-      var count = 0
-      $('tradeItem > gtin').each(function () {
-        count++
-        log('found gtin ' + $(this).text())
+      { // block scope
+	let count = 0
+	$('tradeItem > gtin').each(function () {
+	  count++
+	  log('found gtin ' + $(this).text())
+	})
+	log('trade item count: ' + count) // count defined in block scope only
+      }
+      //log('trade item count: ' + count) // ReferenceError: count is not definedcount undefined
+      // can't even do if (count):
+      //if (count) log('count!')
+      //    ^
+      // ReferenceError: count is not defined
+
+
+      var sdps = []
+      $('sourceDataPool').each(function () {
+        let sdp = $(this).text()
+        console.log('sdp ' + sdp)
+        if (sdps.indexOf(sdp) == -1) sdps.push(sdp)
+        if (sdps.length != 1) throw Error('sdp not allowed to vary per file')
       })
-      log('trade item count: ' + count)
 
     })
   }
