@@ -36,7 +36,8 @@
 	})
 	log('trade item count: ' + count) // count defined in block scope only
       }
-      //log('trade item count: ' + count) // ReferenceError: count is not definedcount undefined
+      //log('trade item count: ' + count) // ReferenceError: count is not defined
+                                          // not the same as "undefined" value
       // can't even do if (count):
       //if (count) log('count!')
       //    ^
